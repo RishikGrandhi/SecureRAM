@@ -1,10 +1,10 @@
 # SecureRAM architecture
 
-Status: M2 plaintext block storage is implemented; VM runtime acceptance is
-pending. M1 is complete, including the user's VM lifecycle verification. This
-document preserves the long-term design; the concrete current behavior and
-resource lifecycle are specified in [the M2 design](m2-design.md). Security,
-key management, and control interfaces below remain future work.
+Status: M1 and M2 are complete, including their recorded VM runtime acceptance.
+M2 remains plaintext volatile block storage. This document preserves the
+long-term design; the concrete current behavior and resource lifecycle are
+specified in [the M2 design](m2-design.md). Security, key management, and
+control interfaces below remain future work.
 
 ## Objective and problem
 

@@ -3,17 +3,19 @@
 Date: 2026-10-10 (Asia/Calcutta). Scope: **M2 only**. Version: **0.2.0**.
 
 The plaintext block-device implementation builds against the exact target
-`7.0.0-38-generic` headers. **M2 VM runtime acceptance is pending.** The agent
-did not load this module, perform device I/O, mount it, or format any filesystem.
-M1's successful VM runtime verification remains recorded in its unchanged report.
+`7.0.0-38-generic` headers. **M2 VM runtime acceptance is complete.** The user
+manually verified the module and device in the Ubuntu 24.04.5 LTS VirtualBox VM
+running that kernel. M1's successful VM runtime verification remains recorded
+in its unchanged report.
 
 ## 1. Milestone objective
 
 Turn the M1 lifecycle skeleton into one real volatile RAM-backed Linux block
 device, `/dev/secureram0`, using the block APIs for the user's Ubuntu 24.04.5 LTS
 VirtualBox VM. The working tree was clean at `26555a0` before edits. Work is on
-`m2-ram-block-device`; M1 commits `768dff3` and `26555a0` are preserved. Changes
-are left uncommitted for review; no push or history rewrite was performed.
+`m2-ram-block-device`; M1 commits `768dff3` and `26555a0` are preserved, and
+the M2 implementation is committed at `e89a674`. This documentation update
+records the later manual VM evidence and is left uncommitted for review.
 
 ## 2. Files created
 
@@ -157,10 +159,11 @@ make KDIR="$target" clean
 Additional checks validated documentation shell snippets without executing them,
 local links/anchors and text formatting, and compared undefined module symbols
 with the target's `Module.symvers`. The raw test was invoked **without root** to
-check its refusal path; it exited before opening/writing any device. No real
-raw/device/filesystem test was run. Changes and new source files were inspected
-directly as well as through Git diff. `docs/m1-report.md` remains identical to
-the M1 commit.
+check its refusal path; it exited before opening/writing any device. At that
+initial off-VM verification stage, no real raw/device/filesystem test was run.
+Section 15 records the user's later manual VM acceptance results. Changes and
+new source files were inspected directly as well as through Git diff.
+`docs/m1-report.md` remains identical to the M1 commit.
 
 ## 12. Build results
 
@@ -202,20 +205,34 @@ Code review also traced acceptance/completion, list ownership, arithmetic,
 page mappings, and every partial-initialization/unload path. Static review is
 not proof that runtime races or allocation-failure behavior have been tested.
 
-## 15. What requires VM runtime verification
+## 15. VM runtime acceptance result
 
-All M2 runtime acceptance remains pending: successful load; device/sysfs
-appearance; lsblk/capacity; initial zeroes; exact raw read/write; boundary behavior;
-concurrent I/O; busy-unload protection; unsupported discard; optional ext4;
-successful removal; reload/zeroing; and invalid-parameter handling. The local
-runtime is `6.18.33.2-microsoft-standard-WSL2`, so the target module was not
-inserted here. No remote access to the user's VirtualBox VM was assumed.
+Status: **PASS**, manually verified by the user in Ubuntu 24.04.5 LTS running
+`7.0.0-38-generic` inside VirtualBox.
 
-## 16. Exact VM runtime-test commands
+| Check | Observed result |
+| --- | --- |
+| Running-kernel build and load | The module built against the running kernel and `insmod` succeeded. |
+| Registration | `lsmod` showed `secureram`; `/dev/secureram0` existed. |
+| Geometry | `lsblk` reported `secureram0` as a 64 MiB block device. |
+| Raw I/O | A 1 MiB random file was written to and read from `/dev/secureram0`; SHA-256 values matched and `cmp` reported no differences. |
+| Filesystem I/O | ext4 creation, mount, normal file creation/readback, and clean unmount succeeded. |
+| Teardown | `rmmod` succeeded, the device node disappeared, and dmesg reported `SecureRAM: M2 module unloaded; device removed and RAM released`. |
+| Kernel health | No SecureRAM-related Oops, BUG, panic, use-after-free, or protection fault was observed. |
+
+These results complete M2 runtime acceptance for the implemented plaintext
+block-device milestone. They do not claim that every extended check in the
+reusable procedure was run. Initial-zero scans, boundary and concurrent streams,
+busy-unload protection, unsupported discard, reload/zeroing, invalid parameters,
+fault injection, and KASAN/lockdep/kmemleak remain useful regression or hardening
+checks unless separately recorded.
+
+## 16. Reusable VM runtime-test commands
 
 The complete ordered commands, expected outputs, and optional destructive
-whole-device ext4 test are in [the M2 runtime procedure](m2-testing.md). Its core
-sequence, after installing matching headers/dependencies in the VM, is:
+whole-device ext4 test remain in [the M2 runtime procedure](m2-testing.md) for
+future regression runs. Its core sequence, after installing matching
+headers/dependencies in the VM, is:
 
 ```sh
 make check-env
@@ -246,8 +263,8 @@ change a destructive command's target away from `/dev/secureram0`.
 The driver now contains a complete plaintext volatile block-device data path,
 with validated configurable capacity, zero-initialized backing, multi-segment
 reads/writes, serialized access, and explicit cleanup. It is designed to support
-normal block tools and a filesystem on the whole disk; those outcomes still
-need the VM evidence above.
+normal block tools and a filesystem on the whole disk; the VM evidence above
+confirms both outcomes.
 
 ## 18. Deliberately absent
 
@@ -273,33 +290,9 @@ and an observed runtime test.
 
 ## 20. Recommended M3 direction
 
-First run and record M2's VM acceptance checks. In a separate M3 request, review
-the threat model and storage crypto construction, then design the key lifecycle,
-privileged control ABI, and temporary-buffer cleanup around the existing worker
-and store boundary. Finalize nonce/tweak and future authentication requirements
-before implementing encryption. **Stop after M2; no M3 code is present.**
-
-## Runtime verification completed
-
-M2 runtime verification was successfully completed in the Ubuntu VirtualBox test VM running Linux 7.0.0-38-generic.
-
-Verified successfully:
-
-- module built against the running kernel
-- module loaded with `insmod`
-- `/dev/secureram0` was created
-- `lsblk` identified SecureRAM as a 64 MiB block device
-- 1 MiB of random data was written to `/dev/secureram0`
-- the same 1 MiB was read back
-- SHA-256 hashes of written and read-back data were identical
-- `cmp` confirmed byte-for-byte equality
-- an ext4 filesystem was successfully created on `/dev/secureram0`
-- the filesystem mounted successfully
-- normal filesystem file I/O succeeded
-- the filesystem unmounted cleanly
-- `rmmod secureram` succeeded
-- `/dev/secureram0` disappeared after unload
-- kernel log confirmed the backing RAM was released
-- no SecureRAM-related kernel Oops, BUG, panic, or protection fault was observed
-
-M2 compile-time and runtime acceptance criteria are therefore complete.
+M2's VM acceptance is complete and recorded above. In a separate M3 request,
+review the threat model and storage crypto construction, then design the key
+lifecycle, privileged control ABI, and temporary-buffer cleanup around the
+existing worker and store boundary. Finalize nonce/tweak and future
+authentication requirements before implementing encryption. **Stop after M2;
+no M3 code is present.**

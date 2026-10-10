@@ -5,8 +5,9 @@
 Use the project's Ubuntu 24.04.5 LTS VirtualBox VM running
 **Linux 7.0.0-38-generic** as the M2 runtime target. Record `uname -r`, the
 distribution, architecture, and compiler version with results. M1's VM runtime
-verification is complete. M2 uses this target's modern block interfaces; a build
-on one kernel does not establish compatibility with all kernel versions.
+verification and M2's VM runtime acceptance are complete. M2 uses this target's
+modern block interfaces; a build on one kernel does not establish compatibility
+with all kernel versions.
 
 Build as an ordinary user. Use administrative privileges only for explicit
 dependency installation and module lifecycle operations. If `sudo` requires a
@@ -180,5 +181,6 @@ are distinct from compiler warnings and kernel faults; report them accurately.
    completing each request exactly once, failure unwinding, and draining work
    before freeing storage.
 
-M2 implements the plaintext device within these boundaries; its runtime checks
-still need the VM. Cryptography and its control ABI remain later milestones.
+M2 implements the plaintext device within these boundaries; its VM runtime
+acceptance is recorded in [the M2 report](m2-report.md). Cryptography and its
+control ABI remain later milestones.

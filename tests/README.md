@@ -15,6 +15,7 @@ refuses a mounted or exclusively held device. Runtime testing is not executed
 by `make` or by the read-only environment checker. Reload before repeating it.
 
 The guide additionally covers module ownership, unsupported discard, optional
-ext4, unload/reload, and invalid capacity parameters. These checks are pending
-until run in the VM. Broad failure injection, crypto/corruption tests, stress,
-and benchmarking remain later milestones.
+ext4, unload/reload, and invalid capacity parameters. M2's completed acceptance
+results are recorded in [the M2 report](../docs/m2-report.md); the guide remains
+available for broader regression runs. Broad failure injection,
+crypto/corruption tests, stress, and benchmarking remain later milestones.

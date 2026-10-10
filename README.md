@@ -9,10 +9,10 @@ reads/writes and whole-device filesystems. **M2 storage is plaintext and exists
 only in RAM.** Unloading the module loses all contents; reload creates zeroed
 storage. Encryption and other security features are later milestones.
 
-M1 is complete and runtime-verified in the user's Ubuntu VirtualBox VM. M2's
-compile/static verification and its still-pending VM runtime checks are recorded
-in [the M2 report](docs/m2-report.md). Implementation is not a claim that M2 has
-already passed those runtime checks.
+M1 and M2 are complete and runtime-verified in the user's Ubuntu VirtualBox VM.
+M2's compile/static evidence and successful VM acceptance results are recorded
+in [the M2 report](docs/m2-report.md). M2 remains plaintext, volatile storage;
+runtime acceptance is not a claim of encryption or other later security features.
 
 ## Architecture and layout
 
@@ -151,7 +151,7 @@ policy in M2. VM host swap/snapshots are outside the driver-owned RAM boundary.
 | Milestone | Outcome |
 | --- | --- |
 | M1 (complete) | Module foundation, architecture, verified VM lifecycle. |
-| M2 (implemented; VM checks pending) | Plaintext RAM block device and runtime test procedure. |
+| M2 (complete) | Runtime-verified plaintext RAM block device and reusable VM test procedure. |
 | M3 | Reviewed encryption design, key lifecycle, privileged control and utility. |
 | M4 | Authenticated storage and corruption detection. |
 | M5 | Hardening, access-control review, statistics, broader automated stress coverage. |

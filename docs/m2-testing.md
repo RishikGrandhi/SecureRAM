@@ -5,6 +5,10 @@ manually **inside that VM**, from your SecureRAM checkout. The current agent's
 WSL build does not verify these runtime outcomes. M2 storage is plaintext and
 exists only in RAM. Unloading loses every byte.
 
+M2 runtime acceptance is complete; its observed results are recorded in
+[the M2 report](m2-report.md). This procedure remains the reusable, broader
+regression checklist for future builds and kernel targets.
+
 All device writes and formatting below target **only `/dev/secureram0`**. Use a
 fresh load with no valuable data. Never substitute another disk path. Run each
 section in order and stop on unexpected failures. Keep a second terminal open
@@ -226,6 +230,6 @@ the last is rejected by the kernel's unsigned-int parameter parser. If any
 unexpectedly succeeds, stop, unload it normally, and record the failure.
 Do not allocate maximum capacity just to test parameter limits in a small VM.
 
-Record kernel/compiler versions, build diagnostics, PASS/FAIL output, raw hashes,
-and fresh lifecycle logs in the M2 report after completing these steps. Until
-then, runtime acceptance remains **pending**, even if compilation is clean.
+For future regression runs, record kernel/compiler versions, build diagnostics,
+PASS/FAIL output, raw hashes, and fresh lifecycle logs. A clean compilation alone
+does not establish runtime behavior on a new kernel or build.
