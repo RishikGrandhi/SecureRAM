@@ -1,12 +1,12 @@
-# Developer workflow and M1 learning notes
+# Developer workflow and kernel learning notes
 
 ## Choose a runtime test environment
 
-Prefer a disposable Linux VM running a selected Linux 6.x kernel. Record
-`uname -r`, the distribution, architecture, and compiler version with results.
-The M1 source uses long-established lifecycle APIs, but a compile on one kernel
-does not establish compatibility with all 6.x releases. M2 must select a concrete
-API target before implementing block registration.
+Use the project's Ubuntu 24.04.5 LTS VirtualBox VM running
+**Linux 7.0.0-38-generic** as the M2 runtime target. Record `uname -r`, the
+distribution, architecture, and compiler version with results. M1's VM runtime
+verification is complete. M2 uses this target's modern block interfaces; a build
+on one kernel does not establish compatibility with all kernel versions.
 
 Build as an ordinary user. Use administrative privileges only for explicit
 dependency installation and module lifecycle operations. If `sudo` requires a
@@ -53,7 +53,7 @@ tree. WSL is not inherently incapable of loading modules, but runtime validation
 requires matching build artifacts and privileges. For this project, a normal
 Linux VM is the simplest reproducible route. If intentionally developing against
 a custom WSL kernel, follow Microsoft's [WSL kernel build instructions](https://github.com/microsoft/WSL2-Linux-Kernel)
-and retain its exact configuration and generated artifacts. M1 does not replace
+and retain its exact configuration and generated artifacts. SecureRAM does not replace
 or reconfigure the user's WSL kernel.
 
 ## Build and inspect
@@ -61,6 +61,7 @@ or reconfigure the user's WSL kernel.
 ```sh
 make help
 make check-env
+make clean
 make W=1
 modinfo ./secureram.ko
 ```
@@ -69,7 +70,7 @@ For a build log with the correct failure exit status, use **Bash**:
 
 ```bash
 set -o pipefail
-make W=1 2>&1 | tee build-m1.log
+make W=1 2>&1 | tee build-m2.log
 ```
 
 Inspect the complete log, including compiler messages, MODPOST, and final link.
@@ -78,9 +79,9 @@ Use `make clean` first when changing header trees or toolchains; incremental
 builds may otherwise reuse objects. Pass the same `KDIR` when cleaning.
 
 The top-level Makefile delegates compilation to the kernel's Kbuild system;
-`Kbuild` defines a composite `secureram.o` from `src/secureram_main.o` and adds
-the local include directory. Additional components can later join that object
-list. There is no hand-written compiler command with guessed kernel flags.
+`Kbuild` links the main, block, and storage objects into a composite
+`secureram.o` and adds the local include directory. There is no hand-written
+compiler command with guessed kernel flags.
 See [Building External Modules](https://docs.kernel.org/kbuild/modules.html).
 
 An alternate `KDIR` is useful for compile-only checks. It must be a prepared
@@ -96,8 +97,10 @@ compound wrapper command. Kbuild's own compiler selection remains authoritative.
 
 ## Manual runtime smoke check
 
-Use the [README commands](../README.md#load-inspect-and-unload) on a matching
-kernel. In a second terminal you may watch new messages, without clearing logs:
+Use the [M2 VM test procedure](m2-testing.md) on the matching kernel. The full
+sequence includes direct raw I/O, bounds, concurrency, optional ext4, module
+ownership, unload/reload, and parameter checks. In a second terminal watch new
+messages without clearing logs:
 
 ```sh
 sudo dmesg --follow --color=never
@@ -107,17 +110,20 @@ Acceptance criteria:
 
 1. `modinfo` reports the expected author, description, version, and license.
 2. `insmod ./secureram.ko` succeeds and `/sys/module/secureram` exists.
-3. A **new** prefixed M1 load message appears. Old matching messages alone do
+3. A **new** prefixed M2 load message appears. Old matching messages alone do
    not prove the current load worked; correlate timestamps and module state.
-4. No `/sys/block/secureram0` or `/dev/secureram0` is created by this module.
-5. `rmmod secureram` succeeds, the module disappears, and a new unload message
+4. `/sys/class/block/secureram0` and `/dev/secureram0` appear with correct
+   capacity/geometry. The raw tests pass; optional whole-device ext4 works.
+5. After unmounting/closing users, `rmmod secureram` succeeds, the module and
+   device disappear, and a new unload message
    appears without an oops, warning backtrace, or other lifecycle error.
-6. Repeat once to check the basic lifecycle remains usable.
+6. Reload and rerun the initial-zero check to verify fresh storage.
 
-M1 never allocates driver resources, so its empty cleanup is intentional.
-There is no storage lifetime or concurrency stress test to run yet. Leave the
-module unloaded after checking. Do not use `rmmod -f`, `insmod -f`, or create a
-device node manually.
+M2's disk-owned queue must drain before backing/tag memory is freed. Keep its
+worker running during `del_gendisk()`, then destroy the workqueue, release the
+disk and tags, and free backing/state. See [the design](m2-design.md) for failure
+unwinding. Leave the module unloaded after checking. Do not use `rmmod -f`,
+`insmod -f`, or create a device node manually.
 
 ## Troubleshooting
 
@@ -132,18 +138,18 @@ device node manually.
 | `Key was rejected by service` / signing error | Use a module signed with a key trusted by that kernel. |
 | `Operation not permitted` | Check module capability, signature/lockdown policy, container restrictions, and `/proc/sys/kernel/modules_disabled`. |
 | `File exists` at insertion | A module with that name is already loaded; inspect it before acting. |
-| `Module is in use` at removal | Identify the legitimate holder; never force removal. M1 exposes no storage users. |
+| `Module is in use` at removal | Unmount SecureRAM and close legitimate holders; its module owner protects active users. Never force removal. |
 | No visible `pr_info` on console | Informational logs may be filtered on the console. Read the kernel ring buffer with adequate permission. |
 
 An out-of-tree module can set the kernel's out-of-tree taint flag even with a
 GPL license. Unsigned modules may also taint a permissive kernel. These notices
 are distinct from compiler warnings and kernel faults; report them accurately.
 
-## Understand the M1 source
+## Understand the module foundation
 
 - `module_init()` and `module_exit()` register loader callbacks, not a user-space
   `main()`. Initialization returns zero on success and a negative errno on
-  failure. M1 has no fallible acquisition step.
+  failure. M2 unwinds each successful acquisition when a later step fails.
 - `__init` marks initialization-only code so the kernel can reclaim it after
   successful initialization. `__exit` describes the unload path for a module.
   Persistent runtime code must not call code that has already been discarded.
@@ -154,9 +160,9 @@ are distinct from compiler warnings and kernel faults; report them accurately.
   `MODULE_LICENSE("GPL")` is the kernel's recognized license marker; SPDX and
   the repository license specify GPL version 2 only. A license marker is not
   a security check or module signature.
-- `64ULL` keeps planned capacity arithmetic in an unsigned 64-bit expression.
-  The header's capacity/device constants do not allocate memory or register a
-  device. They are defaults for M2, not M1 module parameters.
+- `(u64)capacity_mb * SZ_1M` converts the validated parameter to bytes without
+  narrow-integer overflow. The header centralizes geometry and bounds, while
+  storage allocation and disk publication are explicit lifecycle steps.
 
 ## Learn before M2
 
@@ -174,5 +180,5 @@ are distinct from compiler warnings and kernel faults; report them accurately.
    completing each request exactly once, failure unwinding, and draining work
    before freeing storage.
 
-M2 should implement and validate the plaintext device within these boundaries.
-Cryptography and its control ABI remain separate later milestones.
+M2 implements the plaintext device within these boundaries; its runtime checks
+still need the VM. Cryptography and its control ABI remain later milestones.

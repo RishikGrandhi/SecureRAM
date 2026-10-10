@@ -1,12 +1,20 @@
 # Verification by milestone
 
-M1 is a lifecycle-only module. Its meaningful checks are a real Kbuild compile,
-compiler-warning and metadata inspection, and manual load/log/unload on a
-matching Linux kernel. Follow [the developer workflow](../docs/development.md)
-and record results in [the M1 report](../docs/m1-report.md). The environment
-checker is read-only; it never loads the module.
+M1's successful VM lifecycle check is recorded in [its report](../docs/m1-report.md).
+M2's exact manual commands and acceptance criteria are in
+[the M2 VM test procedure](../docs/m2-testing.md).
 
-There are deliberately no fake I/O tests for a device that does not exist and
-no test harness duplicating the two lifecycle functions. M2 will add automated
-storage tests as it introduces observable block-device behavior. Later milestones
-will add crypto, corruption, concurrency, stress, and benchmark coverage.
+`m2-raw-io.py` is an opt-in destructive raw-I/O test **only for a freshly loaded,
+unmounted `/dev/secureram0`**. It accepts no other path. Run it in the VM using
+`sudo python3 tests/m2-raw-io.py` after following the identity/build checks.
+
+It checks geometry, every initially zeroed byte, a temporary-file round trip,
+page-aligned direct I/O at multiple offsets, neighboring-block isolation,
+concurrent disjoint transfers, EOF/beyond-end behavior, and flush. `O_EXCL`
+refuses a mounted or exclusively held device. Runtime testing is not executed
+by `make` or by the read-only environment checker. Reload before repeating it.
+
+The guide additionally covers module ownership, unsupported discard, optional
+ext4, unload/reload, and invalid capacity parameters. These checks are pending
+until run in the VM. Broad failure injection, crypto/corruption tests, stress,
+and benchmarking remain later milestones.

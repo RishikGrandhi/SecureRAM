@@ -1,133 +1,162 @@
 # SecureRAM
 
-SecureRAM is a university Operating Systems project building a volatile,
-RAM-backed Linux block device with a planned kernel security layer.
+SecureRAM is a university Operating Systems project implementing a volatile
+Linux block device backed by memory owned by a kernel driver.
 
-**Current milestone: M1, version 0.1.0. There is no functional storage yet.**
-The module only logs its initialization and cleanup and exposes module metadata.
-It does **not** create `/dev/secureram0`, allocate a RAM disk, or encrypt anything.
+**M2, version 0.2.0:** the driver implements `/dev/secureram0`, with a default
+capacity of **64 MiB** and **4096-byte logical blocks**. It supports real block
+reads/writes and whole-device filesystems. **M2 storage is plaintext and exists
+only in RAM.** Unloading the module loses all contents; reload creates zeroed
+storage. Encryption and other security features are later milestones.
 
-Read [the architecture](docs/architecture.md) for the data-flow diagram,
-component boundaries, security model, and milestone gates. See
-[the M1 verification report](docs/m1-report.md) for what was actually tested.
+M1 is complete and runtime-verified in the user's Ubuntu VirtualBox VM. M2's
+compile/static verification and its still-pending VM runtime checks are recorded
+in [the M2 report](docs/m2-report.md). Implementation is not a claim that M2 has
+already passed those runtime checks.
 
-## Layout
+## Architecture and layout
 
 ```text
+Applications / filesystem -> Linux block layer -> blk-mq
+  -> bounded pending list -> ordered worker -> checked RAM byte store
+
 SecureRAM/
-  Kbuild                         Kernel module object list and include path
-  Makefile                       Linux build/check/clean entry points
-  src/secureram_main.c            Module lifecycle and metadata
-  include/secureram_config.h      Names, version, future geometry defaults
-  scripts/check-environment.sh    Read-only environment check
-  docs/                          Architecture, workflow, M1 report
-  tests/                         Verification guidance; future test home
-  tools/                         Future management utility home
+  Makefile, Kbuild                External-module build
+  src/secureram_main.c            Module parameters and lifecycle
+  src/secureram_block.c           Disk, queue, request worker, cleanup
+  src/secureram_store.c           RAM allocation and bounded byte transfers
+  include/                       Internal interfaces and central constants
+  scripts/check-environment.sh    Read-only prerequisite inspection
+  tests/m2-raw-io.py              Opt-in VM raw/direct I/O checks
+  docs/                          Architecture, design, workflow, test plan, reports
+  tools/                         Reserved for later administration tools
 ```
 
-The existing workspace is the project root; no redundant nested `secureram/`
-directory is needed. Later C components will link into the same `secureram.ko`.
+The [M2 design](docs/m2-design.md) explains resource ownership, concurrency,
+overflow checks, multi-segment transfers, supported operations, and failure
+unwinding. The [overall architecture](docs/architecture.md) preserves the planned
+security-layer boundary without implementing it prematurely.
 
-## Prerequisites
+## Prerequisites and build
 
-Use a Linux 6.x development VM with a recoverable snapshot for runtime testing.
-You need GNU Make, a suitable C compiler/binutils, `kmod`, and the **matching
-build/header tree for the kernel you intend to load into**. The kernel must
-enable modules; loading needs administrative privileges and must satisfy its
-module-signature policy. Ordinary Windows GCC cannot build a Linux kernel module.
+Primary runtime target: **Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic, x86-64**, in
+the user's VirtualBox VM. Use the exact running kernel's build/header tree and
+its suitable compiler. Current APIs include queue limits supplied at disk
+allocation and disk-owned queue cleanup; there are no ancient-kernel shims.
 
-On a Debian/Ubuntu Linux development system, install dependencies manually:
+Inside Linux, from the checkout:
 
 ```sh
 sudo apt-get update
 sudo apt-get install build-essential kmod "linux-headers-$(uname -r)"
-```
-
-WSL's Microsoft kernel usually needs a separately prepared matching kernel
-build tree; Ubuntu's generic headers do not match it. See
-[Windows/WSL details and troubleshooting](docs/development.md).
-
-## Build
-
-Run these commands **inside Linux**, from the project directory:
-
-```sh
 make check-env
+make clean
 make W=1
 modinfo ./secureram.ko
 ```
 
-The result is `secureram.ko`. `W=1` asks Kbuild for extra warnings. To select a
-different prepared kernel/header tree, pass it explicitly to each command:
+Build as an ordinary user. Root is needed only for explicit installation and
+device operations. Kernel signature policy must permit the module. For an
+alternate prepared target tree:
 
 ```sh
 make KDIR=/path/to/kernel/build check-env
-make KDIR=/path/to/kernel/build W=1
 make KDIR=/path/to/kernel/build clean
+make KDIR=/path/to/kernel/build W=1
 ```
 
-A successful build against another kernel is a **compile-only** result. Rebuild
-for the running kernel before attempting to load. No build target uses `sudo`,
-installs packages, or automatically inserts/removes modules.
+An alternate-target build is compile-only unless it matches the running kernel.
+WSL's Microsoft kernel is separate from Ubuntu's generic kernels; do not load
+a generic-kernel module into WSL. See [the developer workflow](docs/development.md).
+Build commands never load modules or write to a device automatically.
 
 ## Load, inspect, and unload
 
-After building for the running kernel, use these manual commands:
+After building for the running kernel:
 
 ```sh
 uname -r
 modinfo -F vermagic ./secureram.ko
-sudo insmod ./secureram.ko
+sudo insmod ./secureram.ko capacity_mb=64
+sudo udevadm settle
 lsmod | grep '^secureram '
-test -d /sys/module/secureram && echo 'SecureRAM is loaded'
-sudo dmesg --color=never | grep -F 'secureram:'
-sudo rmmod secureram
-test ! -d /sys/module/secureram && echo 'SecureRAM is unloaded'
+lsblk -b -o NAME,MAJ:MIN,SIZE,TYPE,LOG-SEC,PHY-SEC /dev/secureram0
+sudo blockdev --getsize64 /dev/secureram0
 sudo dmesg --color=never | grep -F 'secureram:'
 ```
 
-The release at the start of `vermagic` must match `uname -r`; this is necessary
-but does not replace configuration, symbol-version, or signature compatibility.
-Stop on any failed command. Never force insertion or removal.
-
-Expected module messages (kernel timestamps omitted):
+Expect **67108864 bytes** and a fresh message:
 
 ```text
-secureram: SecureRAM v0.1.0: M1 module loaded (no storage device yet)
-secureram: SecureRAM: M1 module unloaded
+secureram: SecureRAM v0.2.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (plaintext RAM)
 ```
 
-`modinfo` should show version `0.1.0`, license `GPL`, and the SecureRAM project
-description. `insmod`/`rmmod` normally print nothing on success. Kernel messages
-may include the standard out-of-tree or unsigned-module notices.
+`capacity_mb` means MiB and accepts **1-256**, default 64. It is read-only after
+load, is checked before allocation, and does not guarantee allocation succeeds
+under memory pressure. The kernel assigns major/minor numbers dynamically.
+There are no partitions; format/mount the whole device if desired.
 
-Clean generated build products using the same kernel tree as the build:
+To unload, first unmount SecureRAM and close every user of the device:
 
 ```sh
+findmnt --source /dev/secureram0
+# If mounted, unmount the displayed mountpoint before continuing.
+sudo rmmod secureram
+sudo udevadm settle
+test ! -e /sys/module/secureram && echo 'Module removed'
+test ! -e /dev/secureram0 && echo 'Device removed'
+sudo dmesg --color=never | grep -F 'secureram:'
 make clean
 ```
 
-## Limitations and roadmap
+Expected message: `secureram: SecureRAM: M2 module unloaded; device removed and
+RAM released`. A mounted/open device pins the module, so a busy-unload failure
+is expected. Never force unload. Use the same `KDIR` when cleaning an alternate
+build.
 
-M1 owns no driver allocations or registered devices. There are no storage I/O
-callbacks, keys, access-control interface, integrity tags, statistics, or CLI.
-Do not run `mkfs`, mount, or storage benchmarks for this milestone.
+## Verify in the VM
 
-| Milestone | Planned outcome |
+Follow [the exact M2 test procedure](docs/m2-testing.md) for identity/capacity
+checks, direct raw I/O with exact comparison, end-of-device behavior, concurrent
+requests, optional ext4, busy-unload protection, parameter validation, and reload.
+On a fresh, unmounted device, its opt-in raw test is:
+
+```sh
+sudo python3 tests/m2-raw-io.py
+```
+
+This overwrites **only `/dev/secureram0`**, takes no alternative device argument,
+and expects initially zeroed storage. It uses exclusive/direct I/O with aligned
+buffers and fails if the device identity or geometry is unexpected. Reload
+before repeating it. Formatting commands in the guide are optional and manual.
+
+## Supported behavior and limitations
+
+| Operation | Behavior |
 | --- | --- |
-| M1 (this change) | Architecture, buildable module skeleton, documented workflow. |
-| M2 | Real plaintext RAM-backed block device using modern blk-mq APIs. |
-| M3 | Encryption, key lifecycle, privileged control interface and utility. |
+| READ / WRITE | Bounds-checked transfers through all request page segments. |
+| FLUSH | Ordered no-op if delivered; no separate write-back cache is advertised. |
+| DISCARD / native WRITE_ZEROES / other opcodes | Not advertised; rejected if dispatched. |
+
+There is one device, one hardware queue, up to 64 driver tags, and a single
+ordered worker. Geometry/capacity are immutable while loaded. No persistence,
+encryption, keys, authentication, ioctl control ABI, CLI, GUI, custom statistics,
+secure-wipe controls, or benchmark framework exists. Ordinary `vfree()` cleanup
+does not establish secure erasure, and a flush does not make RAM persistent.
+Linux's ordinary device permissions apply; there is no custom access-control
+policy in M2. VM host swap/snapshots are outside the driver-owned RAM boundary.
+
+## Roadmap and learning
+
+| Milestone | Outcome |
+| --- | --- |
+| M1 (complete) | Module foundation, architecture, verified VM lifecycle. |
+| M2 (implemented; VM checks pending) | Plaintext RAM block device and runtime test procedure. |
+| M3 | Reviewed encryption design, key lifecycle, privileged control and utility. |
 | M4 | Authenticated storage and corruption detection. |
-| M5 | Hardening, access-control review, statistics, automated stress coverage. |
+| M5 | Hardening, access-control review, statistics, broader automated stress coverage. |
 | M6 | Benchmarks, security demonstrations, final evaluation documentation. |
 
-Security is a future engineering goal, not a property of the M1 skeleton.
-Even the final design will trust the kernel and cannot hide plaintext from
-authorized applications or a compromised kernel.
-
-## Learning and license
-
-The [developer guide](docs/development.md) explains Kbuild, lifecycle annotations,
-metadata, logs, and the concepts to learn before M2. Source code is licensed
-under **GPL-2.0-only**; see [LICENSE](LICENSE).
+Read [the M2 design](docs/m2-design.md) and [viva notes](docs/m2-report.md#19-viva-concepts)
+to connect request completion, memory mappings, locks, and teardown to OS
+concepts. Source code is **GPL-2.0-only**; see [LICENSE](LICENSE).
