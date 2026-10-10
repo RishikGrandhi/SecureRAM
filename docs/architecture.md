@@ -1,10 +1,12 @@
 # SecureRAM architecture
 
 Status: M1 and M2 are complete, including their recorded VM runtime acceptance.
-M2 remains plaintext volatile block storage. This document preserves the
-long-term design; the concrete current behavior and resource lifecycle are
-specified in [the M2 design](m2-design.md). Security, key management, and
-control interfaces below remain future work.
+M3 adds a security design and plaintext pass-through boundary; its own VM
+regression is pending. Storage remains plaintext and volatile. The
+[M2 design](m2-design.md) specifies the preserved request/resource lifecycle;
+the [M3 security design](m3-security-design.md) and
+[threat model](m3-threat-model.md) specify the new boundary and future policy.
+Encryption, key management, authentication and control interfaces remain future work.
 
 ## Objective and problem
 
@@ -16,7 +18,7 @@ kernel cryptography through a usable storage interface.
 The intended problem is temporary storage with an explicit security lifecycle:
 later versions will encrypt the backing store, authenticate stored blocks,
 restrict administration, and erase driver-owned secrets on teardown. Persistence
-across unload or restart is deliberately outside the design. M2 implements
+across unload or restart is deliberately outside the design. M3 implements
 plaintext storage and provides no encryption/authentication guarantees.
 
 ### How it differs from other memory storage
@@ -60,8 +62,12 @@ compromised kernel can inspect memory and keys.
                                                     |
                                   +-----------------v------------------+
                                   | bounded, ordered worker context    |
-                                  | M2: plaintext read/write           |
-                                  | later: encrypt/authenticate        |
+                                  | validate/map request segments      |
+                                  +-----------------+------------------+
+                                                    |
+                                  +-----------------v------------------+
+                                  | security layer: M3 pass-through    |
+                                  | later: unit encryption/integrity   |
                                   +-----------------+------------------+
                                                     |
                                   +-----------------v------------------+
@@ -91,14 +97,17 @@ make volatile memory survive power loss.
 | `include/secureram_config.h` | Names, version, initial geometry defaults. | M1 |
 | Block adapter | Disk registration, queue limits, request validation/completion. | M2 |
 | RAM store | Allocate/free capacity; bounded copies using byte offsets. | M2 |
-| Security layer | Transform storage units, validate authentication, erase temporary secrets. | M3/M4 |
-| Control plane | Privileged key/device transitions, stable userspace interface. | M3 |
-| Statistics | Counters and safe readout without secret material. | M5 |
+| Security layer | M3 owns the store through plaintext forwarding; future unit transforms, authentication and secret cleanup. | M3 boundary/design; M4+ mechanisms |
+| Control plane | Privileged key/device transitions, stable userspace interface. | M3 design only; M4+ implementation |
+| Statistics | Counters and safe readout without secret material. | Later, separately scoped |
 | `tools/`, `tests/`, `scripts/` | Administration, validation, developer workflow. | Incremental |
 
 These are responsibility boundaries, not an instruction to create empty C
 files or speculative callback hierarchies. M2 adds block and store source
 objects to the existing composite Kbuild target without changing the module name.
+M3 adds `src/secureram_security.c` and routes block-to-store lifecycle and
+transfers through its internal interface. The ordered worker, request ownership,
+store implementation, and allocation/unwind order remain unchanged.
 Internal shared headers belong in `include/`; a future userspace ABI must have
 its own deliberately reviewed UAPI header with fixed-width fields.
 
@@ -155,10 +164,12 @@ must receive a deliberate block status, not silently succeed.
 ## Planned security and control
 
 Use the Linux [Kernel Crypto API](https://docs.kernel.org/crypto/index.html),
-not a custom cipher. Encryption alone does not authenticate data. Before M3,
-choose a reviewed storage construction and document its key/nonce model; before
-M4, finalize authentication, associated data, and failure behavior. Reserve room
-in the design now for per-unit metadata and serialized updates.
+not a custom cipher. M3 chooses future `xts(aes)` with a 64-byte combined key,
+4096-byte units, and a 16-byte IV containing the little-endian 64-bit unit index
+followed by zeros. This is confidentiality only: XTS does not authenticate data.
+The [M3 design](m3-security-design.md) compares CTR/AEAD, specifies multi-segment
+unit assembly and encrypted-zero initialization, and reserves private metadata
+for a later integrity milestone. No crypto calls or keys exist in M3.
 
 The intended endpoint is authenticated units with a device/key-generation
 identity and block address bound into authentication. Nonces must remain unique
@@ -169,8 +180,9 @@ units need an explicit initialized/unwritten representation: all-zero bytes are
 not automatically valid ciphertext or tags. Ciphertext and its metadata must
 change together under the concurrency rules.
 
-A separate administrative endpoint is planned, likely a misc character device
-with a small, versioned ioctl ABI. Its name and ABI are not defined in M1.
+A separate misc character administrative endpoint, `/dev/secureramctl`, is
+proposed in M3, with a small versioned ioctl ABI. Its numbers/layout are not
+frozen and no control device is implemented.
 It will validate lengths, use safe kernel user-copy helpers, enforce privileges
 and device permissions, and never return keys in logs or query output. The
 block path already receives kernel-managed buffers; it must not treat them as
@@ -181,9 +193,12 @@ and synchronization. No hard-coded keys or secrets in module parameters,
 command-line arguments, or logs. Removing a key cannot leave work using freed
 key material. The initial key-replacement policy should require an idle,
 unmounted device and an explicit destructive reset; live rekeying and persistence
-are not assumed. M3 must specify locked-device I/O behavior and temporary buffer
-cleanup before adding code. Kernel primitives such as `memzero_explicit()` or
-appropriate sensitive-free helpers must be matched to actual allocation types.
+are not assumed. M3 specifies NO_KEY/PREPARING/ACTIVE/LOCKED/DYING states for
+future implementation. Locked/keyless I/O must fail closed; reversible lock
+retains the key, while explicit destroy erases it and discards contents.
+These are design states, not M3 runtime flags. Kernel primitives such as
+`memzero_explicit()` or appropriate sensitive-free helpers must be matched to
+actual allocation types.
 
 ## Concurrency and lifetime
 
@@ -195,12 +210,13 @@ writes. A single hardware queue alone does **not** guarantee serialization.
 Queue depth bounds work and memory consumption; M2 preallocates request-private
 pending-list nodes with blk-mq tags and uses one device-owned work item.
 
-Later control operations will use a device-state mutex in sleepable context.
-Key changes must gate admission and drain existing work before changing or
-erasing key state. Do not hold a lock required by a worker while draining that
-worker. Completion callbacks and teardown need an explicit ownership model;
-statistics can later use atomics or short locks appropriate to their context.
-Lock ordering and the state machine will be documented with their implementation.
+Later control operations will use a control mutex in sleepable context, with
+an admission gate protected by the pending-list spinlock. Close admission and
+drain existing work before changing or erasing key state. The worker must not
+acquire the control mutex; no spinlock spans a wait. The proposed lock order is
+control mutex then pending lock. Future block-open accounting prevents key
+transitions while mounted/open and races with new opens. The detailed protocol
+and implementation acceptance conditions are in [M3's design](m3-security-design.md).
 
 ## Security boundaries and honest limitations
 
@@ -219,7 +235,8 @@ Lock ordering and the state machine will be documented with their implementation
   rollback protection requires trusted freshness state outside the attacker's
   control and is not promised by keeping counters beside ciphertext in RAM.
 - Capacity and queue limits bound resource use; encryption does not prevent
-  denial of service. M2 bounds storage/queued work but implements no security layer.
+  denial of service. M3's security boundary still forwards plaintext and
+  provides no cryptographic or new authorization guarantee.
 
 ## Lifecycle
 
@@ -243,10 +260,11 @@ Never free memory while any request or control operation can still reference it.
 | --- | --- | --- |
 | M1: foundation | Architecture, module lifecycle, metadata/configuration, Kbuild, workflow. | Compile with warnings inspected; load/log/unload when environment permits, otherwise record the exact blocker. |
 | M2: block storage | One plaintext RAM-backed disk, modern blk-mq dispatch, bounds checks, clean failure/unload paths. | Raw I/O round trips, zero-initialized reads, geometry and boundary checks, filesystem smoke test, concurrent I/O and repeated lifecycle checks on a disposable Linux system. |
-| M3: confidentiality and key lifecycle | Reviewed crypto construction, encryption, privileged control endpoint, minimal management utility, key and temporary-buffer erasure. | Locked/unlocked behavior, repeated-write nonce/tweak reasoning, failed setup cleanup, safe key removal. No authentication claims until M4 passes. |
-| M4: authenticated storage | Integrity metadata, authenticated reads/writes, atomic per-unit updates, tamper demonstration. | Corruption fails closed; no unauthenticated plaintext release; unwritten-unit, failure and concurrency tests. |
-| M5: hardening and observability | Access-control review, device statistics, failure injection, automated stress/lifecycle coverage. | Lock/memory diagnostics where available, allocation-failure tests, bounded-resource behavior, teardown during activity. |
-| M6: evaluation | Reproducible benchmarks, security demonstrations, final report and viva material. | Measured overhead against a documented RAM-disk baseline and an accurate account of the threat model. |
+| M3: security architecture | Threat model, crypto/key/control/cleanup/concurrency design and plaintext pass-through boundary. | Build/static checks and separate VM regression of preserved M2 behavior; no encrypted-storage claim. |
+| M4 (proposed): confidentiality | Real Crypto API XTS, whole-unit transfers, fail-closed key lifecycle, minimum privileged control and erasure. | Runtime encryption evidence, locked/keyless behavior, split segments, failures, drain/cleanup and teardown. No integrity claim. |
+| M5 (proposed): authenticated storage | Reviewed tags/metadata and freshness design, authenticated unit updates/reads. | Tampering fails closed, no unauthenticated unit release; failure and concurrency tests. |
+| Later, separately scoped | Tools, access-control review, statistics, stress, hardening, benchmarks and final evaluation. | Explicit scope and relevant runtime evidence before each claim. |
 
-Stop after each milestone and review its evidence. M2 stops at plaintext block
-storage; crypto, keys, ioctl, a CLI, and custom statistics remain later work.
+This M3 scope supersedes the older roadmap numbering; completed milestone
+reports remain historical evidence. Stop after M3. Crypto, keys, ioctl, CLI,
+GUI and custom statistics require later explicit requests.

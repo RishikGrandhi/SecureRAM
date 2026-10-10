@@ -9,6 +9,10 @@ verification and M2's VM runtime acceptance are complete. M2 uses this target's
 modern block interfaces; a build on one kernel does not establish compatibility
 with all kernel versions.
 
+M3 preserves those interfaces through a plaintext security boundary. Its VM
+regression is pending; use [the M3 procedure](m3-testing.md) for current version
+expectations and keep prior M2 evidence separate.
+
 Build as an ordinary user. Use administrative privileges only for explicit
 dependency installation and module lifecycle operations. If `sudo` requires a
 password, run those steps yourself in a terminal; no script collects passwords.
@@ -71,7 +75,7 @@ For a build log with the correct failure exit status, use **Bash**:
 
 ```bash
 set -o pipefail
-make W=1 2>&1 | tee build-m2.log
+make W=1 2>&1 | tee build-m3.log
 ```
 
 Inspect the complete log, including compiler messages, MODPOST, and final link.
@@ -80,7 +84,7 @@ Use `make clean` first when changing header trees or toolchains; incremental
 builds may otherwise reuse objects. Pass the same `KDIR` when cleaning.
 
 The top-level Makefile delegates compilation to the kernel's Kbuild system;
-`Kbuild` links the main, block, and storage objects into a composite
+`Kbuild` links the main, block, security, and storage objects into a composite
 `secureram.o` and adds the local include directory. There is no hand-written
 compiler command with guessed kernel flags.
 See [Building External Modules](https://docs.kernel.org/kbuild/modules.html).
@@ -98,7 +102,8 @@ compound wrapper command. Kbuild's own compiler selection remains authoritative.
 
 ## Manual runtime smoke check
 
-Use the [M2 VM test procedure](m2-testing.md) on the matching kernel. The full
+Use the [M3 regression procedure](m3-testing.md) on the matching kernel. It reuses
+the [M2 VM test procedure](m2-testing.md). The full
 sequence includes direct raw I/O, bounds, concurrency, optional ext4, module
 ownership, unload/reload, and parameter checks. In a second terminal watch new
 messages without clearing logs:
@@ -111,7 +116,7 @@ Acceptance criteria:
 
 1. `modinfo` reports the expected author, description, version, and license.
 2. `insmod ./secureram.ko` succeeds and `/sys/module/secureram` exists.
-3. A **new** prefixed M2 load message appears. Old matching messages alone do
+3. A **new** prefixed M3 load message appears. Old matching messages alone do
    not prove the current load worked; correlate timestamps and module state.
 4. `/sys/class/block/secureram0` and `/dev/secureram0` appear with correct
    capacity/geometry. The raw tests pass; optional whole-device ext4 works.
@@ -184,3 +189,9 @@ are distinct from compiler warnings and kernel faults; report them accurately.
 M2 implements the plaintext device within these boundaries; its VM runtime
 acceptance is recorded in [the M2 report](m2-report.md). Cryptography and its
 control ABI remain later milestones.
+
+For M3, also understand why the pass-through layer adds no confidentiality,
+why request segments are not crypto units, why XTS does not authenticate bytes,
+and why key changes must close admission and drain work before freeing secrets.
+See [the security design](m3-security-design.md) and
+[M3 viva notes](m3-report.md#18-viva-concepts).

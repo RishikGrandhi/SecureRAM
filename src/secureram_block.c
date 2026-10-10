@@ -13,10 +13,10 @@
 
 #include "secureram_block.h"
 #include "secureram_config.h"
-#include "secureram_store.h"
+#include "secureram_security.h"
 
 struct secureram_device {
-	struct secureram_store store;
+	struct secureram_security security;
 	struct blk_mq_tag_set tag_set;
 	struct gendisk *disk;
 	struct workqueue_struct *workqueue;
@@ -34,7 +34,7 @@ struct secureram_request {
 static blk_status_t secureram_transfer(struct secureram_device *device,
 				       struct request *request)
 {
-	struct secureram_store *store = &device->store;
+	struct secureram_security *security = &device->security;
 	struct req_iterator iter;
 	struct bio_vec bvec;
 	u64 sector = blk_rq_pos(request);
@@ -47,12 +47,12 @@ static blk_status_t secureram_transfer(struct secureram_device *device,
 		return BLK_STS_NOTSUPP;
 
 	/* Check before multiplying, even though normal block I/O is bounded. */
-	if (sector > store->size / SECURERAM_SECTOR_SIZE)
+	if (sector > secureram_security_capacity(security) / SECURERAM_SECTOR_SIZE)
 		return BLK_STS_IOERR;
 	offset = sector * SECURERAM_SECTOR_SIZE;
 	if (offset % SECURERAM_LOGICAL_BLOCK_SIZE ||
 	    length % SECURERAM_LOGICAL_BLOCK_SIZE ||
-	    !secureram_store_contains(store, offset, length))
+	    !secureram_security_contains(security, offset, length))
 		return BLK_STS_IOERR;
 
 	/* Validate all segments before a write can change any backing bytes. */
@@ -76,11 +76,11 @@ static blk_status_t secureram_transfer(struct secureram_device *device,
 		mapping = kmap_local_page(bvec.bv_page);
 		buffer = (u8 *)mapping + bvec.bv_offset;
 		if (write)
-			ret = secureram_store_write(store, offset, buffer,
-						    bvec.bv_len);
+			ret = secureram_security_write(security, offset, buffer,
+						       bvec.bv_len);
 		else
-			ret = secureram_store_read(store, offset, buffer,
-						   bvec.bv_len);
+			ret = secureram_security_read(security, offset, buffer,
+						      bvec.bv_len);
 		kunmap_local(mapping);
 		if (!write)
 			flush_dcache_page(bvec.bv_page);
@@ -170,14 +170,14 @@ int secureram_block_create(struct secureram_device **result, u64 capacity)
 		.max_segments = SECURERAM_MAX_SEGMENTS,
 	};
 	struct secureram_device *device;
-	const char *stage = "backing allocation";
+	const char *stage = "security/backing allocation";
 	int ret;
 
 	device = kzalloc_obj(*device);
 	if (!device)
 		return -ENOMEM;
 
-	ret = secureram_store_init(&device->store, capacity);
+	ret = secureram_security_init(&device->security, capacity);
 	if (ret)
 		goto free_device;
 
@@ -189,7 +189,7 @@ int secureram_block_create(struct secureram_device **result, u64 capacity)
 						    WQ_MEM_RECLAIM);
 	if (!device->workqueue) {
 		ret = -ENOMEM;
-		goto free_store;
+		goto free_security;
 	}
 
 	device->tag_set.ops = &secureram_mq_ops;
@@ -232,8 +232,8 @@ free_tags:
 	blk_mq_free_tag_set(&device->tag_set);
 destroy_workqueue:
 	destroy_workqueue(device->workqueue);
-free_store:
-	secureram_store_destroy(&device->store);
+free_security:
+	secureram_security_destroy(&device->security);
 free_device:
 	pr_err("%s failed: %d\n", stage, ret);
 	kfree(device);
@@ -247,6 +247,6 @@ void secureram_block_destroy(struct secureram_device *device)
 	destroy_workqueue(device->workqueue);
 	put_disk(device->disk);
 	blk_mq_free_tag_set(&device->tag_set);
-	secureram_store_destroy(&device->store);
+	secureram_security_destroy(&device->security);
 	kfree(device);
 }

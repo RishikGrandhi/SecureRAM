@@ -3,27 +3,32 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M2, version 0.2.0:** the driver implements `/dev/secureram0`, with a default
+**M3, version 0.3.0:** the driver implements `/dev/secureram0`, with a default
 capacity of **64 MiB** and **4096-byte logical blocks**. It supports real block
-reads/writes and whole-device filesystems. **M2 storage is plaintext and exists
+reads/writes and whole-device filesystems. **M3 storage is plaintext and exists
 only in RAM.** Unloading the module loses all contents; reload creates zeroed
-storage. Encryption and other security features are later milestones.
+storage. M3 adds a security architecture and a pass-through code boundary;
+encryption and other security features are later milestones.
 
 M1 and M2 are complete and runtime-verified in the user's Ubuntu VirtualBox VM.
 M2's compile/static evidence and successful VM acceptance results are recorded
 in [the M2 report](docs/m2-report.md). M2 remains plaintext, volatile storage;
 runtime acceptance is not a claim of encryption or other later security features.
+M3's build/static results and pending VM regression are recorded in
+[the M3 report](docs/m3-report.md). Earlier VM results do not verify this refactor.
 
 ## Architecture and layout
 
 ```text
 Applications / filesystem -> Linux block layer -> blk-mq
-  -> bounded pending list -> ordered worker -> checked RAM byte store
+  -> bounded pending list -> ordered worker -> plaintext security boundary
+  -> checked RAM byte store
 
 SecureRAM/
   Makefile, Kbuild                External-module build
   src/secureram_main.c            Module parameters and lifecycle
   src/secureram_block.c           Disk, queue, request worker, cleanup
+  src/secureram_security.c        Plaintext pass-through; future crypto boundary
   src/secureram_store.c           RAM allocation and bounded byte transfers
   include/                       Internal interfaces and central constants
   scripts/check-environment.sh    Read-only prerequisite inspection
@@ -35,7 +40,11 @@ SecureRAM/
 The [M2 design](docs/m2-design.md) explains resource ownership, concurrency,
 overflow checks, multi-segment transfers, supported operations, and failure
 unwinding. The [overall architecture](docs/architecture.md) preserves the planned
-security-layer boundary without implementing it prematurely.
+security-layer boundary. The [M3 threat model](docs/m3-threat-model.md) and
+[security design](docs/m3-security-design.md) specify future AES-XTS with 4 KiB
+units, a key lifecycle, and `/dev/secureramctl` as a proposed control endpoint.
+None of those cryptographic/control mechanisms is implemented in M3. XTS alone
+would provide confidentiality, not authentication.
 
 ## Prerequisites and build
 
@@ -88,7 +97,7 @@ sudo dmesg --color=never | grep -F 'secureram:'
 Expect **67108864 bytes** and a fresh message:
 
 ```text
-secureram: SecureRAM v0.2.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (plaintext RAM)
+secureram: SecureRAM v0.3.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (plaintext RAM)
 ```
 
 `capacity_mb` means MiB and accepts **1-256**, default 64. It is read-only after
@@ -109,16 +118,18 @@ sudo dmesg --color=never | grep -F 'secureram:'
 make clean
 ```
 
-Expected message: `secureram: SecureRAM: M2 module unloaded; device removed and
+Expected message: `secureram: SecureRAM: M3 module unloaded; device removed and
 RAM released`. A mounted/open device pins the module, so a busy-unload failure
 is expected. Never force unload. Use the same `KDIR` when cleaning an alternate
 build.
 
 ## Verify in the VM
 
-Follow [the exact M2 test procedure](docs/m2-testing.md) for identity/capacity
-checks, direct raw I/O with exact comparison, end-of-device behavior, concurrent
-requests, optional ext4, busy-unload protection, parameter validation, and reload.
+Follow [the M3 regression instructions](docs/m3-testing.md), which reuse the
+[M2 test procedure](docs/m2-testing.md) with M3 version/log expectations, for
+identity/capacity checks, direct raw I/O with exact comparison, end-of-device
+behavior, concurrent requests, optional ext4, busy-unload protection, parameter
+validation, and reload.
 On a fresh, unmounted device, its opt-in raw test is:
 
 ```sh
@@ -144,7 +155,7 @@ encryption, keys, authentication, ioctl control ABI, CLI, GUI, custom statistics
 secure-wipe controls, or benchmark framework exists. Ordinary `vfree()` cleanup
 does not establish secure erasure, and a flush does not make RAM persistent.
 Linux's ordinary device permissions apply; there is no custom access-control
-policy in M2. VM host swap/snapshots are outside the driver-owned RAM boundary.
+policy in M3. VM host swap/snapshots are outside the driver-owned RAM boundary.
 
 ## Roadmap and learning
 
@@ -152,11 +163,17 @@ policy in M2. VM host swap/snapshots are outside the driver-owned RAM boundary.
 | --- | --- |
 | M1 (complete) | Module foundation, architecture, verified VM lifecycle. |
 | M2 (complete) | Runtime-verified plaintext RAM block device and reusable VM test procedure. |
-| M3 | Reviewed encryption design, key lifecycle, privileged control and utility. |
-| M4 | Authenticated storage and corruption detection. |
-| M5 | Hardening, access-control review, statistics, broader automated stress coverage. |
-| M6 | Benchmarks, security demonstrations, final evaluation documentation. |
+| M3 (implemented; VM regression pending) | Threat model, security/key/control design, plaintext integration boundary. |
+| M4 (proposed) | Real Kernel Crypto API encryption, fail-closed key lifecycle and minimum privileged control. |
+| M5 (proposed) | Authentication and corruption detection, with reviewed metadata/freshness rules. |
+| Later, separately scoped | Hardening, access-control review, tools, statistics, stress, benchmarks and final evaluation. |
+
+M3 supersedes the older roadmap's milestone numbering. Each later milestone
+requires a separate request; no cipher, key loading, control ABI, CLI or GUI is
+part of this M3 implementation.
 
 Read [the M2 design](docs/m2-design.md) and [viva notes](docs/m2-report.md#19-viva-concepts)
 to connect request completion, memory mappings, locks, and teardown to OS
 concepts. Source code is **GPL-2.0-only**; see [LICENSE](LICENSE).
+For the new security boundary and its limits, read the
+[M3 viva notes](docs/m3-report.md#18-viva-concepts).

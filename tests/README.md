@@ -4,9 +4,14 @@ M1's successful VM lifecycle check is recorded in [its report](../docs/m1-report
 M2's exact manual commands and acceptance criteria are in
 [the M2 VM test procedure](../docs/m2-testing.md).
 
+M3 reuses it via [the M3 regression instructions](../docs/m3-testing.md), with
+version `0.3.0` and M3 lifecycle messages. M3 runtime evidence is pending.
+
 `m2-raw-io.py` is an opt-in destructive raw-I/O test **only for a freshly loaded,
 unmounted `/dev/secureram0`**. It accepts no other path. Run it in the VM using
 `sudo python3 tests/m2-raw-io.py` after following the identity/build checks.
+The version allowlist is limited to plaintext M2 (`0.2.0`) and M3 (`0.3.0`);
+future encrypted milestones will need their own state-aware tests.
 
 It checks geometry, every initially zeroed byte, a temporary-file round trip,
 page-aligned direct I/O at multiple offsets, neighboring-block isolation,
