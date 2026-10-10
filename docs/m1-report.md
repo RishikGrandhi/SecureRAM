@@ -236,3 +236,26 @@ filesystem use, concurrency, and lifetime before adding security features.
 
 **Stop here: M1 code and documentation are complete; runtime verification is
 explicitly outstanding.**
+
+## Runtime verification completed
+
+Runtime verification was successfully completed inside an Ubuntu 24.04.5 LTS VirtualBox VM running kernel 7.0.0-38-generic.
+
+Verified successfully:
+
+- module compiled against matching kernel headers
+- `sudo insmod ./secureram.ko` succeeded
+- initialization message appeared in `dmesg`
+- `sudo rmmod secureram` succeeded
+- cleanup message appeared in `dmesg`
+- `lsmod | grep secureram` returned no result after unloading
+
+Observed initialization message:
+
+`SecureRAM v0.1.0: M1 module loaded (no storage device yet)`
+
+Observed cleanup message:
+
+`SecureRAM: M1 module unloaded`
+
+M1 compile-time and runtime verification is therefore complete.
