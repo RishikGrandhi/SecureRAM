@@ -1,5 +1,6 @@
 # User-space tools
 
-Reserved for a later administrative utility. M1 has no CLI, ioctl ABI, key
-interface, or device to manage. Build/load/unload instructions are in the root
-README; do not substitute a user-space memory buffer for the kernel driver.
+Reserved for a later administrative utility. M2 exposes `/dev/secureram0` as a
+plaintext block device, but has no management CLI, ioctl ABI, or key interface.
+Build/load/unload instructions are in the root README; opt-in VM checks live
+under `tests/`. No user-space buffer substitutes for the kernel backing store.

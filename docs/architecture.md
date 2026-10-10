@@ -1,7 +1,10 @@
 # SecureRAM architecture
 
-Status: M1 design; only the module lifecycle is implemented. All device, storage,
-security, and control behavior below is planned unless explicitly marked M1.
+Status: M1 and M2 are complete, including their recorded VM runtime acceptance.
+M2 remains plaintext volatile block storage. This document preserves the
+long-term design; the concrete current behavior and resource lifecycle are
+specified in [the M2 design](m2-design.md). Security, key management, and
+control interfaces below remain future work.
 
 ## Objective and problem
 
@@ -13,8 +16,8 @@ kernel cryptography through a usable storage interface.
 The intended problem is temporary storage with an explicit security lifecycle:
 later versions will encrypt the backing store, authenticate stored blocks,
 restrict administration, and erase driver-owned secrets on teardown. Persistence
-across unload or restart is deliberately outside the design. M1 provides no
-storage or security guarantees; M2 will initially provide plaintext storage.
+across unload or restart is deliberately outside the design. M2 implements
+plaintext storage and provides no encryption/authentication guarantees.
 
 ### How it differs from other memory storage
 
@@ -94,8 +97,8 @@ make volatile memory survive power loss.
 | `tools/`, `tests/`, `scripts/` | Administration, validation, developer workflow. | Incremental |
 
 These are responsibility boundaries, not an instruction to create empty C
-files or speculative callback hierarchies. M2 can add source objects to the
-existing composite Kbuild target without changing the module name or layout.
+files or speculative callback hierarchies. M2 adds block and store source
+objects to the existing composite Kbuild target without changing the module name.
 Internal shared headers belong in `include/`; a future userspace ABI must have
 its own deliberately reviewed UAPI header with fixed-width fields.
 
@@ -106,30 +109,31 @@ is also valid, but request dispatch through a bounded queue provides a clear
 place for future crypto work and completion accounting. Do not use legacy
 `request_fn`, `blk_init_queue()`, or old `make_request_fn` tutorials.
 
-Plan one disk and one hardware dispatch queue initially. Accepted requests will
-be dispatched to an ordered workqueue with bounded outstanding work and
-request-associated work state; the worker will perform the backend operation
-and complete each accepted request exactly once. This intentionally favors a
+M2 uses one disk and one hardware dispatch queue. Accepted requests enter a
+spinlock-protected list using their preallocated private list nodes. A single
+device-owned work item on an ordered workqueue performs backend operations
+and completes each accepted request exactly once. This intentionally favors a
 clear concurrency model over peak throughput. No sleeping allocation, mutex,
 or potentially sleeping crypto operation belongs in a normal dispatch callback.
-Detailed allocation and shutdown ordering must be checked against the selected
-kernel's blk-mq interfaces during M2.
+The [M2 design](m2-design.md) specifies allocation and shutdown ordering against
+the target kernel's disk-owned queue lifecycle.
 
 The API reference is the kernel's [blk-mq documentation](https://www.kernel.org/doc/html/latest/block/blk-mq.html).
-Linux has no stable in-kernel driver ABI: select and record a concrete Linux 6.x
-build target before M2 and consult its headers/source. Do not claim every 6.x
-release is tested because the M1 lifecycle APIs compile on one of them.
+Linux has no stable in-kernel driver ABI. The M2 target is now Linux
+**7.0.0-38-generic** in the user's Ubuntu VM; its headers and official source
+were consulted. Earlier Linux 6.x planning does not imply broad compatibility.
 
 ## Geometry and RAM backing
 
-Initial planned geometry is **64 MiB**, **4096-byte logical blocks**, and the
+M2's default geometry is **64 MiB**, **4096-byte logical blocks**, and the
 Linux block layer's **512-byte sector accounting units**. These are different
 concepts: the disk capacity is 131072 sectors or 16384 logical blocks. A larger
 logical block gives the future authentication layer a clear 4 KiB protection
-unit. M2 will advertise its alignment requirements to the block layer.
+unit. M2 advertises these alignment requirements and supports a load-time
+`capacity_mb` parameter from 1 through 256 MiB.
 
-Use a zero-initialized, virtually contiguous backing allocation in M2 (for
-example, `vzalloc()`), with physically scattered pages. This avoids requiring a
+M2 uses a zero-initialized `vzalloc()` backing allocation, with physically
+scattered pages. This avoids requiring a
 large physically contiguous allocation. Allocate the complete initial capacity
 before publishing the disk; allocation failure must leave no visible device.
 The backing allocation is kernel memory, not ordinary swappable process memory.
@@ -188,8 +192,8 @@ no concurrent I/O path. It therefore needs no locks or failure unwinding code.
 
 For M2, the ordered worker serializes backing-store access, including overlapping
 writes. A single hardware queue alone does **not** guarantee serialization.
-Queue depth bounds work and memory consumption; M2 must preallocate or otherwise
-bound request work resources before accepting requests.
+Queue depth bounds work and memory consumption; M2 preallocates request-private
+pending-list nodes with blk-mq tags and uses one device-owned work item.
 
 Later control operations will use a device-state mutex in sleepable context.
 Key changes must gate admission and drain existing work before changing or
@@ -215,7 +219,7 @@ Lock ordering and the state machine will be documented with their implementation
   rollback protection requires trusted freshness state outside the attacker's
   control and is not promised by keeping counters beside ciphertext in RAM.
 - Capacity and queue limits bound resource use; encryption does not prevent
-  denial of service. M1 has none of these storage/security mechanisms yet.
+  denial of service. M2 bounds storage/queued work but implements no security layer.
 
 ## Lifecycle
 
@@ -244,5 +248,5 @@ Never free memory while any request or control operation can still reference it.
 | M5: hardening and observability | Access-control review, device statistics, failure injection, automated stress/lifecycle coverage. | Lock/memory diagnostics where available, allocation-failure tests, bounded-resource behavior, teardown during activity. |
 | M6: evaluation | Reproducible benchmarks, security demonstrations, final report and viva material. | Measured overhead against a documented RAM-disk baseline and an accurate account of the threat model. |
 
-Stop after each milestone and review its evidence. M1 must not implement block
-registration, backing storage, crypto, keys, ioctl, a CLI, or statistics.
+Stop after each milestone and review its evidence. M2 stops at plaintext block
+storage; crypto, keys, ioctl, a CLI, and custom statistics remain later work.
