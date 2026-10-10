@@ -43,7 +43,7 @@ static void __exit secureram_exit(void)
 {
 	secureram_block_destroy(secureram);
 	secureram = NULL;
-	pr_info("SecureRAM: M2 module unloaded; device removed and RAM released\n");
+	pr_info("SecureRAM: M3 module unloaded; device removed and RAM released\n");
 }
 
 module_init(secureram_init);
@@ -51,5 +51,5 @@ module_exit(secureram_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SecureRAM project contributors");
-MODULE_DESCRIPTION("SecureRAM M2: plaintext volatile RAM-backed block device");
+MODULE_DESCRIPTION("SecureRAM M3: plaintext RAM device with security scaffolding");
 MODULE_VERSION(SECURERAM_VERSION);

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Destructive VM-only smoke test, hard-coded to a fresh /dev/secureram0.
 
-Run manually as root after loading M2. This never loads, unloads, or formats a
+Run manually as root after loading M2/M3. This never loads, unloads, or formats a
 device. O_EXCL refuses a mounted/exclusively held block device. O_DIRECT and
 page-aligned mmap buffers exercise the driver instead of the page cache.
 """
@@ -51,7 +51,8 @@ def check_identity():
     actual_dev = f"{os.major(device_stat.st_rdev)}:{os.minor(device_stat.st_rdev)}"
     require(actual_dev == expected_dev, "Device number does not match SecureRAM sysfs")
     version = Path("/sys/module/secureram/version").read_text().strip()
-    require(version == "0.2.0", f"Expected M2 version 0.2.0, found {version}")
+    require(version in ("0.2.0", "0.3.0"),
+            f"Expected plaintext M2/M3 version 0.2.0/0.3.0, found {version}")
     logical = int(SYSFS.joinpath("queue/logical_block_size").read_text())
     physical = int(SYSFS.joinpath("queue/physical_block_size").read_text())
     require(logical == physical == BLOCK, "Unexpected block geometry")
