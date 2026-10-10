@@ -278,3 +278,28 @@ the threat model and storage crypto construction, then design the key lifecycle,
 privileged control ABI, and temporary-buffer cleanup around the existing worker
 and store boundary. Finalize nonce/tweak and future authentication requirements
 before implementing encryption. **Stop after M2; no M3 code is present.**
+
+## Runtime verification completed
+
+M2 runtime verification was successfully completed in the Ubuntu VirtualBox test VM running Linux 7.0.0-38-generic.
+
+Verified successfully:
+
+- module built against the running kernel
+- module loaded with `insmod`
+- `/dev/secureram0` was created
+- `lsblk` identified SecureRAM as a 64 MiB block device
+- 1 MiB of random data was written to `/dev/secureram0`
+- the same 1 MiB was read back
+- SHA-256 hashes of written and read-back data were identical
+- `cmp` confirmed byte-for-byte equality
+- an ext4 filesystem was successfully created on `/dev/secureram0`
+- the filesystem mounted successfully
+- normal filesystem file I/O succeeded
+- the filesystem unmounted cleanly
+- `rmmod secureram` succeeded
+- `/dev/secureram0` disappeared after unload
+- kernel log confirmed the backing RAM was released
+- no SecureRAM-related kernel Oops, BUG, panic, or protection fault was observed
+
+M2 compile-time and runtime acceptance criteria are therefore complete.
