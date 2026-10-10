@@ -5,7 +5,8 @@ M2's exact manual commands and acceptance criteria are in
 [the M2 VM test procedure](../docs/m2-testing.md).
 
 M3 reuses it via [the M3 regression instructions](../docs/m3-testing.md), with
-version `0.3.0` and M3 lifecycle messages. M3 runtime evidence is pending.
+version `0.3.0` and M3 lifecycle messages. The successful M3 VM run is recorded
+in [the M3 report](../docs/m3-report.md); the procedure remains reusable.
 
 `m2-raw-io.py` is an opt-in destructive raw-I/O test **only for a freshly loaded,
 unmounted `/dev/secureram0`**. It accepts no other path. Run it in the VM using

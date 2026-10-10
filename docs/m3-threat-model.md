@@ -3,8 +3,9 @@
 Date: 2026-10-10 (Asia/Calcutta). This is a design for later milestones, with
 the current implementation distinguished throughout. **M3 still stores
 plaintext.** Its security layer only forwards checked transfers to the M2 RAM
-store. M1/M2 VM acceptance remains recorded in [the M2 report](m2-report.md);
-it does not establish M3 runtime acceptance or any cryptographic guarantee.
+store. M1/M2 VM acceptance remains recorded in [the M2 report](m2-report.md),
+and M3's successful plaintext regression is recorded in
+[the M3 report](m3-report.md). None establishes a cryptographic guarantee.
 
 ## Assets, trust, and protection boundary
 
@@ -71,8 +72,9 @@ M3. "Partial" identifies a narrower mitigation, with a residual exposure.
    not a fallback selected after a crypto error.
 7. No user data is logged. Ordinary memory release is not claimed as erasure.
 
-These are implementation properties reviewed statically. The M3 build still
-requires its own VM regression evidence; see [the report](m3-report.md).
+These implementation properties were reviewed statically, and the preserved
+plaintext device behavior was exercised in the M3 VM regression; see
+[the report](m3-report.md). That evidence does not activate or verify crypto.
 
 ## Invariants required when crypto is introduced
 

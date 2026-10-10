@@ -14,8 +14,9 @@ M1 and M2 are complete and runtime-verified in the user's Ubuntu VirtualBox VM.
 M2's compile/static evidence and successful VM acceptance results are recorded
 in [the M2 report](docs/m2-report.md). M2 remains plaintext, volatile storage;
 runtime acceptance is not a claim of encryption or other later security features.
-M3's build/static results and pending VM regression are recorded in
-[the M3 report](docs/m3-report.md). Earlier VM results do not verify this refactor.
+M3's build/static results and successful VM regression are recorded in
+[the M3 report](docs/m3-report.md). M3 remains plaintext; runtime acceptance is
+not evidence that the planned AES-256-XTS construction is active.
 
 ## Architecture and layout
 
@@ -163,7 +164,7 @@ policy in M3. VM host swap/snapshots are outside the driver-owned RAM boundary.
 | --- | --- |
 | M1 (complete) | Module foundation, architecture, verified VM lifecycle. |
 | M2 (complete) | Runtime-verified plaintext RAM block device and reusable VM test procedure. |
-| M3 (implemented; VM regression pending) | Threat model, security/key/control design, plaintext integration boundary. |
+| M3 (complete) | Runtime-verified plaintext boundary plus threat, security, key-lifecycle and control design. |
 | M4 (proposed) | Real Kernel Crypto API encryption, fail-closed key lifecycle and minimum privileged control. |
 | M5 (proposed) | Authentication and corruption detection, with reviewed metadata/freshness rules. |
 | Later, separately scoped | Hardening, access-control review, tools, statistics, stress, benchmarks and final evaluation. |

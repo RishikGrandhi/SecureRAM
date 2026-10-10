@@ -1,8 +1,8 @@
 # SecureRAM architecture
 
-Status: M1 and M2 are complete, including their recorded VM runtime acceptance.
-M3 adds a security design and plaintext pass-through boundary; its own VM
-regression is pending. Storage remains plaintext and volatile. The
+Status: M1, M2 and M3 are complete, including their recorded VM runtime
+acceptance. M3 adds a security design and plaintext pass-through boundary.
+Storage remains plaintext and volatile. The
 [M2 design](m2-design.md) specifies the preserved request/resource lifecycle;
 the [M3 security design](m3-security-design.md) and
 [threat model](m3-threat-model.md) specify the new boundary and future policy.

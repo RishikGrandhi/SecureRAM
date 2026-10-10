@@ -10,8 +10,8 @@ modern block interfaces; a build on one kernel does not establish compatibility
 with all kernel versions.
 
 M3 preserves those interfaces through a plaintext security boundary. Its VM
-regression is pending; use [the M3 procedure](m3-testing.md) for current version
-expectations and keep prior M2 evidence separate.
+regression is complete; use [the M3 procedure](m3-testing.md) for future
+regressions and keep M2 and M3 evidence separate.
 
 Build as an ordinary user. Use administrative privileges only for explicit
 dependency installation and module lifecycle operations. If `sudo` requires a

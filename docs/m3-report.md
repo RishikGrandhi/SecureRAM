@@ -4,9 +4,9 @@ Started: 2026-10-10. Completed: 2026-10-11 (Asia/Calcutta).
 Scope: **M3 only**, version **0.3.0**, branch **`m3-security-architecture`**.
 
 The security architecture and plaintext pass-through scaffolding are complete.
-The final target-header build and strict source-style checks pass. **M3 stores
-plaintext; its own VM runtime regression is pending.** No encryption, keys or
-control endpoint is implemented. Changes are left uncommitted for review.
+The final target-header build, strict source-style checks and VM runtime
+regression pass. **M3 still stores plaintext.** AES-256-XTS is only the planned
+future construction; no encryption, keys or control endpoint is implemented.
 
 ## 1. Objective and baseline
 
@@ -179,8 +179,9 @@ M2 through an explicit internal boundary: default 64 MiB, 1-256 MiB parameter,
 4096-byte logical blocks, full segment iteration, ordered RAM copies, delivered
 flush as a no-op, unsupported operations rejected, and fresh zero allocation.
 Linux's existing device permissions apply. Source/symbol review and the final
-build support this preservation; only M2 has observed VM acceptance so far.
-M3 runtime equivalence is not yet an observed result.
+build support this preservation. The M3 VM run additionally observed successful
+load, raw-data round trip, ext4 use and clean unload on `7.0.0-38-generic`.
+That runtime evidence covers the exercised plaintext path, not cryptography.
 
 ## 14. Exact current non-guarantees
 
@@ -237,14 +238,14 @@ final continuation repeated a clean build after all source formatting fixes.
 | Module metadata / ELF | PASS: version 0.3.0, plaintext description, GPL, uint capacity parameter, x86-64 ELF; vermagic `7.0.0-38-generic`. |
 | Boundary symbol inspection | PASS: block object references security functions, security object references store functions; module has no Crypto API imports. |
 | Shell/Python syntax | PASS for the existing environment checker and revised raw-test script; the device test was not run. |
-| Documentation validation | PASS: 13 Markdown files, 49 local links/anchors, and 27 shell snippets parsed without executing them. |
+| Documentation validation | PASS: 13 Markdown files, 51 local links/anchors, and 27 shell snippets parsed without executing them. |
 | Target symbol table | PASS: all 32 imported module symbols found in the target `Module.symvers`. |
-| Repository/text checks | PASS: Git diff whitespace, LF/final newlines, no trailing whitespace; M1/M2 evidence and unchanged store/build files match the baseline. No staged changes or new commits. |
+| Repository/text checks | PASS: Git diff whitespace, LF/final newlines, no trailing whitespace; M1/M2 evidence and unchanged store/build files match the baseline. No staged changes. |
 
 Local documentation/import checks used `.cache/validate_m3.py` (Git-ignored)
-and wrote `build-m3-static.log`. No test executes documentation commands or
-accesses a block device. Build products are cleaned after inspection; rebuild
-on the VM for runtime testing.
+and wrote `build-m3-static.log`. No local test executed documentation commands
+or accessed a block device. Build products were cleaned after inspection; the
+module was separately rebuilt in the VM for the runtime regression below.
 
 API research inspected target skcipher/XTS, crypto-wait, block and memory helper
 headers, along with official kernel documentation/source and NIST references
@@ -263,19 +264,41 @@ this is configuration evidence, not proof that a provider works at runtime.
 - Earlier continuation-alignment checkpatch findings were corrected; the final
   strict run has no findings. No runtime fault-injection or exhaustive race
   testing has been performed for M3.
+- During the successful VM run, the kernel reported `blk_mq_requeue_work hogged
+  CPU for >10000us` and `blk_mq_run_work_fn hogged CPU for >10000us`. These are
+  recorded as non-fatal block-layer/workqueue performance observations under
+  VirtualBox. The available evidence does not make them SecureRAM correctness
+  failures; revisit them during later stress/performance work.
+- Concurrent systemd-journald, AppArmor, e1000 and ATA/VirtualBox messages were
+  unrelated environment output and are not attributed to SecureRAM.
 
-## 17. Future VM verification
+## 17. VM runtime acceptance result
 
-Follow [the M3 regression procedure](m3-testing.md) on the VM's then-running
-kernel: rebuild, load, inspect geometry, run the existing raw/direct test,
-check bounds/concurrency and optional ext4, busy unload, invalid parameters,
-clean unload/reload and fresh logs. Only `/dev/secureram0` may be a destructive
-target, after identity/mount/holder checks. None was executed here.
+Status: **PASS**, manually verified by the user in the Ubuntu VirtualBox VM
+running Linux `7.0.0-38-generic`.
 
-Record M3 results separately; do not carry M2 PASS into this report. Kernel
-health, runtime I/O equivalence, extended error paths and concurrency remain
-unverified for this version. Future crypto/key/control/integrity behavior is
-not implemented and cannot yet be tested as a SecureRAM feature.
+| Check | Observed result |
+| --- | --- |
+| Running-kernel build and load | Build against `7.0.0-38-generic` and module insertion succeeded; `lsmod` showed `secureram`. |
+| Registration and geometry | `/dev/secureram0` appeared; `lsblk` reported a 64 MiB block device. |
+| Identity and security status | dmesg identified SecureRAM `0.3.0` and explicitly identified the storage as plaintext RAM. |
+| Raw I/O | A 1 MiB random payload was written and read back; SHA-256 hashes matched and `cmp` found no differences. |
+| Filesystem I/O | ext4 creation, mount, normal file creation/read-back and clean unmount succeeded on `/dev/secureram0`. |
+| Teardown | `rmmod` succeeded, `/dev/secureram0` disappeared, and backing RAM was released. |
+| Kernel health | No SecureRAM-related Oops, BUG, panic, general protection fault or use-after-free was observed. |
+
+These results complete M3 runtime acceptance for the exercised plaintext
+integration boundary. They do not claim every extended item in the reusable
+procedure was separately run: initial-zero scanning, boundary/concurrent streams,
+busy-unload protection, unsupported discard, reload zeroing, invalid parameters,
+fault injection and lock/memory diagnostics remain useful future regression
+coverage unless separately recorded.
+
+The [M3 regression procedure](m3-testing.md) remains reusable. Future runs must
+again verify the exact device identity, mount state and holders before any
+destructive action; only `/dev/secureram0` is an acceptable target. Future
+crypto/key/control/integrity behavior is not implemented and cannot yet be
+tested as a SecureRAM feature.
 
 ## 18. Viva concepts
 
