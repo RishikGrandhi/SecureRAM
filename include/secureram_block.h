@@ -15,4 +15,10 @@ int secureram_block_query(struct secureram_device *device,
 int secureram_block_change(struct secureram_device *device, unsigned int command,
 			   u8 *key);
 
+#ifdef SECURERAM_M5_TEST
+struct secureram_ioc_tamper;
+int secureram_block_tamper(struct secureram_device *device,
+			   const struct secureram_ioc_tamper *input);
+#endif
+
 #endif /* SECURERAM_BLOCK_H */

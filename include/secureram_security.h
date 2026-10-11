@@ -8,16 +8,23 @@
 
 struct crypto_skcipher;
 struct skcipher_request;
+struct crypto_shash;
+struct shash_desc;
 
 /* One worker, or a control caller after admission closes and work drains. */
 struct secureram_security {
 	struct secureram_store store;
 	struct crypto_skcipher *tfm;
 	struct skcipher_request *request;
+	struct crypto_shash *mac;
+	struct shash_desc *mac_desc;
+	u8 tag[SECURERAM_TAG_BYTES];
+	u8 stored_tag[SECURERAM_TAG_BYTES];
 	u8 *plain;
 	u8 *cipher;
 	u8 iv[16] __aligned(16);
 	u64 generation;
+	/* Worker can latch failure concurrently with query/open: use *_ONCE. */
 	u32 state;
 };
 
@@ -35,5 +42,10 @@ void secureram_security_clear_unit(struct secureram_security *security);
 /* Exactly one aligned unit: WRITE consumes plain, READ produces plain. */
 int secureram_security_read(struct secureram_security *security, u64 offset);
 int secureram_security_write(struct secureram_security *security, u64 offset);
+
+#ifdef SECURERAM_M5_TEST
+int secureram_security_tamper(struct secureram_security *security,
+			      const struct secureram_ioc_tamper *input);
+#endif
 
 #endif /* SECURERAM_SECURITY_H */

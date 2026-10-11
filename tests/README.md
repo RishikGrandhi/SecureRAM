@@ -41,3 +41,84 @@ and exercises split/cross-unit fragments during setup. It exports no memory.
 Clean before switching variants. The M4 VM run executed all three hooks
 successfully and completed a separate final production regression; see
 [the report](../docs/m4-report.md).
+
+For M5, follow [the M5 procedure](../docs/m5-testing.md). Runtime acceptance
+is pending. Reuse the unchanged `m4-control.c` helper against ABI v1 (query now
+returns features=7 and can report state=4). `m5-raw-io.py denied|active` reuses
+M4/M2 regression functions with an explicit 0.5.0 identity requirement; calling
+the M4 script directly retains its original 0.4.0 guard.
+
+`m5-integrity.py production` checks the test ioctl is absent (ENOTTY).
+`m5-integrity.py tamper` is destructive, requires NO_KEY on an M5_TEST=1 module,
+and tests ciphertext/tag flips, valid-pair relocation, an unchanged caller read
+buffer on authentication failure, state latch, continuing denial, invalid hook
+inputs and passed-fd privilege, then destroy/reload/full-zero-scan recovery.
+It opens only `/dev/secureram0` after mount/holder/identity checks, uses O_EXCL
+and O_DIRECT, injects only with zero block openers, and finishes NO_KEY. Never
+run the tamper suite on a mounted filesystem. The hook exposes no data/address.
+
+`M5_TEST=1` independently enables these corruption hooks and an internal
+index/generation MAC binding check. Combine `M4_TEST=1` to also exercise the
+earlier ciphertext/fragment checks; clean before switching builds. A production
+build omits every tamper handler, test command case and M4/M5 test string.
+
+Compile-only `abi-layout.c` checks the original command numbers, sizes/offsets
+and new test payload for -m64/-m32. Build it with -DSECURERAM_M5_TEST for the
+test ABI; omit that define for the production header surface. See
+[development commands](../docs/development.md#build-and-static-inspection).
+These checks and Python/shell syntax checks do not load a module or establish
+runtime crypto, tamper, race, fault-injection or compat behavior.
+
+## Automated M5 VM acceptance
+
+After committing the reviewed candidate and checking it out cleanly in the
+disposable Ubuntu VM, run the structured harness from the repository root:
+
+```sh
+sudo bash tests/run-m5-vm-acceptance.sh
+```
+
+The top-level script requires invocation through `sudo` by the ordinary checkout
+owner. It builds as that user and performs only lifecycle/device operations as
+root. It requires the `m5-integrity-tamper-detection` branch, a clean worktree and
+headers matching `uname -r`. To pin a reviewed commit as well, export its full
+hash before invoking sudo and preserve only that variable:
+
+```sh
+sudo --preserve-env=M5_EXPECTED_COMMIT bash tests/run-m5-vm-acceptance.sh
+```
+
+The runner calls four readable phases: production, combined M5/M4 tamper,
+production capacity limits, and final production regression. Shared identity,
+query, build, mount ownership and cleanup functions live in `m5-vm-common.sh`.
+Every destructive operation remains hard-coded to `/dev/secureram0`; no device
+argument or fallback exists. The guard checks block/control type and major:minor,
+root ownership/mode, version 0.5.0, 4096-byte logical size, exact expected
+capacity, holders, mounts and swap before raw I/O, formatting, key changes or
+corruption. Mounted tests separately bind the owned mount point to the same
+major:minor. Cleanup unmounts only a mount created and revalidated by the harness,
+then destroys the key and unloads only a module inserted by that phase.
+
+Evidence is retained under a unique `.cache/m5-vm/<UTC-time>-<pid>/` directory:
+the main transcript, four phase logs, build logs, fresh dmesg stream, production
+symbol/string inspection, relevant kernel messages, unrelated fault/warning indicators,
+status ledger and final summary. Ephemeral readback files are compared and removed;
+keys, tags and data bytes are never printed. Every summary item starts FAIL and
+changes to PASS only after its complete assertion group succeeds. Any unexpected
+command stops the current phase, runs guarded cleanup and leaves later items FAIL.
+
+The harness automates the production build/absence proof, NO_KEY/ABI checks,
+negative control tests, full raw suite, lock/unlock retention, destroy/rekey,
+ext4 EBUSY/remount, all three bounded corruption cases and recovery, 1/256 MiB
+lifecycles, invalid 0/257 parameters, final production raw/ext4 regression,
+node disappearance and fresh kernel-log screening. The failed-unit sentinel test
+proves only that the failed unit is not released; it does not claim whole-request
+read atomicity.
+
+A human must still select and snapshot the disposable VM, ensure the checkout is
+the intended reviewed commit, supply sudo authority, watch for environmental
+problems, and review retained warnings/log context before recording acceptance.
+The allocation/provider/crypto fault campaigns, pending-request races, compat
+runtime ioctls and lockdep/KASAN/kmemleak diagnostics listed in the manual M5
+procedure remain outside this normal harness. Creating these scripts does not
+change the current **M5 runtime acceptance pending** status.
