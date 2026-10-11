@@ -2,9 +2,9 @@
 
 Date: 2026-10-11 (Asia/Calcutta). Version 0.5.0.
 Branch: `m5-integrity-tamper-detection`, based on clean `main` at `5eb07d5`.
-M1-M4 runtime acceptance remains historical evidence. A partial M5 production
-run is recorded below, but **full M5 runtime acceptance remains pending in the
-Ubuntu VirtualBox VM.**
+M1-M5 runtime acceptance is complete. **M5 automated VM acceptance passed** on
+commit `5fabe544a3969732647e7d9962beed974b667901` in Ubuntu 24.04.5 LTS,
+Linux 7.0.0-38-generic. The complete evidence and scope are recorded below.
 
 ## Design recorded before implementation
 
@@ -247,8 +247,9 @@ stored unit's ciphertext, domain, generation and address under separate keys.
 It detects accidental or externally introduced corruption of that authenticated
 material when read, assuming security keys, code, control state and verification
 path are trusted. The controlled test hook simulates such limited corruption;
-it is not a model of all abilities of a privileged attacker. Acceptance of the
-implementation requires the pending VM results, not just compiling these paths.
+it is not a model of all abilities of a privileged attacker. Acceptance now
+includes the completed VM results below; compile/static evidence alone would not
+have established these runtime claims.
 
 This is Encrypt-then-MAC, **not AEAD**, and XTS itself supplies no integrity.
 An attacker able to replace both bytes and tag without the key cannot normally
@@ -272,13 +273,13 @@ not physical copies, caches/registers, crashes, snapshots or caller key copies.
 
 ## Verification status
 
-**Compile/static candidate complete; partial production VM evidence recorded;
-full VM acceptance pending.** Local checks on
+**Compile/static verification and automated VM runtime acceptance complete.**
+The earlier local checks on
 2026-10-11 used Windows + Ubuntu WSL2 (`6.18.33.2-microsoft-standard-WSL2`),
 GCC 15.2.0 and prepared Ubuntu `7.0.0-38-generic` headers. No packages, host
 services, kernel settings or VM state were changed. No module was inserted.
-The [VM harness and manual procedure](m5-testing.md) are for after candidate
-review/commit/push.
+The [VM harness and manual procedure](m5-testing.md) remain the reproducible
+acceptance and troubleshooting path.
 
 | Check | Observed result |
 | --- | --- |
@@ -320,7 +321,46 @@ harness split an output redirection from its pathname across a newline. The
 summary correctly recorded ext4 FAIL, every later phase NOT RUN and OVERALL
 FAIL. This is a harness execution defect, not a SecureRAM driver/runtime failure.
 No ext4, tamper/relocation/recovery, capacity-boundary or final-production result
-from this attempt is accepted. Full M5 runtime acceptance remains pending.
+from this attempt is accepted. Full M5 runtime acceptance remained pending at
+that point; the successful run below supersedes both incomplete attempts.
+
+### Successful automated VM acceptance
+
+The final run tested full commit `5fabe544a3969732647e7d9962beed974b667901`
+on Ubuntu 24.04.5 LTS in VirtualBox with Linux 7.0.0-38-generic and SecureRAM
+0.5.0. It used the exact-hash-pinned command from the M5 procedure. The retained
+VM evidence directory is `.cache/m5-vm/20261011T140342Z-10296`; that ignored
+directory is not present in this checkout, so this report records the supplied
+final summary and observed facts rather than claiming a local log reinspection.
+The combined M5/M4 diagnostics were present in the test build, while both test
+surfaces were absent from the production builds.
+
+| Automated result | Observed runtime evidence |
+| --- | --- |
+| Production build — PASS | Clean matching-kernel W=1 build; no M4/M5 test strings or tamper symbols. |
+| Initial NO_KEY — PASS | Version 0.5.0, 64 MiB, 4096-byte unit, state 0/generation 0; ENOKEY block opens and production corruption-command ENOTTY. |
+| ABI/features — PASS | ABI 1, features 7; malformed ABI, weak-key, copy-fault and privilege negatives passed. |
+| Raw I/O — PASS | ACTIVE state 2/generation 1; full logical-zero scan, direct/segmented and boundary/neighbor cases, four concurrent streams, end-of-device/flush, and 1 MiB SHA-256/cmp. |
+| Lock/unlock — PASS | ACTIVE replacement EBUSY; LOCKED state 3 denied I/O/load; unlock restored ACTIVE without changing generation. |
+| Destroy/rekey — PASS | Destroy reached NO_KEY generation 1, denied I/O and was idempotent; fresh load reached generation 2 with a zero medium and a second full raw regression. |
+| ext4 — PASS | `nodiscard` format, write/sync/read, mounted transition EBUSY with continued readability, unmount/remount/read and final clean unmount. |
+| Ciphertext tamper — PASS | Controlled ciphertext corruption returned EIO and latched INTEGRITY_FAILED. |
+| Tag tamper — PASS | Controlled tag corruption returned EIO and latched INTEGRITY_FAILED. |
+| Relocation protection — PASS | Relocating a valid ciphertext/tag pair to another unit failed authentication. |
+| Integrity-failure recovery — PASS | Failed-unit output remained untouched; prohibited transitions stayed rejected; destroy then fresh load recovered. All three lifecycles ended NO_KEY at generation 6. |
+| 1 MiB capacity — PASS | Exact bounded lifecycle and raw suite completed. |
+| 256 MiB capacity — PASS | Full zero scan and raw lifecycle completed; capacity 0 and 257 were rejected without publishing module/device state. |
+| Final production regression — PASS | Clean production rebuild, test-surface exclusion, fresh NO_KEY/ENOTTY, complete raw regression, ext4 sync/remount and destroy/denied-I/O regression. |
+| Kernel health — PASS | No fatal or SecureRAM-attributable kernel signature; expected integrity-I/O messages were not crash signatures. |
+| Final cleanup — PASS | Key destroyed, module unloaded, and block/control nodes, sysfs objects and module entry disappeared. |
+| **OVERALL — PASS** | Every automated acceptance category completed successfully. |
+
+The compiler naming warning and pahole/BTF diagnostics are environmental build
+observations, not driver failures or kernel-health failures. This successful run
+establishes normal M5 production, integrity-test, capacity and cleanup behavior
+within the documented threat model. It does not establish the separate allocation,
+provider/crypto-failure, pending-request-race, compat-runtime, lockdep, KASAN or
+kmemleak campaigns listed in the procedure.
 
 Environmental diagnostics in all three build logs: target GCC 13.3.0 versus
 local GCC 15.2.0, target pahole 125 versus missing local pahole (0), and BTF
@@ -340,10 +380,10 @@ Manual review traced tag bounds and precommit checks, all crypto error returns,
 temporary secret clearing, descriptor reuse, activation/unwind, queued-request
 failure, control-after-drain revalidation and teardown. This is source evidence,
 not proof of runtime race freedom, physical erasure or injected-failure behavior.
-Tamper/relocation/recovery, ext4 and mounted-busy behavior, capacity-boundary
-lifecycles and final production regression remain pending M5 VM observation.
-The partial run above observed production zero scans/raw regression and clean
-kernel evidence only through its pre-ext4 stop point.
+The successful run observed tamper/relocation/recovery, ext4 mounted-busy and
+remount behavior, capacity-boundary lifecycles, final production regression and
+clean kernel evidence. The source-review-only limits above remain source evidence;
+the additional diagnostic fault campaigns remain outside normal acceptance.
 
 ## Final adversarial source review
 
@@ -402,7 +442,8 @@ The same ignored verification runner rebuilt each variant from clean with
 `make KDIR=<prepared-7.0.0-38-generic-headers> CC=gcc W=1`, adding `M5_TEST=1`
 and optionally `M4_TEST=1` for the respective variants. Production was last.
 The compiler/pahole/BTF diagnostics listed above remain; there were no driver
-compiler or MODPOST warnings. No runtime or fault-injection test was executed.
+compiler or MODPOST warnings. No runtime or fault-injection test was executed as
+part of that local source-review pass; the later accepted VM run is recorded above.
 
 After the production build, these exact inspection commands succeeded. Each
 of the four grep commands produced no output and exit 1 (no matches); the
@@ -425,8 +466,8 @@ Its symbols also contained block/security/store tamper handlers and its strings
 contained the binding-test message. Production modinfo returned version 0.5.0
 and dependency hkdf. Exact output is retained in the ignored
 `build-m5-production-proof.log`, with variant preprocessing/disassembly logs.
-These build/source checks establish that the test dispatch is excluded;
-the runtime ENOTTY probe remains pending in the VM.
+These build/source checks establish that the test dispatch is excluded. The
+subsequent successful VM acceptance also confirmed production ENOTTY at runtime.
 
 Audit edits are limited to README, architecture, this report and the M5 test
 procedure for the wording fixes and review evidence. No commit, push or merge

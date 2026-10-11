@@ -1,10 +1,10 @@
 # Developer workflow and learning notes
 
-M1-M4 runtime acceptance is recorded in their reports. The
+M1-M5 runtime acceptance is recorded in their reports. The
 [M4 report](m4-report.md) separates compile/static results from the completed
 VM runtime checks. Older procedures apply to their historical
 versions. M5 adds integrity; its [report](m5-report.md) and
-[VM procedure](m5-testing.md) separate current static evidence from pending
+[VM procedure](m5-testing.md) separate compile/static evidence from the completed
 runtime acceptance.
 
 ## Target and prerequisites
@@ -100,11 +100,11 @@ workflow. Do not hide actual driver warnings behind this exception.
 
 ## Manual runtime smoke check
 
-Follow [the M5 procedure](m5-testing.md) for the current integrity candidate:
+Follow [the M5 procedure](m5-testing.md) for the current integrity implementation:
 matching-kernel load, keyless denial, valid key installation, raw/filesystem
 I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
 and M2 reports linking here describe their historical version's behavior. M4
-runtime acceptance is recorded in its own report; M5 runtime remains pending.
+and M5 runtime acceptance are recorded in their respective reports.
 Load the target's `hkdf` dependency with `sudo modprobe hkdf` before insmod.
 Device tests are never run by the build itself.
 

@@ -1,14 +1,14 @@
 # M5 Ubuntu VM verification procedure
 
-Status: **NOT RUN**. The first automated attempt on commit `093ca58` and
-Linux 7.0.0-38-generic stopped in the test harness before module insertion.
-It exposed evidence-directory ownership and Bash variable-scope defects; it
-did not exercise or fail SecureRAM driver/runtime behavior. Run again after
-the reviewed harness fix is committed and pushed.
+Status: **PASS**. Automated M5 acceptance completed on full commit
+`5fabe544a3969732647e7d9962beed974b667901` in Ubuntu 24.04.5 LTS,
+Linux 7.0.0-38-generic. The retained VM evidence directory is
+`.cache/m5-vm/20261011T140342Z-10296`.
 Local Windows/WSL builds do not establish VM runtime acceptance. Use only the
 disposable Ubuntu VirtualBox VM and `/dev/secureram0`; stop at every unexpected
 result. Do not force unload, change target devices, or run raw tests over a
-mounted filesystem. The harness and manual commands below are plans, not results.
+mounted filesystem. The procedure remains reusable; the result above comes from
+the completed target-VM run, not from these instructions alone.
 
 ## Automated VM acceptance
 
@@ -21,6 +21,35 @@ sudo --preserve-env=M5_EXPECTED_COMMIT bash tests/run-m5-vm-acceptance.sh
 ```
 
 This pins the run to the exact full commit hash exported by the invoking user.
+For the accepted run it expanded to
+`5fabe544a3969732647e7d9962beed974b667901`.
+
+The final automated summary was:
+
+```text
+Production build                 PASS
+Initial NO_KEY                   PASS
+ABI/features                     PASS
+Raw I/O                          PASS
+Lock/unlock                      PASS
+Destroy/rekey                    PASS
+ext4                             PASS
+Ciphertext tamper                PASS
+Tag tamper                       PASS
+Relocation protection            PASS
+Integrity-failure recovery       PASS
+1 MiB capacity                   PASS
+256 MiB capacity                 PASS
+Final production regression      PASS
+Kernel health                    PASS
+Final cleanup                    PASS
+OVERALL                          PASS
+```
+
+Two earlier runs stopped in the harness: `093ca58` before module insertion due
+to ownership/scope defects, and `2d2816f` after production destroy/rekey due to
+an ext4 redirection defect. Neither was a SecureRAM driver/runtime failure. The
+complete `5fabe54` run is the acceptance result.
 
 The runner refuses root-without-sudo invocation so compilation can run as the
 ordinary checkout owner. It verifies a clean expected branch, optional expected
@@ -88,9 +117,9 @@ failed-read check fills one aligned unit with a sentinel and requires it remain
 unchanged on EIO: this verifies the documented failed-unit guarantee, not atomic
 release for every earlier unit in a multi-unit request.
 
-Sections 1-9 remain the manual troubleshooting and evidence-reference path. Do
-not mark M5 accepted until the harness has actually completed in the target VM
-and its retained logs have been reviewed.
+Sections 1-9 remain the manual troubleshooting and evidence-reference path. M5
+was marked accepted only after the harness completed in the target VM and its
+summary and retained evidence were reviewed.
 
 ## 1. Production build and fresh logs
 
@@ -349,7 +378,8 @@ before ACTIVE; test failure rejects activation. For each tamper read, the
 rate-limited integrity log should identify only the failed unit and latch.
 Rate limiting may suppress repeated lines; userspace EIO/state/buffer assertions
 remain mandatory. The three corruption operations and PASS records are metadata,
-never secrets. All these results remain **unverified until this VM run**.
+never secrets. The accepted VM run observed all three cases, their failure latch
+and recovery.
 
 Finish test-build ext4/regression on another fresh key: repeat sections 3-6,
 omitting `m5-integrity.py production` (it must only run on a production build).

@@ -3,14 +3,16 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M5 candidate, version 0.5.0:** AES-256-XTS confidentiality plus full
+**M5 complete, version 0.5.0:** AES-256-XTS confidentiality plus full
 HMAC-SHA-256 integrity tags for 4096-byte units, using Encrypt-then-MAC.
 Reads authenticate ciphertext before decryption; a mismatch latches a failure
-requiring destructive recovery. **M5 VM runtime acceptance is pending.**
+requiring destructive recovery. **M5 VM runtime acceptance passed** on commit
+`5fabe544a3969732647e7d9962beed974b667901` using Ubuntu 24.04.5 LTS and
+Linux 7.0.0-38-generic.
 See [the M5 design/report](docs/m5-report.md) for encoding, key separation,
 ABI, synchronization, verification evidence and security limits.
 
-M1, M2, M3 and M4 are complete and runtime verified in the user's Ubuntu VirtualBox
+M1-M5 are complete and runtime verified in the user's Ubuntu VirtualBox
 VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.

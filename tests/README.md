@@ -43,7 +43,8 @@ successfully and completed a separate final production regression; see
 [the report](../docs/m4-report.md).
 
 For M5, follow [the M5 procedure](../docs/m5-testing.md). Runtime acceptance
-is pending. Reuse the unchanged `m4-control.c` helper against ABI v1 (query now
+passed on commit `5fabe544a3969732647e7d9962beed974b667901`. Reuse the
+unchanged `m4-control.c` helper against ABI v1 (query now
 returns features=7 and can report state=4). `m5-raw-io.py denied|active` reuses
 M4/M2 regression functions with an explicit 0.5.0 identity requirement; calling
 the M4 script directly retains its original 0.4.0 guard.
@@ -128,10 +129,14 @@ the intended reviewed commit, supply sudo authority, watch for environmental
 problems, and review retained warnings/log context before recording acceptance.
 The allocation/provider/crypto fault campaigns, pending-request races, compat
 runtime ioctls and lockdep/KASAN/kmemleak diagnostics listed in the manual M5
-procedure remain outside this normal harness. Creating these scripts does not
-change the current **M5 runtime acceptance pending** status.
+procedure remain outside this normal harness. The normal automated M5 acceptance
+completed successfully on Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic; evidence
+was retained in `.cache/m5-vm/20261011T140342Z-10296` in the VM checkout.
 
 The first automated VM attempt on candidate `093ca58` stopped before module
 insertion because of harness ownership and Bash scope defects. Its production
 build/exclusion result is useful build evidence, but it is not an M5 runtime
 failure or an acceptance run.
+The second attempt on `2d2816f` passed the production runtime through destroy/
+rekey, then stopped at a harness redirection defect before ext4. The completed
+run on `5fabe54` supersedes those incomplete attempts for acceptance evidence.
