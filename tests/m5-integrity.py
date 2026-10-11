@@ -32,6 +32,15 @@ TAMPER = 0x4028B770
 HEADER = struct.Struct("=IIII")
 STATUS = struct.Struct("=IIIIQQIIII")
 INJECT = struct.Struct("=IIIIQQII")
+VERSION = "0.5.0"
+FEATURES = 7
+OBSERVER = None
+LOAD_COMMAND = [str(ROOT / ".cache/m4-control"), "load-test-key"]
+
+
+def observe(event, fd):
+    if OBSERVER is not None:
+        OBSERVER(event, fd)
 
 
 def header(size=16, flags=0):
@@ -53,12 +62,12 @@ def query(fd):
     version, size, flags, reserved, capacity, generation, state, unit, features, tail = (
         STATUS.unpack(raw))
     require((version, size, flags, reserved, unit, features, tail) ==
-            (1, 48, 0, 0, 4096, 7, 0), "Unexpected query ABI/geometry/features")
+            (1, 48, 0, 0, 4096, FEATURES, 0), "Unexpected query ABI/geometry/features")
     return state, generation, capacity
 
 
 def inject(fd, operation, unit, byte=0, other=0):
-    BASE["identity"]("0.5.0")
+    BASE["identity"](VERSION)
     fcntl.ioctl(fd, TAMPER, INJECT.pack(1, 40, 0, 0, unit, other, operation, byte))
 
 
@@ -72,13 +81,13 @@ def open_block(number):
 
 
 def change(fd, command):
-    BASE["identity"]("0.5.0")
+    BASE["identity"](VERSION)
     fcntl.ioctl(fd, command, header(flags=1 if command == DESTROY else 0))
 
 
 def load_key():
-    BASE["identity"]("0.5.0")
-    subprocess.run([str(ROOT / ".cache/m4-control"), "load-test-key"], check=True)
+    BASE["identity"](VERSION)
+    subprocess.run(LOAD_COMMAND, check=True)
 
 
 def zero_scan(number, capacity):
@@ -146,6 +155,7 @@ def tamper_case(fd, number, capacity, operation, source, target, byte):
     block = open_block(number)
     try:
         with mmap.mmap(-1, UNIT) as buffer:
+            observe("before-failure", fd)
             sentinel = bytes([0xA6]) * UNIT
             buffer[:] = sentinel
             expect_error(lambda: os.preadv(block, [buffer], target * UNIT), errno.EIO)
@@ -167,10 +177,13 @@ def tamper_case(fd, number, capacity, operation, source, target, byte):
                  struct.pack("=II", 64, 0) + bytes(64)), errno.EBUSY)
     expect_error(lambda: inject(fd, 1, 0), errno.EBUSY)
     require(query(fd) == (4, active[1], capacity), "Rejected control cleared latch")
+    observe("failed", fd)
     change(fd, DESTROY)
     change(fd, DESTROY)
     require(query(fd) == (0, active[1], capacity), "Destroy must be idempotent")
+    observe("destroyed", fd)
     load_key()
+    observe("reloaded", fd)
     require(query(fd) == (2, active[1] + 1, capacity), "Recovery generation mismatch")
     zero_scan(number, capacity)
     block = open_block(number)
@@ -183,11 +196,15 @@ def tamper_case(fd, number, capacity, operation, source, target, byte):
     print(f"PASS: operation={operation}, EIO, untouched output, latch, rejection, recovery")
 
 
-def main():
+def main(version="0.5.0", features=7, observer=None, load_command=None):
+    global VERSION, FEATURES, OBSERVER, LOAD_COMMAND
+    VERSION, FEATURES, OBSERVER = version, features, observer
+    if load_command is not None:
+        LOAD_COMMAND = load_command
     require(len(sys.argv) == 2 and sys.argv[1] in ("production", "tamper"),
             "Use production or tamper; target is /dev/secureram0 only")
     require(HEADER.size == 16 and STATUS.size == 48 and INJECT.size == 40, "ABI sizes")
-    number, capacity = BASE["identity"]("0.5.0")
+    number, capacity = BASE["identity"](VERSION)
     fd = os.open("/dev/secureramctl", os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC)
     try:
         info = os.fstat(fd)

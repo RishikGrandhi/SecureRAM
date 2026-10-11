@@ -18,6 +18,7 @@
 #include "secureram_security.h"
 
 struct secureram_device {
+	struct secureram_stats stats;
 	struct secureram_security security;
 	struct secureram_control control;
 	/* Serializes administrators and block open/release; worker never takes it. */
@@ -184,6 +185,10 @@ static void secureram_io_work(struct work_struct *work)
 			device->accepting = false;
 			spin_unlock_irqrestore(&device->pending_lock, flags);
 		}
+		if (status == BLK_STS_OK &&
+		    (req_op(request) == REQ_OP_READ || req_op(request) == REQ_OP_WRITE))
+			secureram_stats_io(&device->stats, req_op(request) == REQ_OP_WRITE,
+					   blk_rq_bytes(request));
 		blk_mq_end_request(request, status);
 		/* Completion can recycle the request; do not touch it again. */
 		cond_resched();
@@ -323,9 +328,15 @@ int secureram_block_query(struct secureram_device *device,
 	status->state = READ_ONCE(device->security.state);
 	status->unit_size = SECURERAM_UNIT_BYTES;
 	status->features = SECURERAM_FEATURE_XTS | SECURERAM_FEATURE_LOCK |
-		SECURERAM_FEATURE_INTEGRITY;
+		SECURERAM_FEATURE_INTEGRITY | SECURERAM_FEATURE_STATS;
 	mutex_unlock(&device->control_lock);
 	return 0;
+}
+
+void secureram_block_stats(struct secureram_device *device,
+			   struct secureram_ioc_stats *stats)
+{
+	secureram_stats_snapshot(&device->stats, stats);
 }
 
 int secureram_block_change(struct secureram_device *device, unsigned int command,
@@ -431,6 +442,8 @@ int secureram_block_create(struct secureram_device **result, u64 capacity)
 	if (!device)
 		return -ENOMEM;
 	mutex_init(&device->control_lock);
+	secureram_stats_init(&device->stats);
+	device->security.stats = &device->stats;
 
 	ret = secureram_security_init(&device->security, capacity);
 	if (ret)

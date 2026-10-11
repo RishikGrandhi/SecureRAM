@@ -27,6 +27,7 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 		container_of(file->private_data, struct secureram_control, misc);
 	void __user *user = (void __user *)argument;
 	struct secureram_ioc_status status = {};
+	struct secureram_ioc_stats stats = {};
 	struct secureram_ioc_header header;
 	struct secureram_ioc_key *input;
 #ifdef SECURERAM_M5_TEST
@@ -39,6 +40,9 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 		return -EPERM;
 
 	switch (command) {
+	case SECURERAM_IOC_GET_STATS:
+		secureram_block_stats(control->device, &stats);
+		return copy_to_user(user, &stats, sizeof(stats)) ? -EFAULT : 0;
 #ifdef SECURERAM_M5_TEST
 	case SECURERAM_IOC_TAMPER:
 		if (copy_from_user(&tamper, user, sizeof(tamper)))

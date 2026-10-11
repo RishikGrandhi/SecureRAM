@@ -50,7 +50,7 @@ static void __exit secureram_exit(void)
 {
 	secureram_block_destroy(secureram);
 	secureram = NULL;
-	pr_info("SecureRAM: M5 unloaded; devices removed and owned sensitive memory cleared\n");
+	pr_info("SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared\n");
 }
 
 module_init(secureram_init);
@@ -58,5 +58,5 @@ module_exit(secureram_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SecureRAM project contributors");
-MODULE_DESCRIPTION("SecureRAM M5: AES-256-XTS and HMAC-SHA-256 RAM storage");
+MODULE_DESCRIPTION("SecureRAM M6: authenticated RAM storage with runtime statistics");
 MODULE_VERSION(SECURERAM_VERSION);

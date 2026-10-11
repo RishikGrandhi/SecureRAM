@@ -3,7 +3,7 @@ KDIR ?= /lib/modules/$(shell uname -r)/build
 MODULE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 .DEFAULT_GOAL := all
-.PHONY: all modules clean check-env help
+.PHONY: all modules clean tools tools-clean check-env help
 
 all: modules
 
@@ -21,10 +21,18 @@ clean:
 check-env:
 	sh "$(MODULE_DIR)/scripts/check-environment.sh" "$(KDIR)"
 
+tools:
+	$(MAKE) -C "$(MODULE_DIR)/tools"
+
+tools-clean:
+	$(MAKE) -C "$(MODULE_DIR)/tools" clean
+
 help:
 	@printf '%s\n' \
 		'make                 Build secureram.ko for the running kernel' \
 		'make W=1             Build with extra kernel compiler warnings' \
+		'make tools           Build the dependency-free management CLI' \
+		'make tools-clean     Remove the userspace binary' \
 		'make KDIR=/path      Build against a selected prepared kernel tree' \
 		'make check-env       Inspect build prerequisites without changing the system' \
 		'make clean           Remove build products using the same KDIR' \

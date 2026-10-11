@@ -3,6 +3,9 @@
 M1-M5 are complete and runtime verified. M5 adds Encrypt-then-MAC integrity to
 M4's XTS and privileged key management. Its successful Ubuntu VM acceptance,
 current design and evidence are in [the M5 report](m5-report.md).
+M6 adds the production C CLI and diagnostic counters while preserving M5 crypto.
+Its successful Ubuntu VM acceptance and local evidence are recorded in the
+[M6 design/report](m6-report.md).
 M4's completed evidence is in [its report](m4-report.md). Historical designs remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
 [M3 threat model](m3-threat-model.md).
@@ -49,6 +52,7 @@ See the [M5 threat model](m5-report.md#threat-model-and-claims).
 | Block | Device context, mutex/opener count, admission/pending spinlock, workqueue/work item, tag set, disk/queue, embedded security/control. Validates requests and gathers/scatters units. |
 | Security | Embedded store, two 4096-byte buffers, IV, 64-byte tag scratch, state/generation, XTS transform/request and HMAC transform/descriptor. Temporary HKDF secrets during setup. No user pointers or blk-mq parsing. |
 | Store | Bounded ciphertext/tag vzalloc allocations, checked whole-unit pair copies and explicit clearing. Knows sizes but no cipher or key. |
+| Statistics | Device-owned lock and five saturating u64 counters; coherent read-only snapshot. Borrowed by security for mismatch accounting; no key ownership. |
 | Control | Registered misc endpoint and safe fixed-size ABI translation. Does not interpret backing bytes. |
 | Block core/filesystem | Request pages, normal plaintext caches and successful read output; the driver does not erase caller-owned data. |
 
@@ -160,7 +164,9 @@ Do not force unload. Crash/power loss cannot promise orderly cleanup.
 
 The shared UAPI is in `include/uapi/secureram.h`; details and error behavior are
 in [the M5 report](m5-report.md#state-machine-and-control-abi-delta). There is no key export, mmap,
-password handling or production management application. Native discard,
+password handling. The production `tools/secureramctl` application uses this ABI;
+GET_STATS adds an 80-byte output payload at command 0x05 without changing QUERY.
+The stats feature is 8, so the normal M6 mask is 15. Native discard,
 WRITE_ZEROES and atomic writes remain unsupported. FLUSH is an ordered no-op;
 no write-back cache is advertised, so the block core may elide empty flushes.
 
@@ -171,4 +177,26 @@ backing comparisons and split-unit checks. Production omits all test handlers
 and strings. Both variants require matching-kernel runtime tests.
 Explicit memory clearing covers named owned buffers, not all physical copies,
 caches, CPU registers, dumps, hibernation, snapshots or root/kernel compromise.
-See [the VM procedure](m5-testing.md). Stop after M5 review.
+See [the completed M6 VM procedure and evidence](m6-testing.md).
+
+## M6 statistics and CLI boundary
+
+The block worker accounts a finalized successful READ/WRITE exactly once before
+ending the request, without using it afterward. Failed or partially successful
+requests contribute no successful counters. The security mismatch branch alone
+increments authentication failures. No policy decision reads a statistic.
+
+A separate spinlock protects all five u64 values and coherent request/byte pairs.
+It holds only bounded arithmetic/copies, never user-copy, crypto, allocation or
+completion. No other lock is acquired while it is held. Initialization precedes
+disk/control publication; teardown frees it after work drains. Security borrows
+its address from the device; destroy/rekey does not reset it. Values saturate at
+U64_MAX and reset on module reload. GET_STATS takes only this lock, is usable in
+every live public state, and neither drains requests nor changes admission/state.
+Separate QUERY and GET_STATS calls are not an atomic combined state snapshot.
+
+The root-only CLI validates the public ABI and opened control node, generates
+ephemeral keys in locked memory with dumps disabled, and clears them immediately
+after LOAD_KEY. It exports human and fixed-schema JSON status/statistics, never
+data/keys/tags/addresses. Module version comes from sysfs without extending QUERY.
+The CLI does not embed sudo or require Python. See [commands/schema](../tools/README.md).

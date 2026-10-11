@@ -17,6 +17,24 @@ _Static_assert(SECURERAM_IOC_LOCK == 0x4010b702U, "lock number");
 _Static_assert(SECURERAM_IOC_UNLOCK == 0x4010b703U, "unlock number");
 _Static_assert(SECURERAM_IOC_DESTROY_KEY == 0x4010b704U, "destroy number");
 _Static_assert(SECURERAM_INTEGRITY_FAILED == 4, "failure state");
+_Static_assert(SECURERAM_NO_KEY == 0 && SECURERAM_PREPARING == 1 &&
+	       SECURERAM_ACTIVE == 2 && SECURERAM_LOCKED == 3 && SECURERAM_DYING == 5,
+	       "existing states");
+_Static_assert(sizeof(struct secureram_ioc_stats) == 80, "stats size");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, read_requests) == 16,
+	       "read requests offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, write_requests) == 24,
+	       "write requests offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, read_bytes) == 32,
+	       "read bytes offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, write_bytes) == 40,
+	       "write bytes offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, integrity_failures) == 48,
+	       "failures offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_stats, reserved) == 56,
+	       "reserved offset");
+_Static_assert(SECURERAM_IOC_GET_STATS == 0x8050b705U, "stats number");
+_Static_assert(SECURERAM_FEATURE_STATS == 8, "stats feature");
 
 #ifdef SECURERAM_M5_TEST
 _Static_assert(sizeof(struct secureram_ioc_tamper) == 40, "tamper size");
