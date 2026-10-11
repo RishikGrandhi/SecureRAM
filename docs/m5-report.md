@@ -2,8 +2,9 @@
 
 Date: 2026-10-11 (Asia/Calcutta). Version 0.5.0.
 Branch: `m5-integrity-tamper-detection`, based on clean `main` at `5eb07d5`.
-M1-M4 runtime acceptance remains historical evidence. **M5 runtime acceptance
-is pending manual testing in the Ubuntu VirtualBox VM.**
+M1-M4 runtime acceptance remains historical evidence. A partial M5 production
+run is recorded below, but **full M5 runtime acceptance remains pending in the
+Ubuntu VirtualBox VM.**
 
 ## Design recorded before implementation
 
@@ -271,7 +272,8 @@ not physical copies, caches/registers, crashes, snapshots or caller key copies.
 
 ## Verification status
 
-**Compile/static candidate complete; VM acceptance NOT RUN.** Local checks on
+**Compile/static candidate complete; partial production VM evidence recorded;
+full VM acceptance pending.** Local checks on
 2026-10-11 used Windows + Ubuntu WSL2 (`6.18.33.2-microsoft-standard-WSL2`),
 GCC 15.2.0 and prepared Ubuntu `7.0.0-38-generic` headers. No packages, host
 services, kernel settings or VM state were changed. No module was inserted.
@@ -288,10 +290,37 @@ review/commit/push.
 | Control helper | PASS: unchanged shared helper builds C11/O2/Wall/Wextra/Werror/Wconversion. No device operation executed. |
 | ABI | PASS: four -m64/-m32 object builds (production and test), original ioctl numbers/layouts preserved and test payload offsets/size checked. Compat runtime remains untested. |
 | Metadata and imports | PASS: 0.5.0, GPL, expected XTS/HMAC description, uint capacity, vermagic 7.0.0-38-generic, hkdf dependency; all 65 imports exported by target Module.symvers. Crypto imports remain confined to security; no block-to-store imports. |
-| Production exclusion | PASS: no M4/M5 test strings, tamper names/handlers or test-binding function in production strings/symbols. Runtime ENOTTY still requires VM execution. |
-| Script checks | PASS: all four Python suites compile; environment script and six new Bash harness files parse. Root-without-sudo guard fails closed. No script executed device I/O. |
+| Production exclusion | PASS: no M4/M5 test strings, tamper names/handlers or test-binding function in production strings/symbols. The second partial VM run also observed production ENOTTY. |
+| Script checks | PASS: all four Python suites compile; environment script and seven M5 Bash files parse. Root-without-sudo guard fails closed. The harness self-test is non-destructive. |
 | Documentation/text/history | PASS: Markdown links/anchors and shell snippets validated without execution; UTF-8/LF/final newlines; all M1-M4 historical docs, original M2 test, M4 control helper and Makefile unchanged. |
 | Git | PASS: diff --check empty; HEAD and main still 5eb07d5; milestone branch only; no staged changes/commits/merges/pushes. |
+
+### Partial automated VM evidence
+
+The second automated attempt ran committed harness-fix head `2d2816f` on
+Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic. Its VM evidence directory was
+`.cache/m5-vm/20261011T131435Z-6829`; that ignored directory is not present in
+this checkout, so this section records the supplied VM output rather than a
+local log reinspection.
+
+Before the harness stopped, it observed a clean production W=1 build and no
+M4/M5 test surface; the 0.5.0 identity, 64 MiB capacity, 4096-byte unit, ABI 1,
+features 7, NO_KEY state/generation 0, production test-ioctl ENOTTY, fail-closed
+ENOKEY I/O, and the malformed ABI, weak-key, user-copy and privilege negatives.
+The first load reached ACTIVE generation 1 and passed the full initial-zero and
+raw suite: direct/segmented and boundary/neighbor cases, four concurrent streams,
+end-of-device/flush behavior, 1 MiB SHA-256/cmp, and active replacement EBUSY.
+Lock reached state 3, denied I/O and replacement, then unlocked to ACTIVE with
+generation 1. Destroy reached NO_KEY generation 1, denied I/O, was idempotent,
+and a fresh load reached generation 2 with a fresh-zero medium and a second full
+raw regression. Fresh kernel evidence remained clean through the stop point.
+
+The run then stopped before ext4 at `run-m5-production.sh` line 81 because the
+harness split an output redirection from its pathname across a newline. The
+summary correctly recorded ext4 FAIL, every later phase NOT RUN and OVERALL
+FAIL. This is a harness execution defect, not a SecureRAM driver/runtime failure.
+No ext4, tamper/relocation/recovery, capacity-boundary or final-production result
+from this attempt is accepted. Full M5 runtime acceptance remains pending.
 
 Environmental diagnostics in all three build logs: target GCC 13.3.0 versus
 local GCC 15.2.0, target pahole 125 versus missing local pahole (0), and BTF
@@ -311,8 +340,10 @@ Manual review traced tag bounds and precommit checks, all crypto error returns,
 temporary secret clearing, descriptor reuse, activation/unwind, queued-request
 failure, control-after-drain revalidation and teardown. This is source evidence,
 not proof of runtime race freedom, physical erasure or injected-failure behavior.
-Tamper/relocation/recovery, full zero scans, raw regression, ext4, mounted busy
-checks and clean kernel logs are all still pending M5 VM observation.
+Tamper/relocation/recovery, ext4 and mounted-busy behavior, capacity-boundary
+lifecycles and final production regression remain pending M5 VM observation.
+The partial run above observed production zero scans/raw regression and clean
+kernel evidence only through its pre-ext4 stop point.
 
 ## Final adversarial source review
 

@@ -109,9 +109,11 @@ when reached, and changes to PASS only after its complete assertion group succee
 A trapped command failure marks its active group FAIL. Later groups and kernel
 health without runtime evidence remain `NOT RUN`.
 
-`check-m5-vm-harness.sh` is a non-destructive, non-root regression for the strict
-capacity conversion, readonly-scope cleanup path and status transitions. It does
-not load a module or access a block device.
+`check-m5-vm-harness.sh` is a non-destructive, non-root regression for strict
+capacity conversion, readonly-scope cleanup, status transitions and shell-syntax
+diagnostics. It also executes the production ext4 control-flow helper with mocks,
+checking the fixed SecureRAM target, `nodiscard`, mount/busy/unmount/remount order
+and file persistence without loading a module or accessing a block device.
 
 The harness automates the production build/absence proof, NO_KEY/ABI checks,
 negative control tests, full raw suite, lock/unlock retention, destroy/rekey,

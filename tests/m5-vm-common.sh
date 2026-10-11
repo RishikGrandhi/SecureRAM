@@ -447,6 +447,42 @@ m5_expect_control_busy()
 	m5_assert_query "$expected_state" "$expected_generation" "$expected_bytes"
 }
 
+m5_assert_mounted_transitions_busy()
+{
+	local expected_capacity_bytes=$1
+	"$M5_CONTROL_HELPER" busy
+	m5_assert_query 2 2 "$expected_capacity_bytes"
+}
+
+m5_run_production_ext4()
+{
+	local expected_capacity_bytes=$1 mount_point=$2
+	local expected_file="$M5_VM_RUN_DIR/expected-check.txt"
+	local content='SecureRAM M5 authenticated backing, normal filesystem I/O'
+
+	m5_identity_guard "$expected_capacity_bytes"
+	mkfs.ext4 -q -E nodiscard "$M5_DEVICE"
+	mount "$M5_DEVICE" "$mount_point"
+	M5_MOUNTED_BY_HARNESS=1
+	m5_assert_mounted_identity "$expected_capacity_bytes" "$mount_point"
+	printf '%s\n' "$content" > "$mount_point/check.txt"
+	m5_register_ephemeral_file "$expected_file"
+	printf '%s\n' "$content" > "$expected_file"
+	sync -f "$mount_point/check.txt"
+	cmp -- "$expected_file" "$mount_point/check.txt"
+	m5_assert_mounted_identity "$expected_capacity_bytes" "$mount_point"
+	m5_assert_mounted_transitions_busy "$expected_capacity_bytes"
+	cmp -- "$expected_file" "$mount_point/check.txt"
+	m5_safe_unmount
+	m5_identity_guard "$expected_capacity_bytes"
+	mount "$M5_DEVICE" "$mount_point"
+	M5_MOUNTED_BY_HARNESS=1
+	m5_assert_mounted_identity "$expected_capacity_bytes" "$mount_point"
+	cmp -- "$expected_file" "$mount_point/check.txt"
+	m5_safe_unmount
+	rm -f -- "$expected_file"
+}
+
 m5_unload_owned()
 {
 	[[ $M5_RUNTIME_OWNED -eq 1 ]] || return 0

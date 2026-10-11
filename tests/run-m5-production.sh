@@ -73,30 +73,7 @@ m5_record 'Destroy/rekey' PASS 'idempotent destroy; fresh generation=2 zero medi
 m5_complete_checks
 
 m5_begin_checks 'ext4'
-m5_identity_guard "$phase_expected_capacity_bytes"
-mkfs.ext4 -q -E nodiscard "$M5_DEVICE"
-mount "$M5_DEVICE" "$M5_MOUNT_POINT"
-M5_MOUNTED_BY_HARNESS=1
-m5_assert_mounted_identity "$phase_expected_capacity_bytes" "$M5_MOUNT_POINT"
-printf '%s\n' 'SecureRAM M5 authenticated backing, normal filesystem I/O' >
-	"$M5_MOUNT_POINT/check.txt"
-m5_register_ephemeral_file "$M5_VM_RUN_DIR/expected-check.txt"
-printf '%s\n' 'SecureRAM M5 authenticated backing, normal filesystem I/O' >
-	"$M5_VM_RUN_DIR/expected-check.txt"
-sync -f "$M5_MOUNT_POINT/check.txt"
-cmp -- "$M5_VM_RUN_DIR/expected-check.txt" "$M5_MOUNT_POINT/check.txt"
-m5_assert_mounted_identity "$phase_expected_capacity_bytes" "$M5_MOUNT_POINT"
-"$M5_CONTROL_HELPER" busy
-m5_assert_query 2 2 "$phase_expected_capacity_bytes"
-cmp -- "$M5_VM_RUN_DIR/expected-check.txt" "$M5_MOUNT_POINT/check.txt"
-m5_safe_unmount
-m5_identity_guard "$phase_expected_capacity_bytes"
-mount "$M5_DEVICE" "$M5_MOUNT_POINT"
-M5_MOUNTED_BY_HARNESS=1
-m5_assert_mounted_identity "$phase_expected_capacity_bytes" "$M5_MOUNT_POINT"
-cmp -- "$M5_VM_RUN_DIR/expected-check.txt" "$M5_MOUNT_POINT/check.txt"
-m5_safe_unmount
-rm -f -- "$M5_VM_RUN_DIR/expected-check.txt"
+m5_run_production_ext4 "$phase_expected_capacity_bytes" "$M5_MOUNT_POINT"
 m5_record 'ext4' PASS 'nodiscard format, file sync/read, mounted EBUSY, remount/read, clean unmount'
 m5_complete_checks
 
