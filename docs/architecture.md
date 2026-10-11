@@ -1,270 +1,150 @@
 # SecureRAM architecture
 
-Status: M1, M2 and M3 are complete, including their recorded VM runtime
-acceptance. M3 adds a security design and plaintext pass-through boundary.
-Storage remains plaintext and volatile. The
-[M2 design](m2-design.md) specifies the preserved request/resource lifecycle;
-the [M3 security design](m3-security-design.md) and
-[threat model](m3-threat-model.md) specify the new boundary and future policy.
-Encryption, key management, authentication and control interfaces remain future work.
+M1-M4 are complete and runtime verified. M4 implements AES-256-XTS and privileged
+key management. Its exact compile/static and VM runtime evidence is in
+[the M4 report](m4-report.md). Historical designs and results remain in the
+[M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
+[M3 threat model](m3-threat-model.md).
 
-## Objective and problem
+## Purpose and boundary
 
-SecureRAM will be a volatile Linux block storage device, `/dev/secureram0`, whose
-bytes live in memory owned by a kernel driver. It is a university OS project for
-learning device lifetimes, the block layer, memory management, concurrency, and
-kernel cryptography through a usable storage interface.
-
-The intended problem is temporary storage with an explicit security lifecycle:
-later versions will encrypt the backing store, authenticate stored blocks,
-restrict administration, and erase driver-owned secrets on teardown. Persistence
-across unload or restart is deliberately outside the design. M3 implements
-plaintext storage and provides no encryption/authentication guarantees.
-
-### How it differs from other memory storage
-
-| Mechanism | Ownership and interface | Relationship to SecureRAM |
-| --- | --- | --- |
-| `malloc()` | A process receives virtual addresses in its own address space. | It creates neither a block device nor a filesystem-facing I/O endpoint. SecureRAM will own memory independently of an individual application and service kernel block requests. |
-| Ordinary RAM disk | A driver exposes RAM through a block device. | This is the functional baseline for M2. Later SecureRAM milestones add an explicit key lifecycle, encrypted backing, authentication, and verified erasure paths. |
-| `tmpfs` | An in-memory filesystem, with swap behavior controlled by its configuration and environment. | SecureRAM is a block device beneath a filesystem, not a filesystem implementation. |
-
-This is an educational design, not a claim to replace established Linux storage
-security such as device-mapper encryption. A RAM disk plus existing encryption
-can solve real deployment needs; implementing and explaining the integration is
-the purpose of this project.
-
-## Why the kernel
-
-The driver must participate in the Linux block layer so ordinary storage tools
-and filesystems can use a real device. Kernel ownership also gives us control of
-the backing allocation and request lifecycle. Kernel placement alone does not
-provide confidentiality or trust: bugs here can crash the machine, and a
-compromised kernel can inspect memory and keys.
-
-## Data and control paths
+A real Linux block driver exposes `/dev/secureram0` so ordinary storage tools
+and filesystems exercise VFS, bios, blk-mq, kernel memory and request lifetimes.
+This is an educational project, not an audited replacement for dm-crypt.
+Unlike malloc it supplies a kernel block interface; unlike tmpfs it sits below
+a filesystem. Kernel placement alone is not a security property.
 
 ```text
-                 USER SPACE                         KERNEL SPACE
-
- application -- read/write --> system calls --> VFS / filesystem
-                                                    | page cache / writeback
- storage utility -- raw block-device I/O ------------+
-                                                    v
-                                          Linux block layer (bios/requests)
-                                                    |
-                                          /dev/secureram0
-                                                    |
-                                  +-----------------v------------------+
-                                  | SecureRAM block adapter (blk-mq)   |
-                                  | validate / bound / dispatch        |
-                                  +-----------------+------------------+
-                                                    |
-                                  +-----------------v------------------+
-                                  | bounded, ordered worker context    |
-                                  | validate/map request segments      |
-                                  +-----------------+------------------+
-                                                    |
-                                  +-----------------v------------------+
-                                  | security layer: M3 pass-through    |
-                                  | later: unit encryption/integrity   |
-                                  +-----------------+------------------+
-                                                    |
-                                  +-----------------v------------------+
-                                  | driver-owned volatile RAM          |
-                                  | later: ciphertext + private tags   |
-                                  +------------------------------------+
-
- future admin tool --> separate control endpoint --> permission checks
-                                                    |
-                                         device/key state transitions
-
- M1 ONLY: module loader --> secureram_init() --> kernel log
-          module unloader --> secureram_exit() --> kernel log
+application / filesystem / page cache
+                |
+       Linux block layer, blk-mq
+                |
+     admission + bounded pending list       /dev/secureramctl
+                |                                 |
+        ordered sleepable worker          user-copy + host capability check
+                |                                 |
+       validated page fragments             control mutex
+                |                          gate -> drain -> transition
+       gather/scatter 4096-byte units              |
+                +--------- security context ------+
+                          XTS key state
+                          plain/cipher staging
+                          Kernel Crypto API
+                                  |
+                         checked RAM byte store
+                          ciphertext while ACTIVE
 ```
 
-The diagram shows logical routing: the `/dev` node identifies the kernel block
-device; it is not a second copy of the data. Filesystem I/O may be buffered, so
-an application's successful `write()` need not mean the driver has received the
-request yet. A future device flush will order completed RAM writes; it cannot
-make volatile memory survive power loss.
+Normal data reads return plaintext. Crypto protects only the backing allocation
+under the limited backing-disclosure threat model, assuming keys and plaintext
+copies elsewhere remain private. The root administrator, kernel, provider and
+hypervisor are trusted. XTS supplies no integrity, authentication or freshness.
 
-## Components and boundaries
+## Ownership and responsibilities
 
-| Area | Responsibility | First milestone |
-| --- | --- | --- |
-| `src/secureram_main.c` | Module entry/exit, metadata, lifecycle orchestration. | M1 |
-| `include/secureram_config.h` | Names, version, initial geometry defaults. | M1 |
-| Block adapter | Disk registration, queue limits, request validation/completion. | M2 |
-| RAM store | Allocate/free capacity; bounded copies using byte offsets. | M2 |
-| Security layer | M3 owns the store through plaintext forwarding; future unit transforms, authentication and secret cleanup. | M3 boundary/design; M4+ mechanisms |
-| Control plane | Privileged key/device transitions, stable userspace interface. | M3 design only; M4+ implementation |
-| Statistics | Counters and safe readout without secret material. | Later, separately scoped |
-| `tools/`, `tests/`, `scripts/` | Administration, validation, developer workflow. | Incremental |
+| Component | Owned resources and responsibility |
+| --- | --- |
+| Main | Capacity parameter validation and outer lifecycle pointer. |
+| Block | Device context, mutex/opener count, admission/pending spinlock, workqueue/work item, tag set, disk/queue, embedded security/control. Validates requests and gathers/scatters units. |
+| Security | Embedded store, two 4096-byte kmalloc buffers, aligned IV, state/generation, skcipher transform and reusable request while keyed. No user pointers or blk-mq parsing. |
+| Store | One bounded vzalloc allocation, overflow-safe range/copy helpers and explicit clearing. Knows no cipher or key. |
+| Control | Registered misc endpoint and safe fixed-size ABI translation. Does not interpret backing bytes. |
+| Block core/filesystem | Request pages, normal plaintext caches and successful read output; the driver does not erase caller-owned data. |
 
-These are responsibility boundaries, not an instruction to create empty C
-files or speculative callback hierarchies. M2 adds block and store source
-objects to the existing composite Kbuild target without changing the module name.
-M3 adds `src/secureram_security.c` and routes block-to-store lifecycle and
-transfers through its internal interface. The ordered worker, request ownership,
-store implementation, and allocation/unwind order remain unchanged.
-Internal shared headers belong in `include/`; a future userspace ABI must have
-its own deliberately reviewed UAPI header with fixed-width fields.
+All accepted I/O runs on one ordered WQ_MEM_RECLAIM worker. Dispatch only uses
+a spinlock and preallocated request-private list node. No sleeping crypto,
+user-copy or allocation occurs there. The worker completes each accepted request
+once and never touches it again. Dispatch rejection occurs before start/ownership.
 
-## Block interface decision
+## Geometry and cryptographic layout
 
-Use the modern request-based **blk-mq** interface in M2. A bio-based RAM driver
-is also valid, but request dispatch through a bounded queue provides a clear
-place for future crypto work and completion accounting. Do not use legacy
-`request_fn`, `blk_init_queue()`, or old `make_request_fn` tutorials.
+The capacity is 1-256 MiB, default 64; kernel addressing still counts 512-byte
+sectors. Logical and crypto units are 4096 bytes, independent of page/bvec
+boundaries. A 64 MiB medium has 16384 units. No partitions or interleaved metadata.
+The request limit is 128 KiB, 128 segments, 64 driver tags and one hardware queue.
 
-M2 uses one disk and one hardware dispatch queue. Accepted requests enter a
-spinlock-protected list using their preallocated private list nodes. A single
-device-owned work item on an ordered workqueue performs backend operations
-and completes each accepted request exactly once. This intentionally favors a
-clear concurrency model over peak throughput. No sleeping allocation, mutex,
-or potentially sleeping crypto operation belongs in a normal dispatch callback.
-The [M2 design](m2-design.md) specifies allocation and shutdown ordering against
-the target kernel's disk-owned queue lifecycle.
+For a validated byte offset `b`, XTS input is `LE64(b / 4096) || zero[8]`.
+Offsets 0/4096/8192 use indices 0/1/2. The provider derives the actual tweak.
+This follows M3's large-sector plain64 convention; it promises no dm-crypt format
+compatibility. A 64-byte key is two 256-bit AES keys, not a 512-bit AES cipher.
+Equal halves are rejected. Rewriting one unit reuses its address input as XTS
+permits, leaking equality at the same location across snapshots. This is not
+a safe nonce policy for CTR/GCM.
 
-The API reference is the kernel's [blk-mq documentation](https://www.kernel.org/doc/html/latest/block/blk-mq.html).
-Linux has no stable in-kernel driver ABI. The M2 target is now Linux
-**7.0.0-38-generic** in the user's Ubuntu VM; its headers and official source
-were consulted. Earlier Linux 6.x planning does not imply broad compatibility.
+Before a request changes storage, the block layer validates alignment, complete
+bounds and the sum/page validity of all fragments. A cursor then assembles full
+units across arbitrary page fragments. Each mapping is released before crypto.
+WRITE encrypts private plaintext staging into ciphertext staging, then commits
+the ciphertext unit. READ copies ciphertext into staging, decrypts privately,
+then scatters that unit's plaintext. Staging and request context are explicitly
+cleared after use. No vmalloc memory is passed to sg_init_one.
 
-## Geometry and RAM backing
+A failed unit is not copied to READ output or committed after failed encryption.
+Earlier units of a request may already have changed; no multi-unit transaction
+or rollback is promised. XTS does not detect wrong keys or altered ciphertext.
 
-M2's default geometry is **64 MiB**, **4096-byte logical blocks**, and the
-Linux block layer's **512-byte sector accounting units**. These are different
-concepts: the disk capacity is 131072 sectors or 16384 logical blocks. A larger
-logical block gives the future authentication layer a clear 4 KiB protection
-unit. M2 advertises these alignment requirements and supports a load-time
-`capacity_mb` parameter from 1 through 256 MiB.
+## States and synchronization
 
-M2 uses a zero-initialized `vzalloc()` backing allocation, with physically
-scattered pages. This avoids requiring a
-large physically contiguous allocation. Allocate the complete initial capacity
-before publishing the disk; allocation failure must leave no visible device.
-The backing allocation is kernel memory, not ordinary swappable process memory.
-In a VM, the host may still page or snapshot guest memory.
+```text
+NO_KEY -> PREPARING -> ACTIVE <-> LOCKED
+             |          |          |
+          failure       +-- destroy+
+             +---------------> NO_KEY
+normal unload -> DYING -> cleared/freed
+```
 
-Use `sector_t` for block addresses and `u64` for capacity/offset arithmetic where
-needed; validate conversions to `size_t` for the target architecture. Bounds
-checks must avoid overflowing `offset + length` (check the offset first, then
-compare length to remaining capacity). A bio/request may span multiple pages
-and segments. M2 must walk and map those segments correctly; neither request
-buffers nor the backing pages may be assumed physically contiguous.
+Load is allowed only in NO_KEY. It sets a private transform and eagerly stores
+encrypted zeros at every unit before ACTIVE. Failure frees candidate crypto,
+clears partial storage and remains NO_KEY. Replacement requires destroy then
+load; no old bytes are reinterpreted under another key. Generation counts
+successful loads, survives destroy and resets on module reload; it is not an
+anti-replay counter. PREPARING is internal because query waits for the mutex.
 
-There will be no mmap of backing memory into userspace. Later tag, nonce, and
-version metadata will occupy private allocations outside advertised capacity.
-Only advertise optional operations such as discard or write zeroes when their
-semantics have actually been implemented and tested. Unsupported operations
-must receive a deliberate block status, not silently succeed.
+LOCKED retains the transform but rejects data opens and dispatched I/O. Unlock
+re-enables that same key without password checks. Destroy removes the transform,
+request and all owned backing/staging contents, returning NO_KEY. Every
+transition, including unlock and idempotent destroy, requires zero block openers.
 
-## Planned security and control
+Lock order: block-core open_mutex (only in core callbacks) -> control mutex ->
+pending spinlock. Control never calls back into block-core open/close/freeze
+while holding its mutex. The worker and dispatcher never acquire the mutex.
+An administrator closes admission under pending_lock, releases the spinlock,
+drains the workqueue with old key/state alive, changes state, and reopens only
+for ACTIVE. Async crypto callbacks only signal completion; draining therefore
+includes their buffer/request lifetime. No spinlock spans sleeping work.
 
-Use the Linux [Kernel Crypto API](https://docs.kernel.org/crypto/index.html),
-not a custom cipher. M3 chooses future `xts(aes)` with a 64-byte combined key,
-4096-byte units, and a 16-byte IV containing the little-endian 64-bit unit index
-followed by zeros. This is confidentiality only: XTS does not authenticate data.
-The [M3 design](m3-security-design.md) compares CTR/AEAD, specifies multi-segment
-unit assembly and encrypted-zero initialization, and reserves private metadata
-for a later integrity milestone. No crypto calls or keys exist in M3.
+The target core balances successful driver open/release callbacks and flushes/
+invalidates the final block mapping before release decrements the driver count.
+Thus a transition cannot pass while the last close still flushes old contents.
+Fresh opens serialize against transitions. Filesystem mounts remain open users;
+key destruction beneath a mount is rejected rather than attempted.
 
-The intended endpoint is authenticated units with a device/key-generation
-identity and block address bound into authentication. Nonces must remain unique
-under each key across repeated writes. A sector number alone is not a safe
-nonce for a construction requiring uniqueness. On reads, verify authentication
-before returning plaintext; a failed check becomes an I/O error. Unwritten
-units need an explicit initialized/unwritten representation: all-zero bytes are
-not automatically valid ciphertext or tags. Ciphertext and its metadata must
-change together under the concurrency rules.
+## Lifecycle and failure unwinding
 
-A separate misc character administrative endpoint, `/dev/secureramctl`, is
-proposed in M3, with a small versioned ioctl ABI. Its numbers/layout are not
-frozen and no control device is implemented.
-It will validate lengths, use safe kernel user-copy helpers, enforce privileges
-and device permissions, and never return keys in logs or query output. The
-block path already receives kernel-managed buffers; it must not treat them as
-raw userspace pointers. A later CLI will call the control endpoint.
+Allocate device, backing/staging, workqueue, tags and disk in that order.
+Publish the block disk keyless, then the control endpoint. If control publication
+fails, remove/drain the disk before normal reverse cleanup. Earlier failures
+release only successfully acquired resources. Crypto allocation happens only
+on a key load, while admission is closed and no block user exists.
 
-Keys will be per-device kernel-owned secrets with explicit ownership, cleanup,
-and synchronization. No hard-coded keys or secrets in module parameters,
-command-line arguments, or logs. Removing a key cannot leave work using freed
-key material. The initial key-replacement policy should require an idle,
-unmounted device and an explicit destructive reset; live rekeying and persistence
-are not assumed. M3 specifies NO_KEY/PREPARING/ACTIVE/LOCKED/DYING states for
-future implementation. Locked/keyless I/O must fail closed; reversible lock
-retains the key, while explicit destroy erases it and discards contents.
-These are design states, not M3 runtime flags. Kernel primitives such as
-`memzero_explicit()` or appropriate sensitive-free helpers must be matched to
-actual allocation types.
+Open control and block files pin THIS_MODULE. Normal unload cannot start while
+such files exist; misc deregistration alone would not revoke an open file.
+Unload unregisters control, closes admission, drains and marks DYING, releases
+the control mutex, removes the disk while the worker remains available, destroys
+the worker, drops disk/tags, and clears/frees security/store/device state.
+Do not force unload. Crash/power loss cannot promise orderly cleanup.
 
-## Concurrency and lifetime
+## Scope and evidence
 
-M1 owns no allocations, work items, queues, or device registrations, and exposes
-no concurrent I/O path. It therefore needs no locks or failure unwinding code.
+The shared UAPI is in `include/uapi/secureram.h`; details and error behavior are
+in [the M4 report](m4-report.md). There is no key export, mmap, data debug ioctl,
+password handling or production management application. Native discard,
+WRITE_ZEROES and atomic writes remain unsupported. FLUSH is an ordered no-op;
+no write-back cache is advertised, so the block core may elide empty flushes.
 
-For M2, the ordered worker serializes backing-store access, including overlapping
-writes. A single hardware queue alone does **not** guarantee serialization.
-Queue depth bounds work and memory consumption; M2 preallocates request-private
-pending-list nodes with blk-mq tags and uses one device-owned work item.
-
-Later control operations will use a control mutex in sleepable context, with
-an admission gate protected by the pending-list spinlock. Close admission and
-drain existing work before changing or erasing key state. The worker must not
-acquire the control mutex; no spinlock spans a wait. The proposed lock order is
-control mutex then pending lock. Future block-open accounting prevents key
-transitions while mounted/open and races with new opens. The detailed protocol
-and implementation acceptance conditions are in [M3's design](m3-security-design.md).
-
-## Security boundaries and honest limitations
-
-- The eventual protection target is driver-owned backing bytes and orderly
-  handling of keys, with access checks on the public interfaces.
-- Authorized readers necessarily receive plaintext. Plaintext may also exist in
-  application buffers, filesystem/page caches, and transient kernel buffers.
-  Encrypting the backing allocation does not encrypt all system RAM.
-- The kernel, privileged administrators, host/hypervisor, and crypto
-  implementation are trusted. This design cannot withstand a compromised
-  kernel, arbitrary physical-memory access, or a hostile hypervisor.
-- Volatility is not proof of secure deletion. Future explicit erasure can cover
-  buffers we own during orderly cleanup; crashes, dumps, hibernation, host swap,
-  snapshots, and hardware memory remanence are outside that guarantee.
-- Authentication can detect invalid stored units under its stated model. Full
-  rollback protection requires trusted freshness state outside the attacker's
-  control and is not promised by keeping counters beside ciphertext in RAM.
-- Capacity and queue limits bound resource use; encryption does not prevent
-  denial of service. M3's security boundary still forwards plaintext and
-  provides no cryptographic or new authorization guarantee.
-
-## Lifecycle
-
-**M1:** the loader resolves symbols and metadata, runs `secureram_init()`, and
-records the loaded module. Initialization logs the version and succeeds. Normal
-unload calls `secureram_exit()`, which logs completion. Static metadata is owned
-by the module loader. There are no driver resources to release and no `/dev` node.
-
-**M2 onward:** initialize private state, allocate backing and bounded work
-resources, configure the disk/queue, and publish the device last. On failure,
-unwind only resources acquired, in reverse ownership order. On shutdown, stop
-new admission and withdraw the disk, account for open holders, drain all accepted
-work/completions, then release queues, workers, and backing state according to
-the target kernel's lifetime rules. Later, erase secrets before freeing their
-storage. A queue quiesce alone is not evidence that all accepted I/O is finished.
-Never free memory while any request or control operation can still reference it.
-
-## Milestones and acceptance gates
-
-| Milestone | Scope | Evidence required before moving on |
-| --- | --- | --- |
-| M1: foundation | Architecture, module lifecycle, metadata/configuration, Kbuild, workflow. | Compile with warnings inspected; load/log/unload when environment permits, otherwise record the exact blocker. |
-| M2: block storage | One plaintext RAM-backed disk, modern blk-mq dispatch, bounds checks, clean failure/unload paths. | Raw I/O round trips, zero-initialized reads, geometry and boundary checks, filesystem smoke test, concurrent I/O and repeated lifecycle checks on a disposable Linux system. |
-| M3: security architecture | Threat model, crypto/key/control/cleanup/concurrency design and plaintext pass-through boundary. | Build/static checks and separate VM regression of preserved M2 behavior; no encrypted-storage claim. |
-| M4 (proposed): confidentiality | Real Crypto API XTS, whole-unit transfers, fail-closed key lifecycle, minimum privileged control and erasure. | Runtime encryption evidence, locked/keyless behavior, split segments, failures, drain/cleanup and teardown. No integrity claim. |
-| M5 (proposed): authenticated storage | Reviewed tags/metadata and freshness design, authenticated unit updates/reads. | Tampering fails closed, no unauthenticated unit release; failure and concurrency tests. |
-| Later, separately scoped | Tools, access-control review, statistics, stress, hardening, benchmarks and final evaluation. | Explicit scope and relevant runtime evidence before each claim. |
-
-This M3 scope supersedes the older roadmap numbering; completed milestone
-reports remain historical evidence. Stop after M3. Crypto, keys, ioctl, CLI,
-GUI and custom statistics require later explicit requests.
+The opt-in test build adds internal backing comparisons and split-unit checks;
+the production build omits them. Both require matching-kernel runtime tests.
+Explicit memory clearing covers named owned buffers, not all physical copies,
+caches, CPU registers, dumps, hibernation, snapshots or root/kernel compromise.
+See [the VM procedure](m4-testing.md). M5 authentication and its metadata/freshness
+design need a separate request. Stop after M4.

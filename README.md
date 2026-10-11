@@ -3,178 +3,127 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M3, version 0.3.0:** the driver implements `/dev/secureram0`, with a default
-capacity of **64 MiB** and **4096-byte logical blocks**. It supports real block
-reads/writes and whole-device filesystems. **M3 storage is plaintext and exists
-only in RAM.** Unloading the module loses all contents; reload creates zeroed
-storage. M3 adds a security architecture and a pass-through code boundary;
-encryption and other security features are later milestones.
+**M4, version 0.4.0:** AES-256-XTS encrypted RAM-backed storage, with
+4096-byte logical/crypto units and a separate privileged key-control interface.
+**Confidentiality only; cryptographic integrity/authentication is not implemented.**
+**M4 Ubuntu VM runtime acceptance is complete**, including direct internal
+evidence that backing RAM contains ciphertext and a final production regression.
+See [the M4 report](docs/m4-report.md) for exact build/static/runtime evidence
+and limits.
 
-M1 and M2 are complete and runtime-verified in the user's Ubuntu VirtualBox VM.
-M2's compile/static evidence and successful VM acceptance results are recorded
-in [the M2 report](docs/m2-report.md). M2 remains plaintext, volatile storage;
-runtime acceptance is not a claim of encryption or other later security features.
-M3's build/static results and successful VM regression are recorded in
-[the M3 report](docs/m3-report.md). M3 remains plaintext; runtime acceptance is
-not evidence that the planned AES-256-XTS construction is active.
+M1, M2, M3 and M4 are complete and runtime verified in the user's Ubuntu VirtualBox
+VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
+[M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
+their successful tests do not verify this new crypto implementation.
 
-## Architecture and layout
+## Data and control paths
 
 ```text
-Applications / filesystem -> Linux block layer -> blk-mq
-  -> bounded pending list -> ordered worker -> plaintext security boundary
-  -> checked RAM byte store
+application/filesystem -> Linux block layer -> blk-mq
+  -> bounded pending list -> ordered worker -> whole-unit gather/scatter
+  -> Kernel Crypto API AES-XTS -> checked ciphertext RAM store
 
-SecureRAM/
-  Makefile, Kbuild                External-module build
-  src/secureram_main.c            Module parameters and lifecycle
-  src/secureram_block.c           Disk, queue, request worker, cleanup
-  src/secureram_security.c        Plaintext pass-through; future crypto boundary
-  src/secureram_store.c           RAM allocation and bounded byte transfers
-  include/                       Internal interfaces and central constants
-  scripts/check-environment.sh    Read-only prerequisite inspection
-  tests/m2-raw-io.py              Opt-in VM raw/direct I/O checks
-  docs/                          Architecture, design, workflow, test plan, reports
-  tools/                         Reserved for later administration tools
+privileged test helper -> /dev/secureramctl -> validated ioctl
+  -> close I/O admission -> drain -> change key/state -> reopen if ACTIVE
 ```
 
-The [M2 design](docs/m2-design.md) explains resource ownership, concurrency,
-overflow checks, multi-segment transfers, supported operations, and failure
-unwinding. The [overall architecture](docs/architecture.md) preserves the planned
-security-layer boundary. The [M3 threat model](docs/m3-threat-model.md) and
-[security design](docs/m3-security-design.md) specify future AES-XTS with 4 KiB
-units, a key lifecycle, and `/dev/secureramctl` as a proposed control endpoint.
-None of those cryptographic/control mechanisms is implemented in M3. XTS alone
-would provide confidentiality, not authentication.
+`/dev/secureram0` defaults to **64 MiB**, with a load-time `capacity_mb=1..256`
+parameter (MiB). It has no partitions. Unload/reboot loses the medium. The
+module starts in **NO_KEY**: block opens fail with ENOKEY. A valid 64-byte XTS
+key installs two 256-bit AES keys and initializes the entire medium to encrypted
+logical zeros before enabling I/O. There is no plaintext fallback.
 
-## Prerequisites and build
+`/dev/secureramctl` is root-owned 0600. Every ioctl, including status, checks
+CAP_SYS_ADMIN in the initial user namespace. It supports query, load, lock,
+unlock and explicit destructive key removal. Status contains no keys or data.
+All state changes require an unmounted, closed block device; otherwise EBUSY.
+Lock retains the key; unlock only reopens access. Destroy clears the key and
+contents. A replacement requires destroy followed by load and produces a new
+empty medium. There is no online rekey or password/KDF handling.
 
-Primary runtime target: **Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic, x86-64**, in
-the user's VirtualBox VM. Use the exact running kernel's build/header tree and
-its suitable compiler. Current APIs include queue limits supplied at disk
-allocation and disk-owned queue cleanup; there are no ancient-kernel shims.
+## Build
 
-Inside Linux, from the checkout:
+Primary recorded runtime target: **Ubuntu 24.04.5 LTS, Linux
+7.0.0-38-generic, x86-64**, in VirtualBox. Inspect its current running kernel
+and use matching headers/compiler. Build as an ordinary user inside Linux:
 
 ```sh
-sudo apt-get update
-sudo apt-get install build-essential kmod "linux-headers-$(uname -r)"
 make check-env
 make clean
 make W=1
 modinfo ./secureram.ko
+mkdir -p .cache
+gcc -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -Iinclude \
+  tests/m4-control.c -o .cache/m4-control
 ```
 
-Build as an ordinary user. Root is needed only for explicit installation and
-device operations. Kernel signature policy must permit the module. For an
-alternate prepared target tree:
+An alternate prepared target tree can be selected with `KDIR=/path/to/build`.
+An alternate-kernel build is compile-only; never load an Ubuntu generic module
+into the Microsoft WSL kernel. See [development](docs/development.md).
+
+## VM verification and use
+
+Follow [the M4 procedure](docs/m4-testing.md) for safe identity checks, fail-closed
+tests, key activation, raw SHA-256/cmp verification, internal ciphertext evidence,
+ext4, key removal and unload. No runtime/device commands run automatically.
+
+After confirming a disposable VM and building for its running kernel:
 
 ```sh
-make KDIR=/path/to/kernel/build check-env
-make KDIR=/path/to/kernel/build clean
-make KDIR=/path/to/kernel/build W=1
-```
-
-An alternate-target build is compile-only unless it matches the running kernel.
-WSL's Microsoft kernel is separate from Ubuntu's generic kernels; do not load
-a generic-kernel module into WSL. See [the developer workflow](docs/development.md).
-Build commands never load modules or write to a device automatically.
-
-## Load, inspect, and unload
-
-After building for the running kernel:
-
-```sh
-uname -r
-modinfo -F vermagic ./secureram.ko
 sudo insmod ./secureram.ko capacity_mb=64
 sudo udevadm settle
-lsmod | grep '^secureram '
-lsblk -b -o NAME,MAJ:MIN,SIZE,TYPE,LOG-SEC,PHY-SEC /dev/secureram0
-sudo blockdev --getsize64 /dev/secureram0
-sudo dmesg --color=never | grep -F 'secureram:'
+sudo .cache/m4-control query
+sudo .cache/m4-control load-test-key
+sudo .cache/m4-control query
 ```
 
-Expect **67108864 bytes** and a fresh message:
+`load-test-key` generates a random, ephemeral 64-byte key inside the test helper;
+it prints/stores none of it. It is verification tooling, not the final CLI.
+Only after successful activation may normal block reads/writes or ext4 operate.
+For direct backing evidence use the guide's opt-in `M4_TEST=1` build; it reports
+internal comparisons without exposing backing memory. The production build
+contains no such checks or debug export.
 
-```text
-secureram: SecureRAM v0.3.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (plaintext RAM)
-```
-
-`capacity_mb` means MiB and accepts **1-256**, default 64. It is read-only after
-load, is checked before allocation, and does not guarantee allocation succeeds
-under memory pressure. The kernel assigns major/minor numbers dynamically.
-There are no partitions; format/mount the whole device if desired.
-
-To unload, first unmount SecureRAM and close every user of the device:
+Before key destruction or unload, unmount and close every block/control user:
 
 ```sh
-findmnt --source /dev/secureram0
-# If mounted, unmount the displayed mountpoint before continuing.
+sudo .cache/m4-control destroy
 sudo rmmod secureram
 sudo udevadm settle
-test ! -e /sys/module/secureram && echo 'Module removed'
-test ! -e /dev/secureram0 && echo 'Device removed'
-sudo dmesg --color=never | grep -F 'secureram:'
-make clean
+test ! -e /dev/secureram0
+test ! -e /dev/secureramctl
 ```
 
-Expected message: `secureram: SecureRAM: M3 module unloaded; device removed and
-RAM released`. A mounted/open device pins the module, so a busy-unload failure
-is expected. Never force unload. Use the same `KDIR` when cleaning an alternate
-build.
+Never force unload. Open block/control files pin the module. Destroy irreversibly
+discards the volatile medium; do not use it as swap.
 
-## Verify in the VM
+## Limits and layout
 
-Follow [the M3 regression instructions](docs/m3-testing.md), which reuse the
-[M2 test procedure](docs/m2-testing.md) with M3 version/log expectations, for
-identity/capacity checks, direct raw I/O with exact comparison, end-of-device
-behavior, concurrent requests, optional ext4, busy-unload protection, parameter
-validation, and reload.
-On a fresh, unmounted device, its opt-in raw test is:
+READ/WRITE handle segmented requests as complete 4096-byte crypto units. A
+delivered FLUSH is an ordered no-op; no write-back cache or persistence is
+advertised. Native DISCARD, WRITE_ZEROES and atomic writes are unsupported.
+There is one hardware queue, 64 tags, a 128 KiB request limit and one ordered
+worker. Multi-unit requests are not atomic: earlier units can complete before
+a later unit fails. Errors never trigger plaintext retry.
 
-```sh
-sudo python3 tests/m2-raw-io.py
-```
+The threat boundary is disclosure of backing bytes alone, without the key or
+other plaintext copies. Applications, filesystem caches and successful normal
+reads contain plaintext. There is no authentication, tamper/wrong-key/replay
+detection, protection against root/kernel/hypervisor compromise, whole-RAM or
+cold-boot guarantee, persistence, or password security. Explicit clearing covers
+named driver-owned buffers during orderly cleanup, not external copies or crashes.
+See [the threat model](docs/m3-threat-model.md) and [architecture](docs/architecture.md).
 
-This overwrites **only `/dev/secureram0`**, takes no alternative device argument,
-and expects initially zeroed storage. It uses exclusive/direct I/O with aligned
-buffers and fails if the device identity or geometry is unexpected. Reload
-before repeating it. Formatting commands in the guide are optional and manual.
-
-## Supported behavior and limitations
-
-| Operation | Behavior |
+| Location | Responsibility |
 | --- | --- |
-| READ / WRITE | Bounds-checked transfers through all request page segments. |
-| FLUSH | Ordered no-op if delivered; no separate write-back cache is advertised. |
-| DISCARD / native WRITE_ZEROES / other opcodes | Not advertised; rejected if dispatched. |
+| `src/secureram_main.c` | Module parameters, lifecycle, version/logs. |
+| `src/secureram_block.c` | blk-mq, bounds/segments, worker, opens and transition synchronization. |
+| `src/secureram_security.c` | XTS, units/tweaks, state, staging, key lifecycle. |
+| `src/secureram_store.c` | Checked byte copies, allocation and explicit clearing. |
+| `src/secureram_control.c`, `include/uapi/secureram.h` | Privileged ioctl adapter and fixed-width ABI. |
+| `tests/m4-control.c`, `tests/m4-raw-io.py` | Opt-in VM verification helpers. |
+| `docs/` | Designs, evidence, procedures and viva notes. |
 
-There is one device, one hardware queue, up to 64 driver tags, and a single
-ordered worker. Geometry/capacity are immutable while loaded. No persistence,
-encryption, keys, authentication, ioctl control ABI, CLI, GUI, custom statistics,
-secure-wipe controls, or benchmark framework exists. Ordinary `vfree()` cleanup
-does not establish secure erasure, and a flush does not make RAM persistent.
-Linux's ordinary device permissions apply; there is no custom access-control
-policy in M3. VM host swap/snapshots are outside the driver-owned RAM boundary.
-
-## Roadmap and learning
-
-| Milestone | Outcome |
-| --- | --- |
-| M1 (complete) | Module foundation, architecture, verified VM lifecycle. |
-| M2 (complete) | Runtime-verified plaintext RAM block device and reusable VM test procedure. |
-| M3 (complete) | Runtime-verified plaintext boundary plus threat, security, key-lifecycle and control design. |
-| M4 (proposed) | Real Kernel Crypto API encryption, fail-closed key lifecycle and minimum privileged control. |
-| M5 (proposed) | Authentication and corruption detection, with reviewed metadata/freshness rules. |
-| Later, separately scoped | Hardening, access-control review, tools, statistics, stress, benchmarks and final evaluation. |
-
-M3 supersedes the older roadmap's milestone numbering. Each later milestone
-requires a separate request; no cipher, key loading, control ABI, CLI or GUI is
-part of this M3 implementation.
-
-Read [the M2 design](docs/m2-design.md) and [viva notes](docs/m2-report.md#19-viva-concepts)
-to connect request completion, memory mappings, locks, and teardown to OS
-concepts. Source code is **GPL-2.0-only**; see [LICENSE](LICENSE).
-For the new security boundary and its limits, read the
-[M3 viva notes](docs/m3-report.md#18-viva-concepts).
+M5 may add authenticated storage after a separate design/request. No M5 code,
+polished CLI, GUI, dashboard, benchmarking, persistence or networking is included.
+Stop after M4. Source is **GPL-2.0-only**; see [LICENSE](LICENSE).

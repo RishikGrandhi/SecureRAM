@@ -4,12 +4,21 @@
 
 #include "secureram_store.h"
 
-/*
- * M3 plaintext pass-through boundary, not encryption or a key-state machine.
- * Owns the store; the block component owns this context's lifetime.
- */
+#include "uapi/secureram.h"
+
+struct crypto_skcipher;
+struct skcipher_request;
+
+/* One worker, or a control caller after admission closes and work drains. */
 struct secureram_security {
 	struct secureram_store store;
+	struct crypto_skcipher *tfm;
+	struct skcipher_request *request;
+	u8 *plain;
+	u8 *cipher;
+	u8 iv[16] __aligned(16);
+	u64 generation;
+	u32 state;
 };
 
 /* Init before disk publication; destroy only after all I/O/work has drained. */
@@ -19,14 +28,12 @@ u64 secureram_security_capacity(const struct secureram_security *security);
 bool secureram_security_contains(const struct secureram_security *security,
 				 u64 offset, size_t length);
 
-/*
- * Ordered-worker calls only. Synchronous checked byte copies, returning
- * zero or negative errno. Kernel buffers are borrowed only for the call.
- * M3 permits sub-block segments; future crypto requires assembled whole units.
- */
-int secureram_security_read(const struct secureram_security *security, u64 offset,
-			    void *buffer, size_t length);
-int secureram_security_write(struct secureram_security *security, u64 offset,
-			     const void *buffer, size_t length);
+/* Load consumes/clears the temporary key; the caller still sensitive-frees it. */
+int secureram_security_load(struct secureram_security *security, u8 *key);
+void secureram_security_clear(struct secureram_security *security);
+void secureram_security_clear_unit(struct secureram_security *security);
+/* Exactly one aligned unit: WRITE consumes plain, READ produces plain. */
+int secureram_security_read(struct secureram_security *security, u64 offset);
+int secureram_security_write(struct secureram_security *security, u64 offset);
 
 #endif /* SECURERAM_SECURITY_H */

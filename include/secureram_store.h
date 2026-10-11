@@ -12,6 +12,7 @@ struct secureram_store {
 
 int secureram_store_init(struct secureram_store *store, u64 size);
 void secureram_store_destroy(struct secureram_store *store);
+void secureram_store_clear(struct secureram_store *store);
 bool secureram_store_contains(const struct secureram_store *store,
 			      u64 offset, size_t length);
 int secureram_store_read(const struct secureram_store *store, u64 offset,
