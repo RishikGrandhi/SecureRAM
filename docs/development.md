@@ -7,13 +7,15 @@ versions. M5 adds integrity; its [report](m5-report.md) and
 [VM procedure](m5-testing.md) separate compile/static evidence from the completed
 runtime acceptance.
 
-## Current M6 candidate
+## Current M6 implementation
 
 M6 is version 0.6.0 on `m6-cli-observability`, with ABI 1 and feature mask 15.
-Runtime acceptance is pending. `make tools` builds the C management utility with
-C11 and strict warnings; no userspace dependency is added to the kernel build.
+Runtime acceptance passed on commit `50e11e6ddce88a986719ae2ef7ce972377a69e49`
+using Ubuntu 24.04.5 LTS and Linux 7.0.0-38-generic. `make tools` builds the C
+management utility with C11 and strict warnings; no userspace dependency is
+added to the kernel build.
 `make tools-clean` cleans just that binary. Use the [CLI guide](../tools/README.md)
-and [M6 acceptance procedure](m6-testing.md) for the current candidate.
+and [M6 acceptance procedure](m6-testing.md) for the accepted implementation.
 
 Reproducible local verification in the existing WSL compile environment:
 
@@ -109,7 +111,8 @@ corruption ioctl only in that build; it exports no data or arbitrary addresses.
 Inspect `strings` and `nm` to confirm production contains no M4/M5 test strings,
 tamper functions or command case. Runtime also probes ENOTTY.
 Build success does not execute tests. Keep build products/logs ignored, clean
-generated module artifacts after inspection and leave M6 uncommitted for review.
+generated module artifacts after inspection. Compile-only results remain distinct
+from the completed matching-kernel M6 runtime acceptance.
 
 The ABI compile test preserves all five M4 command numbers and layouts, and
 checks the 80-byte M6 statistics payload plus the 40-byte M5 test payload on LP64/ILP32. The -m32 object test uses the
@@ -122,11 +125,12 @@ workflow. Do not hide actual driver warnings behind this exception.
 
 ## Manual runtime smoke check
 
-Follow [the M6 procedure](m6-testing.md) for the current candidate:
-matching-kernel load, keyless denial, valid key installation, raw/filesystem
-I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
-and M2 reports linking here describe their historical version's behavior. M4
-and M5 runtime acceptance are recorded in their respective reports.
+Follow [the M6 procedure](m6-testing.md) to reproduce the accepted
+implementation's checks: matching-kernel load, keyless denial, valid key
+installation, raw/filesystem I/O, safe key destruction, unload and inspection
+of fresh kernel logs. The M1 and M2 reports linking here describe their
+historical version's behavior. M4 through M6 runtime acceptance are recorded in
+their respective reports.
 Load the target's `hkdf` dependency with `sudo modprobe hkdf` before insmod.
 Device tests are never run by the build itself.
 

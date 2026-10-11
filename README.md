@@ -3,8 +3,10 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M6 candidate, version 0.6.0:** a dependency-free management CLI, JSON status,
-and privileged runtime statistics. **M6 VM acceptance is NOT RUN.** See the
+**M6 complete, version 0.6.0:** a dependency-free management CLI, JSON status,
+and privileged runtime statistics. **M6 VM runtime acceptance passed** on commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49` using Ubuntu 24.04.5 LTS and
+Linux 7.0.0-38-generic. See the
 [M6 report](docs/m6-report.md), [CLI guide](tools/README.md) and
 [automated acceptance procedure](docs/m6-testing.md).
 
@@ -17,7 +19,7 @@ Linux 7.0.0-38-generic.
 See [the M5 design/report](docs/m5-report.md) for encoding, key separation,
 ABI, synchronization, verification evidence and security limits.
 
-M1-M5 are complete and runtime verified in the user's Ubuntu VirtualBox
+M1-M6 are complete and runtime verified in the user's Ubuntu VirtualBox
 VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.
@@ -152,5 +154,5 @@ and [architecture](docs/architecture.md).
 | `docs/` | Designs, evidence, procedures and viva notes. |
 
 No GUI, dashboard, benchmarking, persistence or networking is included.
-M6 is awaiting review; no commit, merge or push has been made for this candidate.
+The successful M6 acceptance evidence is recorded in [the M6 report](docs/m6-report.md).
 Source is **GPL-2.0-only**; see [LICENSE](LICENSE).

@@ -3,8 +3,9 @@
 ## Design and acceptance status
 
 Baseline: clean `main` at `7763df1f9eb324bc3c8cb50a61d3afab3165eca3`.
-M1-M5 runtime evidence remains in the historical reports. M6 is an uncommitted
-0.6.0 candidate on `m6-cli-observability`; VM acceptance is **NOT RUN**.
+M1-M5 runtime evidence remains in the historical reports. M6 version 0.6.0 on
+`m6-cli-observability` passed Ubuntu VM runtime acceptance at exact commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49`.
 
 Preserve the M5 block/security/store/control boundaries and all state/ioctl
 numbers. Add a read-only GET_STATS command, leaving the 48-byte QUERY unchanged.
@@ -146,7 +147,7 @@ checks; no fixture selection is compiled into the production binary.
 | Previous defect / risk | M6 treatment and local evidence |
 | --- | --- |
 | Short/full SHA mismatch | Full `git rev-parse HEAD`; mandatory 40-hex M6 pin; full comparison. Self-test rejects empty/short/invalid pins. |
-| Root-owned cache/evidence | Builder creates cache/run directories; builds use runuser SUDO_USER. Logs are returned to that user. Repeated runs retain separate directories; evidence roots/symlinks are guarded. Real sudo ownership still awaits VM validation. |
+| Root-owned cache/evidence | Builder creates cache/run directories; builds use runuser SUDO_USER. Logs are returned to that user. Repeated runs retain separate directories; evidence roots/symlinks are guarded. The accepted VM run validated real sudo/runuser ownership. |
 | `set -u` use before assignment | Dependent local assignments split; capacity supplied explicitly. Self-test runs under nounset. |
 | Readonly/local collisions and dynamic scope | Distinct function-local capacity/result names; historical collision self-test retained. |
 | Dangling redirections | Each shell file parsed separately; actual shared ext4 redirections/comparisons execute on temporary files in the mock. |
@@ -175,11 +176,12 @@ preprocessed/checkpatch-cache artifacts are cleaned after inspection.
 | Privileges | Root 0600 control mode, initial-namespace CAP_SYS_ADMIN check and passed-fd check remain. No setuid, embedded sudo or runtime mock/test option. |
 | Ownership/cleanup | Stats lifetime follows the enclosing device. Borrowed pointer outlives all users; no new allocation/unwind path. Harness cleanup refuses identity changes and retains original failure. |
 | M5 regression | Raw suites reused; all ciphertext/tag/relocation, denial, buffer-sentinel, negative-hook and recovery assertions retained with historical defaults. No weakening of M5 crypto claims. |
-| Production exclusion | Production symbols, strings, preprocessed source and object dispatch exclude M4/M5 hooks; test builds provide positive controls. Runtime ENOTTY still requires the VM. |
+| Production exclusion | Production symbols, strings, preprocessed source and object dispatch exclude M4/M5 hooks; test builds provide positive controls. The accepted VM run also observed production tamper ioctl rejection with ENOTTY. |
 | Current assumptions | Current docs/CLI/harness use 0.6.0/features 15. Remaining 0.5.0/7 references belong to explicitly historical M5 defaults/evidence. |
 
-This is source/build/mock evidence, not proof of runtime races, fault injection,
-kernel crypto operation, physical erasure, compat runtime or VM acceptance.
+The completed normal VM acceptance establishes the runtime behavior covered by
+the harness. It does not establish targeted runtime races, fault campaigns,
+physical erasure, compat runtime behavior, or the other documented limits.
 
 ## Recovery of the interrupted work
 
@@ -191,8 +193,10 @@ suite had passed. No changes were discarded or restarted.
 The remaining work completed after resumption was an additional stdlib-mocked
 test of the actual Python statistics/tamper assertions, generation-artifact
 cleanup in the local runner, the final UAPI/review/evidence documentation and
-the final integrated verification/working-tree handoff. Runtime remains NOT RUN;
-no commit, push, merge or real module/device operation was performed.
+the final integrated verification/working-tree handoff. At that handoff runtime
+had not been run. The subsequently committed candidate
+`50e11e6ddce88a986719ae2ef7ce972377a69e49` is the exact snapshot that passed
+the Ubuntu VM acceptance recorded below.
 
 ## Files changed
 
@@ -234,7 +238,7 @@ or a VM and no real block/control device was accessed.
 | Production imports/surface | PASS; all unresolved kernel symbols exported by target Module.symvers. No crypto/store import added to block adaptation. No test strings/tamper symbols/dispatch in production; source and object code inspected. |
 | ShellCheck | NOT RUN: not installed. No package installation attempted. |
 | git diff --check | PASS, no output. |
-| Ubuntu VM acceptance | NOT RUN; requires a reviewed, committed, clean checkout and disposable matching-kernel VM. |
+| Ubuntu VM acceptance | PASS at exact commit `50e11e6ddce88a986719ae2ef7ce972377a69e49`; evidence `.cache/m6-vm/20261011T173837Z-14754`. |
 
 Environmental warnings retained: target built with GCC 13.3.0 versus local
 15.2.0; target pahole version 125 versus local unavailable/0; BTF skipped because
@@ -246,3 +250,70 @@ builds, symbols, strings, object/preprocessed dispatch, imports/modinfo, CLI,
 four ABI compilations, checkpatch, individual shell checks and harness self-test.
 Generated preprocessed/checkpatch caches are removed after inspection; no
 fixture/tamper interface is linked into the production management utility.
+
+## Observed Ubuntu VM acceptance — 11 October 2026
+
+The accepted run used Ubuntu 24.04.5 LTS, Linux `7.0.0-38-generic`, SecureRAM
+0.6.0 and the exact reviewed commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49`. Evidence is retained in
+`.cache/m6-vm/20261011T173837Z-14754`. The invoked command was:
+
+```sh
+sudo env M6_EXPECTED_COMMIT="$(git rev-parse HEAD)" bash tests/run-m6-vm-acceptance.sh
+```
+
+Every ledger category passed:
+
+| Category | Result |
+| --- | --- |
+| Production build | PASS |
+| CLI build | PASS |
+| CLI help/version | PASS |
+| Version/features | PASS |
+| Human status | PASS |
+| JSON status | PASS |
+| Stats baseline | PASS |
+| Random key load | PASS |
+| Raw I/O | PASS |
+| Stats accounting | PASS |
+| Lock/unlock | PASS |
+| Destroy/rekey | PASS |
+| ext4 | PASS |
+| Mounted busy rejection | PASS |
+| Integrity-failure observability | PASS |
+| Tamper regression | PASS |
+| Recovery | PASS |
+| Capacity parameter rejection | PASS |
+| 1 MiB capacity | PASS |
+| 256 MiB capacity | PASS |
+| Final production regression | PASS |
+| Kernel health | PASS |
+| Final cleanup | PASS |
+| **OVERALL** | **PASS** |
+
+The runtime reported ABI 1 and feature mask 15 (XTS, LOCK, INTEGRITY and STATS).
+The default geometry was 64 MiB with 4096-byte units, initially NO_KEY with
+generation 0. CLI help, version, human and JSON status, every public state,
+load/lock/unlock/destroy, mounted-busy handling and privilege checks passed.
+
+Statistics began at zero. GET_STATS negative, reserved-field, EFAULT and
+privilege checks passed. Real I/O raised the counters; in a quiescent interval,
+one direct unit read added one request and 4096 bytes, and one direct unit write
+did the same. Lock/unlock did not change counters. Counters survived destroy and
+rekey and reset after module reload/new insertion. Integrity-failure increments
+came from actual authentication failures.
+
+Raw I/O passed full-zero, segmented and direct transfers, first, nonzero, middle
+and final logical-block checks, neighbor isolation, four concurrent streams,
+end-of-device/flush behavior, SHA-256 and byte comparison checks.
+The ext4 lifecycle and mounted EBUSY rejection passed. The M5 regression verified
+that production rejected the tamper ioctl with ENOTTY and that only the intended
+test build exposed it. Ciphertext, tag and relocation corruption were detected;
+the failed destination unit remained untouched, state 4 was visible through the
+CLI, and recovery passed. The M5 guarantees and documented limitations remain
+unchanged.
+
+Invalid capacities were rejected, while 1 MiB and 256 MiB configurations passed.
+The final production build excluded test hooks and repeated raw, CLI, ext4 and
+cleanup checks. Kernel health passed with no fatal SecureRAM runtime fault.
+Compiler-name, pahole and BTF messages were classified as environmental only.

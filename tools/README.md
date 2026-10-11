@@ -110,4 +110,5 @@ existing key-control ABI; no production test/tamper command is exposed.
 The separate `tests/m4-control.c` remains a regression helper for malformed ABI,
 passed descriptors and mounted/busy checks. The production CLI does not depend
 on it or on test-build hooks. M6's [testing procedure](../docs/m6-testing.md)
-keeps local mocked evidence separate from pending Ubuntu VM acceptance.
+keeps local mocked evidence separate from the successful Ubuntu VM acceptance
+of commit `50e11e6ddce88a986719ae2ef7ce972377a69e49`.

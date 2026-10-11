@@ -4,7 +4,8 @@ M1-M5 are complete and runtime verified. M5 adds Encrypt-then-MAC integrity to
 M4's XTS and privileged key management. Its successful Ubuntu VM acceptance,
 current design and evidence are in [the M5 report](m5-report.md).
 M6 adds the production C CLI and diagnostic counters while preserving M5 crypto.
-Its [design/report](m6-report.md) separates local evidence from pending VM acceptance.
+Its successful Ubuntu VM acceptance and local evidence are recorded in the
+[M6 design/report](m6-report.md).
 M4's completed evidence is in [its report](m4-report.md). Historical designs remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
 [M3 threat model](m3-threat-model.md).
@@ -176,7 +177,7 @@ backing comparisons and split-unit checks. Production omits all test handlers
 and strings. Both variants require matching-kernel runtime tests.
 Explicit memory clearing covers named owned buffers, not all physical copies,
 caches, CPU registers, dumps, hibernation, snapshots or root/kernel compromise.
-See [the M6 VM procedure](m6-testing.md). M6 remains uncommitted for review.
+See [the completed M6 VM procedure and evidence](m6-testing.md).
 
 ## M6 statistics and CLI boundary
 

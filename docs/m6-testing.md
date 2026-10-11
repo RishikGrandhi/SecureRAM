@@ -1,7 +1,9 @@
 # M6 testing and VM acceptance
 
-**M6 runtime acceptance: NOT RUN.** M1-M5's completed VM results remain historical
-evidence. WSL builds and local mocks do not establish M6 kernel runtime behavior.
+**M6 runtime acceptance: PASS.** The accepted Ubuntu VM run used exact commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49`; evidence is retained in
+`.cache/m6-vm/20261011T173837Z-14754`. WSL builds and local mocks remain separate
+from this matching-kernel runtime evidence.
 
 ## Local checks
 
@@ -38,8 +40,9 @@ generation flow, production/test/final phases, owned cleanup after an injected
 failure, refusal of an unsafe unmount, ledger transitions, missing dmesg, summary
 failure and evidence path guards. Real file operations use a temporary directory;
 no device operation is executed. It also runs the historical M5 self-test.
-Ownership guard/command routing is mocked; real sudo/runuser permissions still
-need VM validation. The mocks do not verify real kernel ioctls or crypto.
+Ownership guard/command routing is mocked, so the mocks alone do not verify real
+sudo/runuser permissions, kernel ioctls or crypto. The accepted VM run separately
+validated those covered runtime paths.
 
 The harness self-test also invokes `check-m6-observe.py`, which runs the actual
 Python statistics assertions against synthetic observations. It requires invalid
@@ -47,14 +50,13 @@ schemas, missing counter increments, counted failed I/O, counter resets on destr
 and initialization WRITE accounting to fail. This tests the assertion code as well
 as shell routing; it does not substitute for real kernel accounting evidence.
 
-## One command for the disposable Ubuntu VM
+## Accepted VM invocation
 
-After review and a separately authorized commit/push, check out that exact M6
-commit on `m6-cli-observability` in the disposable Ubuntu VM. The tree must be
-clean, including nonignored untracked files; use the ordinary checkout owner.
-Confirm this is the intended snapshot/disposable VM and no SecureRAM module,
-nodes or mounts already exist. Headers must match its current running kernel.
-From the reviewed checkout root, the one acceptance command is:
+The successful run checked out exact M6 commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49` on `m6-cli-observability` in a
+clean disposable Ubuntu VM. It used the ordinary checkout owner, matching
+running-kernel headers, and no pre-existing SecureRAM module, nodes or mounts.
+From the checkout root, the acceptance command was:
 
 ```sh
 sudo env M6_EXPECTED_COMMIT="$(git rev-parse HEAD)" bash tests/run-m6-vm-acceptance.sh
@@ -62,9 +64,34 @@ sudo env M6_EXPECTED_COMMIT="$(git rev-parse HEAD)" bash tests/run-m6-vm-accepta
 
 The command substitutes the full SHA before sudo. The script requires 40 lower-case
 hex characters and compares it with the full checked-out SHA. It rejects WSL.
-This uncommitted candidate deliberately cannot pass the clean-checkout preflight.
 The runner builds as SUDO_USER and uses root only for privileged VM operations;
 neither the CLI nor the build embeds sudo. No automatic patch/retry exists.
+
+## Observed acceptance result
+
+The environment was Ubuntu 24.04.5 LTS with Linux `7.0.0-38-generic` and
+SecureRAM 0.6.0. The ledger recorded PASS for production and CLI builds, CLI
+help/version, version/features, human and JSON status, baseline and live stats,
+random key load, raw I/O, exact accounting, lock/unlock, destroy/rekey, ext4,
+mounted-busy rejection, integrity-failure observability, tamper regression,
+recovery, invalid capacities, 1 MiB and 256 MiB capacities, final production
+regression, kernel health and final cleanup. The result was **OVERALL PASS**.
+
+Observed identity and geometry were ABI 1, feature mask 15 (XTS, LOCK, INTEGRITY
+and STATS), default capacity 64 MiB, 4096-byte units, and initial NO_KEY state at
+generation 0. The CLI covered every state and its load, transition, busy and
+privilege paths. GET_STATS covered zero baseline, invalid/reserved data, EFAULT,
+privilege, live I/O deltas, lifetime retention and reload reset. A quiescent
+single-unit direct read and write each added exactly one request and 4096 bytes.
+
+Raw and ext4 workloads passed, including concurrent streams and mounted EBUSY.
+Production rejected the test tamper ioctl with ENOTTY. The intended test build
+detected ciphertext, tag and relocation corruption, left failed destination data
+untouched, exposed INTEGRITY_FAILED/state 4 through the CLI, counted real
+authentication failures and recovered successfully. Invalid capacity parameters
+were rejected; 1 MiB and 256 MiB configurations passed. The final production
+regression rebuilt without test hooks and passed kernel health and cleanup. The
+full category ledger and interpretation are in [the M6 report](m6-report.md).
 
 ## Phases and safety
 

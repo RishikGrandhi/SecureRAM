@@ -1,8 +1,12 @@
 # Verification by milestone
 
-## Current M6 candidate
+## M6 acceptance
 
-M6 runtime acceptance is **NOT RUN**. Follow [m6-testing.md](../docs/m6-testing.md).
+M6 runtime acceptance **passed** on commit
+`50e11e6ddce88a986719ae2ef7ce972377a69e49` using Ubuntu 24.04.5 LTS and
+Linux 7.0.0-38-generic. Evidence is retained at
+`.cache/m6-vm/20261011T173837Z-14754` in the VM checkout. Follow
+[m6-testing.md](../docs/m6-testing.md) for the procedure and recorded results.
 The real CLI is `tools/secureramctl`; Python is used only for test assertions.
 
 | File | Responsibility |
