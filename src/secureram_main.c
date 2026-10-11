@@ -35,9 +35,12 @@ static int __init secureram_init(void)
 	pr_info("SecureRAM v%s: /dev/%s ready, %u MiB, %u-byte logical blocks (AES-256-XTS; NO_KEY)\n",
 		SECURERAM_VERSION, SECURERAM_DEVICE_NAME, capacity_mb,
 		SECURERAM_LOGICAL_BLOCK_SIZE);
-	pr_info("/dev/secureramctl: confidentiality only; no integrity/authentication\n");
+	pr_info("/dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt\n");
 #ifdef SECURERAM_M4_TEST
 	pr_info("M4 test build: internal ciphertext checks enabled\n");
+#endif
+#ifdef SECURERAM_M5_TEST
+	pr_info("M5 test build: privileged bounded corruption hooks enabled\n");
 #endif
 
 	return 0;
@@ -47,7 +50,7 @@ static void __exit secureram_exit(void)
 {
 	secureram_block_destroy(secureram);
 	secureram = NULL;
-	pr_info("SecureRAM: M4 unloaded; devices removed and owned sensitive memory cleared\n");
+	pr_info("SecureRAM: M5 unloaded; devices removed and owned sensitive memory cleared\n");
 }
 
 module_init(secureram_init);
@@ -55,5 +58,5 @@ module_exit(secureram_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("SecureRAM project contributors");
-MODULE_DESCRIPTION("SecureRAM M4: AES-256-XTS RAM storage; no authentication");
+MODULE_DESCRIPTION("SecureRAM M5: AES-256-XTS and HMAC-SHA-256 RAM storage");
 MODULE_VERSION(SECURERAM_VERSION);

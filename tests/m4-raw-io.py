@@ -27,11 +27,11 @@ DEVICE = "/dev/secureram0"
 SYSFS = Path("/sys/class/block/secureram0")
 
 
-def identity():
+def identity(version="0.4.0"):
     require(sys.platform == "linux" and os.geteuid() == 0,
             "Run manually as root in the disposable Ubuntu VM")
-    require(Path("/sys/module/secureram/version").read_text().strip() == "0.4.0",
-            "Expected M4 version 0.4.0")
+    require(Path("/sys/module/secureram/version").read_text().strip() == version,
+            f"Expected SecureRAM version {version}")
     node = os.lstat(DEVICE)
     require(stat.S_ISBLK(node.st_mode), "Expected block node, not a symlink")
     number = f"{os.major(node.st_rdev)}:{os.minor(node.st_rdev)}"
@@ -49,10 +49,10 @@ def identity():
     return node.st_rdev, capacity
 
 
-def main():
+def main(version="0.4.0"):
     require(len(sys.argv) == 2 and sys.argv[1] in ("denied", "active"),
             "Use denied or active; target is /dev/secureram0 only")
-    number, capacity = identity()
+    number, capacity = identity(version)
     if sys.argv[1] == "denied":
         for mode in (os.O_RDONLY, os.O_WRONLY):
             try:

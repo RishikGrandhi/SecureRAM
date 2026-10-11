@@ -141,6 +141,10 @@ static blk_status_t secureram_transfer(struct secureram_device *device,
 static blk_status_t secureram_process_request(struct secureram_device *device,
 					      struct request *request)
 {
+	/* Includes queued requests accepted just before the failure latch. */
+	if (READ_ONCE(device->security.state) != SECURERAM_ACTIVE)
+		return BLK_STS_IOERR;
+
 	switch (req_op(request)) {
 	case REQ_OP_READ:
 	case REQ_OP_WRITE:
@@ -175,6 +179,11 @@ static void secureram_io_work(struct work_struct *work)
 
 		request = blk_mq_rq_from_pdu(command);
 		status = secureram_process_request(device, request);
+		if (READ_ONCE(device->security.state) == SECURERAM_INTEGRITY_FAILED) {
+			spin_lock_irqsave(&device->pending_lock, flags);
+			device->accepting = false;
+			spin_unlock_irqrestore(&device->pending_lock, flags);
+		}
 		blk_mq_end_request(request, status);
 		/* Completion can recycle the request; do not touch it again. */
 		cond_resched();
@@ -209,10 +218,14 @@ static const struct blk_mq_ops secureram_mq_ops = {
 static int secureram_open(struct gendisk *disk, blk_mode_t mode)
 {
 	struct secureram_device *device = disk->private_data;
+	u32 state;
 	int ret = 0;
 
 	mutex_lock(&device->control_lock);
-	if (device->security.state != SECURERAM_ACTIVE)
+	state = READ_ONCE(device->security.state);
+	if (state == SECURERAM_INTEGRITY_FAILED)
+		ret = -EIO;
+	else if (state != SECURERAM_ACTIVE)
 		ret = -ENOKEY;
 	else if (device->openers == UINT_MAX)
 		ret = -EBUSY;
@@ -307,9 +320,10 @@ int secureram_block_query(struct secureram_device *device,
 	status->header.size = sizeof(*status);
 	status->capacity = secureram_security_capacity(&device->security);
 	status->generation = device->security.generation;
-	status->state = device->security.state;
+	status->state = READ_ONCE(device->security.state);
 	status->unit_size = SECURERAM_UNIT_BYTES;
-	status->features = SECURERAM_FEATURE_XTS | SECURERAM_FEATURE_LOCK;
+	status->features = SECURERAM_FEATURE_XTS | SECURERAM_FEATURE_LOCK |
+		SECURERAM_FEATURE_INTEGRITY;
 	mutex_unlock(&device->control_lock);
 	return 0;
 }
@@ -321,7 +335,7 @@ int secureram_block_change(struct secureram_device *device, unsigned int command
 	int ret = 0;
 
 	mutex_lock(&device->control_lock);
-	if (security->state == SECURERAM_DYING) {
+	if (READ_ONCE(security->state) == SECURERAM_DYING) {
 		ret = -ENODEV;
 		goto out;
 	}
@@ -329,17 +343,18 @@ int secureram_block_change(struct secureram_device *device, unsigned int command
 		ret = -EBUSY;
 		goto out;
 	}
-	if ((command == SECURERAM_IOC_LOAD_KEY &&
-	     security->state != SECURERAM_NO_KEY) ||
-	    (command == SECURERAM_IOC_LOCK &&
-	     security->state != SECURERAM_ACTIVE) ||
-	    (command == SECURERAM_IOC_UNLOCK &&
-	     security->state != SECURERAM_LOCKED)) {
-		ret = -EBUSY;
-		goto out;
-	}
 	secureram_admission(device, false);
 	flush_workqueue(device->workqueue);
+	/* Worker may latch failure while draining: validate only after it ends. */
+	if ((command == SECURERAM_IOC_LOAD_KEY &&
+	     READ_ONCE(security->state) != SECURERAM_NO_KEY) ||
+	    (command == SECURERAM_IOC_LOCK &&
+	     READ_ONCE(security->state) != SECURERAM_ACTIVE) ||
+	    (command == SECURERAM_IOC_UNLOCK &&
+	     READ_ONCE(security->state) != SECURERAM_LOCKED)) {
+		ret = -EBUSY;
+		goto reopen;
+	}
 	switch (command) {
 	case SECURERAM_IOC_LOAD_KEY:
 		ret = secureram_security_load(security, key);
@@ -354,10 +369,10 @@ int secureram_block_change(struct secureram_device *device, unsigned int command
 #endif
 		break;
 	case SECURERAM_IOC_LOCK:
-		security->state = SECURERAM_LOCKED;
+		WRITE_ONCE(security->state, SECURERAM_LOCKED);
 		break;
 	case SECURERAM_IOC_UNLOCK:
-		security->state = SECURERAM_ACTIVE;
+		WRITE_ONCE(security->state, SECURERAM_ACTIVE);
 		break;
 	case SECURERAM_IOC_DESTROY_KEY:
 		secureram_security_clear(security);
@@ -365,11 +380,33 @@ int secureram_block_change(struct secureram_device *device, unsigned int command
 	default:
 		ret = -ENOTTY;
 	}
-	secureram_admission(device, security->state == SECURERAM_ACTIVE);
+reopen:
+	secureram_admission(device, READ_ONCE(security->state) == SECURERAM_ACTIVE);
 out:
 	mutex_unlock(&device->control_lock);
 	return ret;
 }
+
+#ifdef SECURERAM_M5_TEST
+int secureram_block_tamper(struct secureram_device *device,
+			   const struct secureram_ioc_tamper *input)
+{
+	int ret;
+
+	mutex_lock(&device->control_lock);
+	if (device->openers) {
+		ret = -EBUSY;
+		goto out;
+	}
+	secureram_admission(device, false);
+	flush_workqueue(device->workqueue);
+	ret = secureram_security_tamper(&device->security, input);
+	secureram_admission(device, READ_ONCE(device->security.state) == SECURERAM_ACTIVE);
+out:
+	mutex_unlock(&device->control_lock);
+	return ret;
+}
+#endif
 
 static const struct block_device_operations secureram_fops = {
 	.owner = THIS_MODULE,
@@ -471,7 +508,7 @@ void secureram_block_destroy(struct secureram_device *device)
 	mutex_lock(&device->control_lock);
 	secureram_admission(device, false);
 	flush_workqueue(device->workqueue);
-	device->security.state = SECURERAM_DYING;
+	WRITE_ONCE(device->security.state, SECURERAM_DYING);
 	mutex_unlock(&device->control_lock);
 	/* del_gendisk drains the owned queue; workers must still be runnable. */
 	del_gendisk(device->disk);

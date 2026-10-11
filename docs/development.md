@@ -1,9 +1,11 @@
 # Developer workflow and learning notes
 
-M1-M4 runtime acceptance is recorded in their reports. The
+M1-M5 runtime acceptance is recorded in their reports. The
 [M4 report](m4-report.md) separates compile/static results from the completed
 VM runtime checks. Older procedures apply to their historical
-versions. Use [the M4 procedure](m4-testing.md) for the encrypted driver.
+versions. M5 adds integrity; its [report](m5-report.md) and
+[VM procedure](m5-testing.md) separate compile/static evidence from the completed
+runtime acceptance.
 
 ## Target and prerequisites
 
@@ -41,7 +43,12 @@ mkdir -p .cache
 gcc -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -Iinclude \
   tests/m4-control.c -o .cache/m4-control
 sh -n scripts/check-environment.sh
-python3 -m py_compile tests/m2-raw-io.py tests/m4-raw-io.py
+python3 -m py_compile tests/m2-raw-io.py tests/m4-raw-io.py tests/m5-raw-io.py tests/m5-integrity.py
+gcc -std=c11 -Wall -Wextra -Werror -Wconversion -m64 -Iinclude \
+  -DSECURERAM_M5_TEST -c tests/abi-layout.c -o .cache/m5-abi64.o
+gcc -std=c11 -Wall -Wextra -Werror -Wconversion -m32 -Iinclude \
+  -I/usr/include/x86_64-linux-gnu -DSECURERAM_M5_TEST \
+  -c tests/abi-layout.c -o .cache/m5-abi32.o
 git diff --check
 ```
 
@@ -54,14 +61,16 @@ cleaning and building. A prepared tree needs generated config and Module.symvers
 Current local compile-only example (Bash in WSL):
 
 ```bash
-m4_headers=/home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src
-m4_target="$m4_headers/linux-headers-7.0.0-38-generic"
-make KDIR="$m4_target" check-env
-make KDIR="$m4_target" clean
+m5_headers=/home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src
+m5_target="$m5_headers/linux-headers-7.0.0-38-generic"
+make KDIR="$m5_target" check-env
+make KDIR="$m5_target" clean
 set -o pipefail
-make KDIR="$m4_target" CC=gcc W=1 2>&1 | tee build-m4-production.log
-perl "$m4_headers/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl" \
-  --no-tree --strict --file src/*.c include/*.h include/uapi/*.h
+make KDIR="$m5_target" CC=gcc W=1 2>&1 | tee build-m5-production.log
+perl "$m5_headers/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl" \
+  --no-tree --strict --file src/*.c include/*.h include/uapi/*.h tests/m4-control.c
+perl "$m5_headers/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl" \
+  --no-tree --strict --ignore CAMELCASE --file tests/abi-layout.c
 nm -u src/secureram_security.o
 /usr/sbin/modinfo ./secureram.ko
 ```
@@ -71,21 +80,33 @@ GCC 13; this environmental warning must remain recorded. Missing pahole/vmlinux
 prevents BTF generation. Any new driver-source warning is a failure to fix.
 The default target compiler may be absent locally, hence the explicit CC=gcc.
 
-For the internal verification variant, clean then build with `M4_TEST=1` and
-the same target/compiler arguments. Clean again before a production build.
-The option adds actual backing comparisons and split-unit checks without a
-debug memory interface. Build success does not execute these checks. Keep
-build products and logs ignored, and clean generated module artifacts after
-inspection. Leave requested M4 source changes uncommitted for review.
+For integrity verification, clean then build with `M5_TEST=1` and the same
+target/compiler arguments. Optionally combine `M4_TEST=1` for backing/cursor
+regression. Clean again before production. M5 exposes a bounded privileged
+corruption ioctl only in that build; it exports no data or arbitrary addresses.
+Inspect `strings` and `nm` to confirm production contains no M4/M5 test strings,
+tamper functions or command case. Runtime also probes ENOTTY.
+Build success does not execute tests. Keep build products/logs ignored, clean
+generated module artifacts after inspection and leave M5 uncommitted for review.
+
+The ABI compile test preserves all five M4 command numbers and layouts and
+checks the 40-byte test payload on LP64/ILP32. The -m32 object test uses the
+available x86 UAPI include directory and requires no 32-bit libc or executable.
+It does not prove compat runtime behavior.
+The ABI-only fixture uses C11 `_Static_assert` without libc headers; checkpatch's
+CamelCase heuristic flags that standard keyword. Only that check is excluded
+for this fixture; kernel code and the control helper use the unmodified strict
+workflow. Do not hide actual driver warnings behind this exception.
 
 ## Manual runtime smoke check
 
-Follow [the M4 procedure](m4-testing.md) for the current encrypted version:
+Follow [the M5 procedure](m5-testing.md) for the current integrity implementation:
 matching-kernel load, keyless denial, valid key installation, raw/filesystem
 I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
 and M2 reports linking here describe their historical version's behavior. M4
-runtime acceptance is recorded in its own report. Device tests are never run by
-the build itself.
+and M5 runtime acceptance are recorded in their respective reports.
+Load the target's `hkdf` dependency with `sudo modprobe hkdf` before insmod.
+Device tests are never run by the build itself.
 
 ## API choices and debugging
 
@@ -99,6 +120,15 @@ allocating and kernel-only hardware providers narrows reclaim/DMA assumptions.
 Provider execution was observed in the VM with `xts-aes-aesni-avx`; controlled
 provider-unavailability and injected-failure tests remain separate coverage.
 
+M5 uses the synchronous `hmac(sha256)` shash API and exported `hkdf_extract` /
+`hkdf_expand` helpers. Target config has CRYPTO_HKDF=m, HMAC=y, SHA256=y.
+Check exact function signatures and symbol exports in the prepared target;
+do not replace missing helpers with an ad-hoc KDF. Preallocate the shash
+descriptor before ACTIVE, clear it with shash_desc_zero after each MAC, then
+reattach its transform. Store both tag and ciphertext only after crypto success;
+compare with crypto_memneq before decrypting. The [M5 report](m5-report.md)
+documents the exact binary encoding, lifetime and updated state synchronization.
+
 The modern char endpoint uses nonseekable_open, unlocked_ioctl and
 compat_ptr_ioctl. The fixed-width/aligned UAPI has identical intended ILP32/LP64
 layout. Capability checks run per operation, including on passed descriptors.
@@ -108,12 +138,14 @@ changes; unknown commands must be ENOTTY and output must not contain padding lea
 | Observation | Interpretation |
 | --- | --- |
 | Block open fails ENOKEY | Expected in NO_KEY/LOCKED; inspect privileged query. |
+| Block I/O/open fails EIO, query state 4 | Integrity failure is latched; close/unmount users, destroy, then install a fresh key. Never unlock to bypass it. |
 | Key change fails EBUSY | Close/unmount block users, or check that transition is valid. |
 | Key load fails EINVAL | Check exact length, distinct halves, ABI version/size/reserved fields and provider geometry. |
 | Key load reports provider/allocation error | Remains fail closed; inspect configuration/provider availability and memory pressure. |
 | Module format/signature rejection | Rebuild for running kernel and follow signing policy; never bypass it. |
 | Module busy | Open block/control files pin it; close legitimate users. |
-| Test log absent | Confirm the current insertion uses M4_TEST=1 and a real write occurred; old logs prove nothing. |
+| Test log absent | Confirm the current insertion's build flags and tested path; M5 binding checks run on load, M4 real-write check needs a write. Old logs prove nothing. |
+| Unknown HKDF symbols on insertion | Load the matching kernel's hkdf dependency; verify running-kernel build/configuration. |
 
 Watch fresh `dmesg --follow-new` in the VM. Never log keys, plaintext, backing
 bytes, sensitive ioctl contents or pointers. Out-of-tree/signature taints are
@@ -136,3 +168,7 @@ worker cannot take the control mutex, final-close cache flushing, and module
 references on both endpoints. Separate locked access gating from destruction,
 confidentiality from integrity/freshness, and compiled evidence from observed
 runtime behavior. See [M4 viva notes](m4-report.md#viva-concepts).
+
+For M5, also explain Encrypt-then-MAC, HKDF key separation, fixed-width domain/
+generation/index binding, full tags, the failure latch and recovery, same-unit
+replay limits, and test-build exclusion. See [M5 viva notes](m5-report.md#viva-preparation).

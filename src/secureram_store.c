@@ -5,10 +5,14 @@
 #include <linux/vmalloc.h>
 
 #include "secureram_store.h"
+#include "uapi/secureram.h"
+#ifdef SECURERAM_M5_TEST
+#include "uapi/secureram_test.h"
+#endif
 
 int secureram_store_init(struct secureram_store *store, u64 size)
 {
-	if (!size || size > SIZE_MAX)
+	if (!size || size > SIZE_MAX || size % SECURERAM_UNIT_BYTES)
 		return -EINVAL;
 
 	store->data = vzalloc((size_t)size);
@@ -16,12 +20,22 @@ int secureram_store_init(struct secureram_store *store, u64 size)
 		return -ENOMEM;
 
 	store->size = (size_t)size;
+	/* Division first: tag bytes per unit are smaller than the unit itself. */
+	store->tag_size = store->size / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES;
+	store->tags = vzalloc(store->tag_size);
+	if (!store->tags) {
+		secureram_store_destroy(store);
+		return -ENOMEM;
+	}
 	return 0;
 }
 
 void secureram_store_destroy(struct secureram_store *store)
 {
 	secureram_store_clear(store);
+	vfree(store->tags);
+	store->tags = NULL;
+	store->tag_size = 0;
 	vfree(store->data);
 	store->data = NULL;
 	store->size = 0;
@@ -31,6 +45,8 @@ void secureram_store_clear(struct secureram_store *store)
 {
 	if (store->data)
 		memzero_explicit(store->data, store->size);
+	if (store->tags)
+		memzero_explicit(store->tags, store->tag_size);
 }
 
 bool secureram_store_contains(const struct secureram_store *store,
@@ -41,22 +57,68 @@ bool secureram_store_contains(const struct secureram_store *store,
 		length <= store->size - offset;
 }
 
-int secureram_store_read(const struct secureram_store *store, u64 offset,
-			 void *buffer, size_t length)
+static bool secureram_store_unit(const struct secureram_store *store, u64 offset)
 {
-	if (!secureram_store_contains(store, offset, length))
+	return store->tags && !(offset % SECURERAM_UNIT_BYTES) &&
+		secureram_store_contains(store, offset, SECURERAM_UNIT_BYTES) &&
+		offset / SECURERAM_UNIT_BYTES < store->tag_size / SECURERAM_TAG_BYTES;
+}
+
+int secureram_store_read_unit(const struct secureram_store *store, u64 offset,
+			      void *cipher, u8 *tag)
+{
+	if (!secureram_store_unit(store, offset))
 		return -ERANGE;
 
-	memcpy(buffer, store->data + (size_t)offset, length);
+	memcpy(cipher, store->data + (size_t)offset, SECURERAM_UNIT_BYTES);
+	memcpy(tag, store->tags + offset / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES,
+	       SECURERAM_TAG_BYTES);
 	return 0;
 }
 
-int secureram_store_write(struct secureram_store *store, u64 offset,
-			  const void *buffer, size_t length)
+int secureram_store_commit_unit(struct secureram_store *store, u64 offset,
+				const void *cipher, const u8 *tag)
 {
-	if (!secureram_store_contains(store, offset, length))
+	if (!secureram_store_unit(store, offset))
 		return -ERANGE;
 
-	memcpy(store->data + (size_t)offset, buffer, length);
+	/* Both ranges validated; no fallible operation between the two copies. */
+	memcpy(store->data + (size_t)offset, cipher, SECURERAM_UNIT_BYTES);
+	memcpy(store->tags + offset / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES,
+	       tag, SECURERAM_TAG_BYTES);
 	return 0;
 }
+
+#ifdef SECURERAM_M5_TEST
+int secureram_store_tamper(struct secureram_store *store,
+			   const struct secureram_ioc_tamper *input)
+{
+	u64 units = store->size / SECURERAM_UNIT_BYTES;
+
+	if (!store->tags || input->unit >= units)
+		return -ERANGE;
+	switch (input->operation) {
+	case SECURERAM_TEST_CIPHER:
+		if (input->other_unit || input->byte_offset >= SECURERAM_UNIT_BYTES)
+			return -EINVAL;
+		store->data[input->unit * SECURERAM_UNIT_BYTES + input->byte_offset] ^= 1;
+		break;
+	case SECURERAM_TEST_TAG:
+		if (input->other_unit || input->byte_offset >= SECURERAM_TAG_BYTES)
+			return -EINVAL;
+		store->tags[input->unit * SECURERAM_TAG_BYTES + input->byte_offset] ^= 1;
+		break;
+	case SECURERAM_TEST_RELOCATE:
+		if (input->byte_offset || input->other_unit >= units ||
+		    input->other_unit == input->unit)
+			return -EINVAL;
+		return secureram_store_commit_unit(store,
+			input->other_unit * SECURERAM_UNIT_BYTES,
+			store->data + input->unit * SECURERAM_UNIT_BYTES,
+			store->tags + input->unit * SECURERAM_TAG_BYTES);
+	default:
+		return -EINVAL;
+	}
+	return 0;
+}
+#endif

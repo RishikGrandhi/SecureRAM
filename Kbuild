@@ -9,3 +9,8 @@ ccflags-y += -I$(src)/include
 ifeq ($(M4_TEST),1)
 ccflags-y += -DSECURERAM_M4_TEST
 endif
+
+# Privileged bounded corruption hooks; never enabled by a production build.
+ifeq ($(M5_TEST),1)
+ccflags-y += -DSECURERAM_M5_TEST
+endif

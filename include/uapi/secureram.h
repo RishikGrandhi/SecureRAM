@@ -11,12 +11,15 @@
 #define SECURERAM_F_DESTROY 1U
 #define SECURERAM_FEATURE_XTS 1U
 #define SECURERAM_FEATURE_LOCK 2U
+#define SECURERAM_FEATURE_INTEGRITY 4U
 
 #define SECURERAM_NO_KEY 0U
 #define SECURERAM_PREPARING 1U
 #define SECURERAM_ACTIVE 2U
 #define SECURERAM_LOCKED 3U
-#define SECURERAM_DYING 4U
+#define SECURERAM_INTEGRITY_FAILED 4U
+/* Internal teardown state; never observable by a live control handle. */
+#define SECURERAM_DYING 5U
 
 struct secureram_ioc_header {
 	__u32 version;

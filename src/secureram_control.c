@@ -9,6 +9,9 @@
 
 #include "secureram_block.h"
 #include "secureram_control.h"
+#ifdef SECURERAM_M5_TEST
+#include "uapi/secureram_test.h"
+#endif
 
 static bool secureram_valid_header(const struct secureram_ioc_header *header,
 				   u32 size, u32 flags)
@@ -26,6 +29,9 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 	struct secureram_ioc_status status = {};
 	struct secureram_ioc_header header;
 	struct secureram_ioc_key *input;
+#ifdef SECURERAM_M5_TEST
+	struct secureram_ioc_tamper tamper;
+#endif
 	u32 flags = 0;
 	int ret;
 
@@ -33,6 +39,14 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 		return -EPERM;
 
 	switch (command) {
+#ifdef SECURERAM_M5_TEST
+	case SECURERAM_IOC_TAMPER:
+		if (copy_from_user(&tamper, user, sizeof(tamper)))
+			return -EFAULT;
+		if (!secureram_valid_header(&tamper.header, sizeof(tamper), 0))
+			return -EINVAL;
+		return secureram_block_tamper(control->device, &tamper);
+#endif
 	case SECURERAM_IOC_QUERY:
 		ret = secureram_block_query(control->device, &status);
 		if (ret)
