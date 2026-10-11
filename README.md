@@ -3,14 +3,15 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M4 candidate, version 0.4.0:** AES-256-XTS encrypted RAM-backed storage, with
+**M4, version 0.4.0:** AES-256-XTS encrypted RAM-backed storage, with
 4096-byte logical/crypto units and a separate privileged key-control interface.
 **Confidentiality only; cryptographic integrity/authentication is not implemented.**
-The implementation is available for review; **M4 Ubuntu VM runtime acceptance
-is pending**, including direct observation that backing RAM contains ciphertext.
-See [the M4 report](docs/m4-report.md) for exact build/static evidence and limits.
+**M4 Ubuntu VM runtime acceptance is complete**, including direct internal
+evidence that backing RAM contains ciphertext and a final production regression.
+See [the M4 report](docs/m4-report.md) for exact build/static/runtime evidence
+and limits.
 
-M1, M2 and M3 are complete and runtime verified in the user's Ubuntu VirtualBox
+M1, M2, M3 and M4 are complete and runtime verified in the user's Ubuntu VirtualBox
 VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.

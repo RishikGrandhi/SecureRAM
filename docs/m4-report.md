@@ -1,8 +1,10 @@
 # M4 kernel crypto and encrypted storage report
 
 Date: 2026-10-11 (Asia/Calcutta). Version 0.4.0, branch `m4-kernel-crypto`.
-Implementation candidate complete; final verification results are recorded below.
-**VM runtime acceptance is pending.** Changes remain uncommitted for review.
+Implementation commit: `3e47300 M4: implement AES-XTS encryption and key control`.
+**M4 VM runtime acceptance is complete.** Production and test-only verification
+results are recorded separately below. This documentation update remains
+uncommitted for review.
 
 ## Design reviewed before implementation
 
@@ -34,12 +36,13 @@ CRYPTO_ALG_KERN_DRIVER_ONLY. Check IV/alignment/single-page geometry, preallocat
 request, use kmalloc unit buffers, and use crypto_wait_req/crypto_req_done with
 backlog support so both synchronous and asynchronous completion are handled.
 This constrains allocation and external hardware assumptions; VM provider
-execution and progress still require runtime verification.
+execution was verified with provider `xts-aes-aesni-avx`.
 
 An opt-in `M4_TEST=1` build compares actual backing bytes with plaintext and
 ciphertext staging after real block writes, reporting no data or addresses.
-The production build has no backing export or test hook. Neither source review
-nor a compiled hook constitutes observed ciphertext-at-rest evidence.
+The production build has no backing export or test hook. The test build's hooks
+were executed in the VM and supplied the direct backing-store evidence described
+under runtime acceptance; source review or compilation alone would not do so.
 
 API references inspected: installed Ubuntu 7.0.0-38 headers, official
 [skcipher API](https://docs.kernel.org/crypto/api-skcipher.html),
@@ -253,15 +256,15 @@ Final checks on 2026-10-11:
 | --- | --- |
 | Target preflight | PASS: prepared config/generated headers/Module.symvers present; running WSL target mismatch explicitly identified. |
 | Clean production `make CC=gcc W=1` with explicit KDIR | PASS: five source objects, MODPOST and module link, no driver warnings/errors. |
-| Clean `M4_TEST=1` variant with same settings | PASS: five source objects, MODPOST and link; test comparison/cursor/tweak strings present. Hooks were not executed. |
+| Clean `M4_TEST=1` variant with same settings | PASS: five source objects, MODPOST and link; test comparison/cursor/tweak strings present. Runtime execution is recorded separately below. |
 | Strict target checkpatch | PASS: zero errors, warnings or checks for five kernel C files, six headers including UAPI, and the C test helper (12 files). |
 | Userspace helper build | PASS: C11, O2, Wall/Wextra/Werror/Wconversion against shared UAPI. No device operation executed. |
 | Native/compat ABI compile checks | PASS: x86-64 and `gcc -m32` i386 object builds assert header/key/status sizes 16/88/48, field offsets and all five ioctl numbers. Compat runtime is untested. |
 | Module metadata | PASS: version 0.4.0, GPL, AES-256-XTS/no-authentication description, uint capacity, x86-64 ELF and vermagic 7.0.0-38-generic. |
 | Symbols and test separation | PASS: crypto calls confined to security object; no block-to-store imports; all 58 module imports found in target Module.symvers; production module has no M4 test strings. |
-| Shell/Python syntax | PASS: environment checker and both raw-test scripts; device tests not run. |
+| Shell/Python syntax | PASS: environment checker and both raw-test scripts; this local check did not access a device. |
 | Documentation | PASS: 15 Markdown files, 50 local links/anchors and 33 shell snippets parsed without execution. Historical development anchors preserved. |
-| Git/text review | PASS: diff whitespace, UTF-8/LF/newlines, no staged changes, branch HEAD remains 73fdcd3, M1-M3 historical documentation and original M2 test unchanged. |
+| Git/text review | PASS before the implementation commit: diff whitespace, UTF-8/LF/newlines, no staged changes, M1-M3 historical documentation and original M2 test unchanged. The reviewed implementation was then committed as `3e47300`. |
 
 Local `.cache/validate_m4.py` performs the documentation/text/history/symbol
 checks; `.cache/m4-abi.c` supplies compile-only ABI assertions. Both are ignored
@@ -280,28 +283,144 @@ Initial integration builds found unavailable helper names (`skcipher_request_ctx
 public request-zero helper, the single-page staging constraint and
 nonseekable_open. Failed attempts were not counted as successful verification.
 
-## Remaining VM acceptance
+## VM runtime acceptance result
 
-**No M4 module insertion, ioctl, raw device test, filesystem test, injected
-failure, runtime race or direct backing comparison was executed in this session.**
-Both test and production variants must be rebuilt against the VM's then-running
-kernel. Follow [m4-testing.md](m4-testing.md) for initial NO_KEY/privilege/ABI
-checks, load, ACTIVE status, raw SHA-256/cmp, same/different-address and split-unit
-checks, backing-ciphertext evidence, lock/unlock, busy/mounted protection,
-destroy/reset/reload, ext4, clean unload and fresh kernel-log inspection.
+Status: **PASS**, manually verified by the user in an Ubuntu 24.04.5 LTS
+VirtualBox VM running Linux `7.0.0-38-generic`. The tested implementation was
+version 0.4.0 at commit `3e47300`. `/dev/secureram0` and the separate privileged
+`/dev/secureramctl` appeared root-owned with mode 0600. The default device was
+67108864 bytes (64 MiB) with 4096-byte logical/crypto units.
 
-The test-only hook inspects actual store bytes after security writes, comparing
-them against plaintext and ciphertext staging. Success is logged once only after
-a real block WRITE completes. Separate setup checks test distinct ciphertext
-for equal zero units at indices 0/1 and the real cursor using 512/4096/3584-byte
-fragments. No key, data, hash or pointer export is added. Production omits all
-hooks. These are not independent AES certification/known-answer tests.
+### Production build and initial fail-closed state
+
+The VM's clean production `make W=1` build after `make clean` succeeded. The
+kernel reported compiler name `x86_64-linux-gnu-gcc-13` and the build used
+`gcc-13`; both were GCC 13.3.0. This naming/string difference was the only
+compiler diagnostic. The pahole/version and skipped-BTF messages were
+environmental; BTF was skipped because `vmlinux` was unavailable. There were no
+driver-source warnings or MODPOST errors. The production module was confirmed
+to contain no test hook strings: `strings secureram.ko | grep -F 'M4 test:'`
+produced no output.
+
+The first privileged query returned exactly:
+
+```text
+ABI=1 state=0 bytes=67108864 unit=4096 generation=0 features=3
+```
+
+Raw read and write opens both failed closed with ENOKEY. The negative helper
+passed malformed ABI, invalid-length/equal-half key, user-copy-fault and
+passed-file-descriptor privilege checks; state remained NO_KEY at generation 0.
+A generated 64-byte test key then loaded successfully, selecting kernel provider
+`xts-aes-aesni-avx`, and query returned ACTIVE:
+
+```text
+ABI=1 state=2 bytes=67108864 unit=4096 generation=1 features=3
+```
+
+### Production encrypted I/O
+
+The complete active raw-I/O regression passed:
+
+- Every key transition was rejected with EBUSY while the block device was open.
+- The full 64 MiB logical-zero scan passed after key activation.
+- Direct segmented temporary-file round trip and first, nonzero, middle and
+  final logical-block tests passed.
+- Neighbor isolation, four concurrent disjoint I/O streams, end-of-device
+  behavior and delivered flush handling passed.
+- A 1 MiB random direct-I/O readback had the same SHA-256 and passed `cmp`.
+
+This demonstrates correct plaintext behavior through the encrypted block path.
+The separate test build below supplies direct evidence about backing bytes.
+
+### Direct ciphertext and unit-boundary evidence
+
+The production module was destroyed and unloaded before a clean
+`make W=1 M4_TEST=1` build. That build succeeded and loaded. Its internal checks
+ran and emitted:
+
+```text
+M4 test: equal zero units at indices 0/1 have different ciphertext
+M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+M4 test: real WRITE backing equals ciphertext and differs from plaintext
+```
+
+The real-WRITE hook compares actual private store bytes against both the
+ciphertext and plaintext staging buffers while access is serialized. Together
+with successful normal plaintext readback, this is direct internal evidence
+that the SecureRAM backing allocation stores AES-XTS ciphertext rather than the
+written plaintext, including across deliberately split/cross-unit fragments.
+The hooks export no key/data/hash/address and are absent from production. They
+are project acceptance evidence, not independent certification of AES and not
+evidence of authentication or integrity.
+
+### Key states, reset and filesystem behavior
+
+Runtime transitions matched the documented state machine:
+
+| Check | Observed result |
+| --- | --- |
+| Replacement in ACTIVE | Rejected with EBUSY. |
+| Lock | State 2 -> 3; generation stayed 1. |
+| I/O in LOCKED | Raw opens failed closed with ENOKEY. |
+| Load in LOCKED | Rejected with EBUSY. |
+| Unlock | State 3 -> 2; generation stayed 1. |
+| Lock retention | Data read before lock and after lock/unlock compared identical. |
+| Destroy from ACTIVE | Returned to state 0, generation 1; I/O again failed ENOKEY. |
+| Destroy in NO_KEY | Succeeded idempotently. |
+| Fresh key | Entered state 2, generation 2; full initial-zero scan passed. |
+
+The generation-2 zero scan confirms destructive replacement presents a fresh
+logical medium rather than interpreting earlier contents under the new key.
+
+`mkfs.ext4 -E nodiscard /dev/secureram0` succeeded. The filesystem mounted;
+normal file write/read succeeded; a lock attempt while mounted returned EBUSY;
+the filesystem remained readable; and unmount, remount, read and final clean
+unmount succeeded. This confirms opener protection prevents a key transition
+under the mounted filesystem in the exercised case.
+
+After the test build, destroy returned state 0 at generation 2, denied I/O
+passed, repeated destroy succeeded, and `rmmod` removed both device nodes.
+
+### Final production regression and kernel health
+
+A final clean production rebuild passed and again contained no `M4 test:`
+strings. A fresh insertion began at NO_KEY generation 0; a new key reached
+ACTIVE generation 1. The entire active raw-I/O suite passed again. Its final
+1 MiB SHA-256 values were identical, and `cmp` passed:
+
+```text
+input    6ec3e5d3c193847e912fcb9f381de3a82a8b5a958905845b6345bcb5912cbb84
+readback 6ec3e5d3c193847e912fcb9f381de3a82a8b5a958905845b6345bcb5912cbb84
+```
+
+The final production ext4 write/read passed. After clean unmount and destroy,
+query returned NO_KEY generation 1; unload succeeded and both device nodes
+disappeared. Fresh logs included the selected XTS provider, successful test-only
+ciphertext checks, ext4 mount/unmount cycles and:
+
+```text
+SecureRAM: M4 unloaded; devices removed and owned sensitive memory cleared
+```
+
+The final safety search for `Oops`, `BUG:`, `kernel panic`, `general protection
+fault`, `use-after-free` and `KASAN` produced no output. Earlier M3 VirtualBox
+workqueue latency messages remain documented in the M3 report as non-fatal
+performance observations; the supplied M4 evidence reports no new matching
+correctness failure.
+
+### Evidence limits still applicable
 
 Provider-unavailability/allocation/setkey/crypto-operation fault injection,
-native/compat runtime ioctl coverage, broad open-transition races and diagnostic
-lockdep/KASAN/kmemleak coverage remain unobserved. Record each separately; do not
-infer them from a successful basic acceptance run. Physical erasure of external
-copies is outside scope rather than an uncompleted test.
+native/compat runtime ioctl coverage, broad open-transition race campaigns and
+diagnostic lockdep/KASAN/kmemleak execution were not reported. The successful
+acceptance run must not be extended to those unobserved cases. Physical erasure
+of external copies is outside scope rather than an uncompleted test.
+
+Within the documented threat model, M4 now has runtime evidence for AES-256-XTS
+confidentiality of the RAM backing store. It still provides no cryptographic
+integrity, authentication, tamper/wrong-key/replay detection or protection from
+a malicious root, kernel or hypervisor. It is not authenticated encryption.
 
 ## Viva concepts
 

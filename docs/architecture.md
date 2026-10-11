@@ -1,7 +1,7 @@
 # SecureRAM architecture
 
-M1-M3 are complete and runtime verified. M4 implements AES-256-XTS and privileged
-key management; its VM acceptance remains pending. Its exact evidence is in
+M1-M4 are complete and runtime verified. M4 implements AES-256-XTS and privileged
+key management. Its exact compile/static and VM runtime evidence is in
 [the M4 report](m4-report.md). Historical designs and results remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
 [M3 threat model](m3-threat-model.md).

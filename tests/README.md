@@ -38,5 +38,6 @@ opener-protection tests. Neither mode accepts an alternative device target.
 
 The `M4_TEST=1` module build adds internal comparisons of actual backing bytes
 and exercises split/cross-unit fragments during setup. It exports no memory.
-Clean before switching variants. M4 runtime results, including execution of
-these hooks, remain pending; see [the report](../docs/m4-report.md).
+Clean before switching variants. The M4 VM run executed all three hooks
+successfully and completed a separate final production regression; see
+[the report](../docs/m4-report.md).

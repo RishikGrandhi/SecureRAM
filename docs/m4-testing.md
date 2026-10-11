@@ -1,9 +1,66 @@
 # M4 Ubuntu VM verification procedure
 
-Status: **not yet run**. This is an opt-in, destructive procedure for the user's
-disposable Ubuntu VirtualBox VM. It is not an automation script. M1-M3 runtime
-evidence does not establish M4 correctness. Stop at every unexpected result.
-Record commands, exit statuses, tool output and fresh logs. Never force unload.
+Status: **PASS**, manually completed on 2026-10-11 in the user's disposable
+Ubuntu 24.04.5 LTS VirtualBox VM running Linux `7.0.0-38-generic`. The tested
+implementation was SecureRAM 0.4.0 at commit `3e47300`. This procedure remains
+reusable for regression. Stop at every unexpected result, record fresh evidence,
+and never force unload.
+
+## Completed M4 run
+
+Both the production and `M4_TEST=1` variants built with `W=1` against the running
+kernel and loaded successfully. The compiler diagnostic only reflected the
+equivalent executable names `x86_64-linux-gnu-gcc-13` and `gcc-13`, both GCC
+13.3.0. Pahole/BTF diagnostics were environmental; BTF was skipped because
+`vmlinux` was unavailable. The production module contained no `M4 test:` strings.
+
+The block and control nodes appeared root-owned 0600. The initial query was
+NO_KEY generation 0 for a 67108864-byte device with 4096-byte units; keyless
+read/write opens failed ENOKEY. Malformed ABI, invalid/weak-key, copy-fault and
+passed-fd privilege tests passed without changing state. First activation reached
+ACTIVE generation 1 using provider `xts-aes-aesni-avx`.
+
+The production raw suite passed its full 64 MiB logical-zero scan, segmented
+round trip, first/nonzero/middle/final blocks, neighbor isolation, four concurrent
+streams, end-of-device/flush behavior, SHA-256 comparison and `cmp`. All key
+transitions were rejected while the block device was open.
+
+The test-only build executed all three internal checks:
+
+```text
+M4 test: equal zero units at indices 0/1 have different ciphertext
+M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+M4 test: real WRITE backing equals ciphertext and differs from plaintext
+```
+
+These logs, together with normal decrypted readback, provide direct internal
+evidence that backing RAM held AES-XTS ciphertext rather than the written
+plaintext. The hooks are absent from production and do not add integrity.
+
+ACTIVE replacement and LOCKED key loading returned EBUSY. Lock changed state
+2 -> 3 without changing generation 1; I/O failed ENOKEY; unlock restored state
+2 and retained identical data. Destroy returned NO_KEY generation 1, denied I/O,
+and was idempotent. A fresh key reached generation 2 and the complete initial-zero
+scan passed, confirming a fresh logical medium.
+
+Ext4 creation with `-E nodiscard`, mount, file write/read, unmount/remount/read
+and final unmount succeeded. Lock while mounted returned EBUSY and the filesystem
+remained readable. Test-build destroy/unload removed both nodes.
+
+A final clean production rebuild again had no test strings. Fresh insertion,
+key activation, the complete raw suite and ext4 write/read all passed. The final
+1 MiB hashes were:
+
+```text
+input    6ec3e5d3c193847e912fcb9f381de3a82a8b5a958905845b6345bcb5912cbb84
+readback 6ec3e5d3c193847e912fcb9f381de3a82a8b5a958905845b6345bcb5912cbb84
+```
+
+Final unmount, key destruction and module removal succeeded; both nodes
+disappeared. The kernel-fault grep produced no output. The M4 report records the
+full result and limits. This is confidentiality evidence within the documented
+threat model, not authentication/integrity or defense against malicious
+root/kernel/hypervisor access.
 
 ## 1. Build and identify the environment
 
@@ -234,7 +291,7 @@ Report signing/out-of-tree taints and unrelated system messages separately.
 The unload message must report both devices removed and owned memory cleared.
 That log is not proof of all physical copies being erased.
 
-## 8. Production regression and remaining adversarial checks
+## 8. Production regression and additional adversarial checks
 
 After unloading, `make clean; make W=1` (two separate commands) produces the
 production driver. Confirm no M4 test strings with `strings secureram.ko`.

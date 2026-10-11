@@ -1,8 +1,8 @@
 # Developer workflow and learning notes
 
-M1-M3 runtime acceptance is recorded in their reports. M4 is the current
-implementation candidate; [the M4 report](m4-report.md) separates compile/static
-results from pending runtime checks. Older procedures apply to their historical
+M1-M4 runtime acceptance is recorded in their reports. The
+[M4 report](m4-report.md) separates compile/static results from the completed
+VM runtime checks. Older procedures apply to their historical
 versions. Use [the M4 procedure](m4-testing.md) for the encrypted driver.
 
 ## Target and prerequisites
@@ -25,9 +25,10 @@ Never force load/unload or redirect destructive tests to another block device.
 From Windows, `wsl -d Ubuntu` opens the installed Linux environment. The project
 is available there as `/mnt/c/Coding/Projects/SecureRAM`. Keep files LF-terminated.
 A Linux-home checkout may build faster; do not use spaces in kernel build paths.
-WSL's Microsoft kernel is separate from Ubuntu generic headers. The current WSL
-kernel lacks a matching build tree, so the existing prepared Ubuntu headers
-provide **compile-only** verification. No runtime test is run in WSL.
+WSL's Microsoft kernel is separate from Ubuntu generic headers. The WSL kernel
+used for local M4 development lacked a matching build tree, so prepared Ubuntu
+headers provided **compile-only** verification there. M4 runtime acceptance was
+completed separately in the matching VirtualBox VM.
 
 ## Build and static inspection
 
@@ -82,19 +83,21 @@ inspection. Leave requested M4 source changes uncommitted for review.
 Follow [the M4 procedure](m4-testing.md) for the current encrypted version:
 matching-kernel load, keyless denial, valid key installation, raw/filesystem
 I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
-and M2 reports linking here describe their historical version's behavior; they
-do not establish M4 runtime acceptance. Device tests are never run by the build.
+and M2 reports linking here describe their historical version's behavior. M4
+runtime acceptance is recorded in its own report. Device tests are never run by
+the build itself.
 
 ## API choices and debugging
 
 Use target headers and official
 [skcipher documentation](https://docs.kernel.org/crypto/api-skcipher.html).
-The current headers expose skcipher_request_zero for clearing a completed
+The target headers expose skcipher_request_zero for clearing a completed
 request; reattach its transform before reuse. Completion waits must finish
 before clearing/freeing buffers. Each 4096-byte kmalloc staging buffer fits
 inside one page/SG entry, independent of a request's segmentation. Excluding
-allocating and kernel-only hardware providers narrows reclaim/DMA assumptions;
-provider availability/progress still needs VM evidence.
+allocating and kernel-only hardware providers narrows reclaim/DMA assumptions.
+Provider execution was observed in the VM with `xts-aes-aesni-avx`; controlled
+provider-unavailability and injected-failure tests remain separate coverage.
 
 The modern char endpoint uses nonseekable_open, unlocked_ioctl and
 compat_ptr_ioctl. The fixed-width/aligned UAPI has identical intended ILP32/LP64
