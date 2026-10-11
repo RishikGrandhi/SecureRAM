@@ -12,6 +12,7 @@
 #define SECURERAM_FEATURE_XTS 1U
 #define SECURERAM_FEATURE_LOCK 2U
 #define SECURERAM_FEATURE_INTEGRITY 4U
+#define SECURERAM_FEATURE_STATS 8U
 
 #define SECURERAM_NO_KEY 0U
 #define SECURERAM_PREPARING 1U
@@ -46,11 +47,27 @@ struct secureram_ioc_status {
 	__u32 reserved;
 };
 
+/* GET_STATS is output-only, device-lifetime, saturating, and coherent.
+ * READ/WRITE count only whole successful requests, just before completion.
+ * integrity_failures counts actual authentication mismatches, not rejections.
+ * All reserved fields are returned as zero. See docs/m6-report.md.
+ */
+struct secureram_ioc_stats {
+	struct secureram_ioc_header header;
+	__aligned_u64 read_requests;
+	__aligned_u64 write_requests;
+	__aligned_u64 read_bytes;
+	__aligned_u64 write_bytes;
+	__aligned_u64 integrity_failures;
+	__aligned_u64 reserved[3];
+};
+
 /* Project-local ioctl namespace, not an upstream-assigned global number. */
 #define SECURERAM_IOC_QUERY _IOR(0xb7, 0x00, struct secureram_ioc_status)
 #define SECURERAM_IOC_LOAD_KEY _IOW(0xb7, 0x01, struct secureram_ioc_key)
 #define SECURERAM_IOC_LOCK _IOW(0xb7, 0x02, struct secureram_ioc_header)
 #define SECURERAM_IOC_UNLOCK _IOW(0xb7, 0x03, struct secureram_ioc_header)
 #define SECURERAM_IOC_DESTROY_KEY _IOW(0xb7, 0x04, struct secureram_ioc_header)
+#define SECURERAM_IOC_GET_STATS _IOR(0xb7, 0x05, struct secureram_ioc_stats)
 
 #endif /* _UAPI_SECURERAM_H */

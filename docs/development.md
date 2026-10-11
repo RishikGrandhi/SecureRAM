@@ -7,6 +7,28 @@ versions. M5 adds integrity; its [report](m5-report.md) and
 [VM procedure](m5-testing.md) separate compile/static evidence from the completed
 runtime acceptance.
 
+## Current M6 candidate
+
+M6 is version 0.6.0 on `m6-cli-observability`, with ABI 1 and feature mask 15.
+Runtime acceptance is pending. `make tools` builds the C management utility with
+C11 and strict warnings; no userspace dependency is added to the kernel build.
+`make tools-clean` cleans just that binary. Use the [CLI guide](../tools/README.md)
+and [M6 acceptance procedure](m6-testing.md) for the current candidate.
+
+Reproducible local verification in the existing WSL compile environment:
+
+```sh
+python3 tests/check-m6-local.py \
+  --kdir /home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src/linux-headers-7.0.0-38-generic \
+  --checkpatch /home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl
+```
+
+This builds all variants, checks ABI/native+compat layouts, executes CLI syscall
+mocks and the full mocked harness, checks each shell script separately, compiles
+all Python helpers and inspects production imports/test exclusion. It does not
+load a module or establish runtime acceptance. ShellCheck is optional if already
+installed. Older commands below remain useful historical M4/M5 workflows.
+
 ## Target and prerequisites
 
 Use the disposable Ubuntu VirtualBox VM, currently recorded as Ubuntu 24.04.5,
@@ -87,10 +109,10 @@ corruption ioctl only in that build; it exports no data or arbitrary addresses.
 Inspect `strings` and `nm` to confirm production contains no M4/M5 test strings,
 tamper functions or command case. Runtime also probes ENOTTY.
 Build success does not execute tests. Keep build products/logs ignored, clean
-generated module artifacts after inspection and leave M5 uncommitted for review.
+generated module artifacts after inspection and leave M6 uncommitted for review.
 
-The ABI compile test preserves all five M4 command numbers and layouts and
-checks the 40-byte test payload on LP64/ILP32. The -m32 object test uses the
+The ABI compile test preserves all five M4 command numbers and layouts, and
+checks the 80-byte M6 statistics payload plus the 40-byte M5 test payload on LP64/ILP32. The -m32 object test uses the
 available x86 UAPI include directory and requires no 32-bit libc or executable.
 It does not prove compat runtime behavior.
 The ABI-only fixture uses C11 `_Static_assert` without libc headers; checkpatch's
@@ -100,7 +122,7 @@ workflow. Do not hide actual driver warnings behind this exception.
 
 ## Manual runtime smoke check
 
-Follow [the M5 procedure](m5-testing.md) for the current integrity implementation:
+Follow [the M6 procedure](m6-testing.md) for the current candidate:
 matching-kernel load, keyless denial, valid key installation, raw/filesystem
 I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
 and M2 reports linking here describe their historical version's behavior. M4
@@ -172,3 +194,17 @@ runtime behavior. See [M4 viva notes](m4-report.md#viva-concepts).
 For M5, also explain Encrypt-then-MAC, HKDF key separation, fixed-width domain/
 generation/index binding, full tags, the failure latch and recovery, same-unit
 replay limits, and test-build exclusion. See [M5 viva notes](m5-report.md#viva-preparation).
+
+## M6 viva preparation
+
+Explain the difference between application syscalls, block requests, crypto units
+and cached I/O. Trace success accounting before request recycling and why a
+partially failed multi-unit request counts zero. Explain why a separate spinlock
+makes snapshots coherent on 32-bit kernels, why it must not cover crypto/user-copy,
+why counters survive key destruction, and why saturation is diagnostic only.
+Trace the unchanged ioctl capability check, the new output-only payload, reserved
+zeroing, compat_ptr_ioctl, and the difference between ABI and module version.
+Explain getrandom short reads/EINTR, mlock, dump disabling and explicit erasure,
+including the limits against malicious root and unrecoverability of demo keys.
+Distinguish static builds/mocks from observed VM evidence and explain harness
+ownership, full commit pinning, fail-fast reporting and safe cleanup refusal.

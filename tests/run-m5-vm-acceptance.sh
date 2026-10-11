@@ -5,6 +5,7 @@ set -Eeuo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly script_dir
+SR_MILESTONE=5
 source "$script_dir/m5-vm-common.sh"
 m5_require_root
 [[ $# -eq 0 ]] || m5_die "run-m5-vm-acceptance.sh accepts no arguments or device paths"
@@ -46,126 +47,7 @@ M5_DMESG_PID=
 M5_DMESG_STARTED=0
 M5_FINALIZED=0
 
-m5_start_dmesg()
-{
-	stdbuf -oL -eL dmesg --follow-new --color=never > "$M5_VM_RUN_DIR/dmesg.log" 2>&1 &
-	M5_DMESG_PID=$!
-	local attempt
-	for attempt in {1..50}; do
-		kill -0 "$M5_DMESG_PID" 2>/dev/null || m5_die "fresh dmesg capture exited"
-		if [[ -e "/proc/$M5_DMESG_PID/fd/1" ]]; then
-			M5_DMESG_STARTED=1
-			return 0
-		fi
-		sleep 0.05
-	done
-	m5_die "fresh dmesg capture did not start"
-}
-
-m5_stop_dmesg()
-{
-	[[ -n $M5_DMESG_PID ]] || return 0
-	if kill -0 "$M5_DMESG_PID" 2>/dev/null; then
-		kill -TERM "$M5_DMESG_PID"
-		wait "$M5_DMESG_PID" 2>/dev/null || true
-	fi
-	M5_DMESG_PID=
-}
-
-m5_check_kernel_health()
-{
-	local log="$M5_VM_RUN_DIR/dmesg.log"
-	local failures="$M5_VM_RUN_DIR/kernel-health-failures.log"
-	local faults='Oops|BUG:|kernel panic|general protection fault|use-after-free|KASAN'
-	local attributed="secureram.*($faults|WARNING:)|($faults|WARNING:).*secureram"
-	if [[ $M5_DMESG_STARTED -ne 1 || ! -f $log ]]; then
-		m5_record 'Kernel health' 'NOT RUN' 'fresh dmesg capture did not start'
-		printf '%s\n' 'NOT RUN: kernel health; fresh dmesg capture did not start' >&2
-		return 1
-	fi
-	grep -E 'secureram:|EXT4-fs' "$log" > "$M5_VM_RUN_DIR/kernel-relevant.log" || true
-	if [[ ! -s $M5_VM_RUN_DIR/kernel-relevant.log ]]; then
-		m5_record 'Kernel health' 'NOT RUN' 'no SecureRAM/ext4 runtime evidence was captured'
-		printf '%s\n' 'NOT RUN: kernel health; no SecureRAM/ext4 runtime evidence was captured' >&2
-		return 1
-	fi
-	m5_record 'Kernel health' FAIL 'runtime evidence captured; health review did not complete'
-	: > "$failures"
-	grep -Ein 'secureram:.*(test.*FAILED|FAILED.*test)' "$log" >> "$failures" || true
-	grep -Ein "$attributed|secureram_[[:alnum:]_]+\\+0x" "$log" \
-		>> "$failures" || true
-	grep -Ein "$faults|WARNING:|Call Trace:" \
-		"$log" > "$M5_VM_RUN_DIR/kernel-unrelated-review.log" || true
-	if [[ -s $failures ]]; then
-		m5_record 'Kernel health' FAIL 'SecureRAM-attributable fault or failed diagnostic found'
-		printf '%s\n' 'Kernel health failure signatures:' >&2
-		cat "$failures" >&2
-		return 1
-	fi
-	m5_record 'Kernel health' PASS 'no fatal or SecureRAM-attributable warning/test-failure signature'
-	printf '%s\n' 'PASS: kernel health; unrelated warning indicators retained separately for review'
-}
-
-m5_print_summary()
-{
-	local label line status detail overall=PASS
-	{
-		printf '%-32s | %-13s | %s\n' CHECK RESULT DETAIL
-		printf '%-32s-+-%-13s-+-%s\n' '--------------------------------' '-------------' '------'
-		for label in "${result_labels[@]}"; do
-			line=$(awk -F '\t' -v wanted="$label" '$1 == wanted { found=$0 } END { print found }' \
-				"$M5_STATUS_FILE")
-			if [[ -z $line ]]; then
-				status='NOT RUN'
-				detail='no status record was written'
-			else
-				IFS=$'\t' read -r _ status detail <<< "$line"
-			fi
-			[[ $status == PASS ]] || overall=FAIL
-			printf '%-32s | %-13s | %s\n' "$label" "$status" "$detail"
-		done
-		printf '%-32s | %-13s | %s\n' OVERALL "$overall" "$M5_VM_RUN_DIR"
-	} > "$M5_VM_RUN_DIR/summary.txt"
-	cat "$M5_VM_RUN_DIR/summary.txt"
-	[[ $overall == PASS ]]
-}
-
-m5_finalize()
-{
-	local original=$1 health=0 release=0 summary=0
-	[[ $M5_FINALIZED -eq 0 ]] || return "$original"
-	M5_FINALIZED=1
-	set +e
-	m5_stop_dmesg
-	if ! m5_check_kernel_health; then
-		health=1
-	fi
-	if ! m5_release_evidence_directory "$M5_VM_RUN_DIR"; then
-		release=1
-		m5_record 'Final cleanup' FAIL 'could not return evidence ownership to the build user'
-	fi
-	if ! m5_print_summary; then
-		summary=1
-	fi
-	if ! m5_release_evidence_directory "$M5_VM_RUN_DIR"; then
-		release=1
-	fi
-	set -e
-	if [[ $original -ne 0 || $health -ne 0 || $release -ne 0 || $summary -ne 0 ]]; then
-		return 1
-	fi
-	return 0
-}
-
-m5_on_exit()
-{
-	local original=$?
-	trap - EXIT
-	if m5_finalize "$original"; then
-		exit 0
-	fi
-	exit 1
-}
+source "$script_dir/vm-report.sh"
 trap m5_on_exit EXIT
 
 m5_require_tools

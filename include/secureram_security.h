@@ -3,6 +3,7 @@
 #define SECURERAM_SECURITY_H
 
 #include "secureram_store.h"
+#include "secureram_stats.h"
 
 #include "uapi/secureram.h"
 
@@ -13,6 +14,8 @@ struct shash_desc;
 
 /* One worker, or a control caller after admission closes and work drains. */
 struct secureram_security {
+	/* Borrowed from the enclosing device; survives every key transition. */
+	struct secureram_stats *stats;
 	struct secureram_store store;
 	struct crypto_skcipher *tfm;
 	struct skcipher_request *request;

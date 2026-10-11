@@ -1,5 +1,29 @@
 # Verification by milestone
 
+## Current M6 candidate
+
+M6 runtime acceptance is **NOT RUN**. Follow [m6-testing.md](../docs/m6-testing.md).
+The real CLI is `tools/secureramctl`; Python is used only for test assertions.
+
+| File | Responsibility |
+| --- | --- |
+| `check-m6-local.py` | All clean compile/static/local mock checks; never loads devices. |
+| `check-m6-cli.py`, `m6-cli-mock.c` | Real CLI parsing plus a separate syscall-mocked binary; JSON/errors/key wiping. |
+| `check-m6-vm-harness.sh` | All M6 phases with mocked privileged calls; cleanup/failure/summary guards. |
+| `check-m6-observe.py` | Actual Python statistics and failed-state assertions against valid/invalid synthetic observations. |
+| `run-m6-vm-acceptance.sh`, `m6-vm-phases.sh` | Full-commit-pinned, fail-fast VM orchestration. |
+| `m6-observe.py` | CLI JSON/human/state, counter/ABI/privilege and direct-I/O accounting assertions. |
+| `m6-raw-io.py`, `m6-integrity.py` | Explicit 0.6.0 wrappers over M4/M2 raw and M5 integrity assertions. |
+| `m5-vm-common.sh`, `vm-report.sh` | Shared guards, build/user ownership, ext4, cleanup, logs and summary. |
+
+The shared shell profile preserves the M5 defaults (0.5.0/features 7) and M6
+selects fixed 0.6.0/features 15. Historical raw/integrity Python entry points keep
+their defaults. M6 injects observers into the existing tamper cases rather than
+copying or weakening them. No additional production/test kernel hook was added.
+The local harness test also executes the historical M5 mocked regression.
+
+## Historical M1-M5 evidence
+
 M1's successful VM lifecycle check is recorded in [its report](../docs/m1-report.md).
 M2's exact manual commands and acceptance criteria are in
 [the M2 VM test procedure](../docs/m2-testing.md).

@@ -350,6 +350,7 @@ int secureram_security_read(struct secureram_security *security, u64 offset)
 	if (ret)
 		goto fail;
 	if (crypto_memneq(security->tag, security->stored_tag, SECURERAM_TAG_BYTES)) {
+		secureram_stats_failure(security->stats);
 		WRITE_ONCE(security->state, SECURERAM_INTEGRITY_FAILED);
 		pr_err_ratelimited("integrity failure at unit %llu; device latched INTEGRITY_FAILED\n",
 				   offset / SECURERAM_UNIT_BYTES);
