@@ -1,23 +1,15 @@
-# Developer workflow and kernel learning notes
+# Developer workflow and learning notes
 
-## Choose a runtime test environment
+M1-M3 runtime acceptance is recorded in their reports. M4 is the current
+implementation candidate; [the M4 report](m4-report.md) separates compile/static
+results from pending runtime checks. Older procedures apply to their historical
+versions. Use [the M4 procedure](m4-testing.md) for the encrypted driver.
 
-Use the project's Ubuntu 24.04.5 LTS VirtualBox VM running
-**Linux 7.0.0-38-generic** as the M2 runtime target. Record `uname -r`, the
-distribution, architecture, and compiler version with results. M1's VM runtime
-verification and M2's VM runtime acceptance are complete. M2 uses this target's
-modern block interfaces; a build on one kernel does not establish compatibility
-with all kernel versions.
+## Target and prerequisites
 
-M3 preserves those interfaces through a plaintext security boundary. Its VM
-regression is complete; use [the M3 procedure](m3-testing.md) for future
-regressions and keep M2 and M3 evidence separate.
-
-Build as an ordinary user. Use administrative privileges only for explicit
-dependency installation and module lifecycle operations. If `sudo` requires a
-password, run those steps yourself in a terminal; no script collects passwords.
-
-### Debian/Ubuntu prerequisites
+Use the disposable Ubuntu VirtualBox VM, currently recorded as Ubuntu 24.04.5,
+Linux 7.0.0-38-generic, x86-64. Recheck its running release and compiler. Kernel
+internal APIs are not stable; compilation does not imply universal compatibility.
 
 ```sh
 uname -r
@@ -26,172 +18,118 @@ sudo apt-get update
 sudo apt-get install build-essential kmod "linux-headers-$(uname -r)"
 ```
 
-This requires a distribution-packaged running kernel whose matching headers are
-available. If you upgrade the kernel, reboot into the intended kernel and check
-the header match again. Follow your distribution's signing/enrollment procedure
-if module signature enforcement is enabled; do not bypass that policy.
+Build as an ordinary user. Root is needed only for explicitly authorized VM
+device/lifecycle operations. Follow the distribution's module-signing policy.
+Never force load/unload or redirect destructive tests to another block device.
 
-### Windows and WSL2
+From Windows, `wsl -d Ubuntu` opens the installed Linux environment. The project
+is available there as `/mnt/c/Coding/Projects/SecureRAM`. Keep files LF-terminated.
+A Linux-home checkout may build faster; do not use spaces in kernel build paths.
+WSL's Microsoft kernel is separate from Ubuntu generic headers. The current WSL
+kernel lacks a matching build tree, so the existing prepared Ubuntu headers
+provide **compile-only** verification. No runtime test is run in WSL.
 
-From this project's Windows host, enter the installed WSL distribution:
-
-```powershell
-wsl -d Ubuntu
-```
-
-Then use Linux commands:
+## Build and static inspection
 
 ```sh
-cd /mnt/c/Coding/Projects/SecureRAM
-make check-env
-```
-
-Keep source files LF-terminated; `.gitattributes` and `.editorconfig` declare
-this. Invoke the checker through `sh` so it does not depend on executable bits
-on a Windows mount. A Linux-home checkout usually builds faster than `/mnt/c`.
-Keep the build path free of spaces because kernel build paths do not reliably
-support them.
-
-The running WSL kernel is supplied separately from Ubuntu user space. Installing
-Ubuntu's generic headers does not supply the matching Microsoft kernel build
-tree. WSL is not inherently incapable of loading modules, but runtime validation
-requires matching build artifacts and privileges. For this project, a normal
-Linux VM is the simplest reproducible route. If intentionally developing against
-a custom WSL kernel, follow Microsoft's [WSL kernel build instructions](https://github.com/microsoft/WSL2-Linux-Kernel)
-and retain its exact configuration and generated artifacts. SecureRAM does not replace
-or reconfigure the user's WSL kernel.
-
-## Build and inspect
-
-```sh
-make help
 make check-env
 make clean
 make W=1
 modinfo ./secureram.ko
+mkdir -p .cache
+gcc -std=c11 -O2 -Wall -Wextra -Werror -Wconversion -Iinclude \
+  tests/m4-control.c -o .cache/m4-control
+sh -n scripts/check-environment.sh
+python3 -m py_compile tests/m2-raw-io.py tests/m4-raw-io.py
+git diff --check
 ```
 
-For a build log with the correct failure exit status, use **Bash**:
+The Makefile delegates to Kbuild's external-module machinery. The composite
+module links main, block, security, store and control. Use the same `KDIR` for
+cleaning and building. A prepared tree needs generated config and Module.symvers;
+`modules_prepare` alone does not supply symbol versions. See
+[external-module documentation](https://docs.kernel.org/kbuild/modules.html).
+
+Current local compile-only example (Bash in WSL):
 
 ```bash
+m4_headers=/home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src
+m4_target="$m4_headers/linux-headers-7.0.0-38-generic"
+make KDIR="$m4_target" check-env
+make KDIR="$m4_target" clean
 set -o pipefail
-make W=1 2>&1 | tee build-m3.log
+make KDIR="$m4_target" CC=gcc W=1 2>&1 | tee build-m4-production.log
+perl "$m4_headers/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl" \
+  --no-tree --strict --file src/*.c include/*.h include/uapi/*.h
+nm -u src/secureram_security.o
+/usr/sbin/modinfo ./secureram.ko
 ```
 
-Inspect the complete log, including compiler messages, MODPOST, and final link.
-`W=1` enables additional diagnostics; it is not a substitute for code review.
-Use `make clean` first when changing header trees or toolchains; incremental
-builds may otherwise reuse objects. Pass the same `KDIR` when cleaning.
+Read the whole compiler/MODPOST/link log. Local GCC 15 differs from the target's
+GCC 13; this environmental warning must remain recorded. Missing pahole/vmlinux
+prevents BTF generation. Any new driver-source warning is a failure to fix.
+The default target compiler may be absent locally, hence the explicit CC=gcc.
 
-The top-level Makefile delegates compilation to the kernel's Kbuild system;
-`Kbuild` links the main, block, security, and storage objects into a composite
-`secureram.o` and adds the local include directory. There is no hand-written
-compiler command with guessed kernel flags.
-See [Building External Modules](https://docs.kernel.org/kbuild/modules.html).
-
-An alternate `KDIR` is useful for compile-only checks. It must be a prepared
-build/header tree with generated configuration and symbol information, not
-`/usr/include/linux` and not an unpacked, unconfigured source tarball. In
-particular, `modules_prepare` alone does not produce `Module.symvers`.
-
-`sh scripts/check-environment.sh [KDIR]` reports missing tools/files, the selected
-target release when known, and basic runtime constraints. It makes no changes
-and does not claim to prove ABI compatibility or loading permissions. Its `CC`
-override accepts one compiler executable name/path (e.g. `CC=clang`), not a
-compound wrapper command. Kbuild's own compiler selection remains authoritative.
+For the internal verification variant, clean then build with `M4_TEST=1` and
+the same target/compiler arguments. Clean again before a production build.
+The option adds actual backing comparisons and split-unit checks without a
+debug memory interface. Build success does not execute these checks. Keep
+build products and logs ignored, and clean generated module artifacts after
+inspection. Leave requested M4 source changes uncommitted for review.
 
 ## Manual runtime smoke check
 
-Use the [M3 regression procedure](m3-testing.md) on the matching kernel. It reuses
-the [M2 VM test procedure](m2-testing.md). The full
-sequence includes direct raw I/O, bounds, concurrency, optional ext4, module
-ownership, unload/reload, and parameter checks. In a second terminal watch new
-messages without clearing logs:
+Follow [the M4 procedure](m4-testing.md) for the current encrypted version:
+matching-kernel load, keyless denial, valid key installation, raw/filesystem
+I/O, safe key destruction, unload and inspection of fresh kernel logs. The M1
+and M2 reports linking here describe their historical version's behavior; they
+do not establish M4 runtime acceptance. Device tests are never run by the build.
 
-```sh
-sudo dmesg --follow --color=never
-```
+## API choices and debugging
 
-Acceptance criteria:
+Use target headers and official
+[skcipher documentation](https://docs.kernel.org/crypto/api-skcipher.html).
+The current headers expose skcipher_request_zero for clearing a completed
+request; reattach its transform before reuse. Completion waits must finish
+before clearing/freeing buffers. Each 4096-byte kmalloc staging buffer fits
+inside one page/SG entry, independent of a request's segmentation. Excluding
+allocating and kernel-only hardware providers narrows reclaim/DMA assumptions;
+provider availability/progress still needs VM evidence.
 
-1. `modinfo` reports the expected author, description, version, and license.
-2. `insmod ./secureram.ko` succeeds and `/sys/module/secureram` exists.
-3. A **new** prefixed M3 load message appears. Old matching messages alone do
-   not prove the current load worked; correlate timestamps and module state.
-4. `/sys/class/block/secureram0` and `/dev/secureram0` appear with correct
-   capacity/geometry. The raw tests pass; optional whole-device ext4 works.
-5. After unmounting/closing users, `rmmod secureram` succeeds, the module and
-   device disappear, and a new unload message
-   appears without an oops, warning backtrace, or other lifecycle error.
-6. Reload and rerun the initial-zero check to verify fresh storage.
+The modern char endpoint uses nonseekable_open, unlocked_ioctl and
+compat_ptr_ioctl. The fixed-width/aligned UAPI has identical intended ILP32/LP64
+layout. Capability checks run per operation, including on passed descriptors.
+Read [ioctl guidance](https://docs.kernel.org/driver-api/ioctl.html) before ABI
+changes; unknown commands must be ENOTTY and output must not contain padding leaks.
 
-M2's disk-owned queue must drain before backing/tag memory is freed. Keep its
-worker running during `del_gendisk()`, then destroy the workqueue, release the
-disk and tags, and free backing/state. See [the design](m2-design.md) for failure
-unwinding. Leave the module unloaded after checking. Do not use `rmmod -f`,
-`insmod -f`, or create a device node manually.
-
-## Troubleshooting
-
-| Symptom | Interpretation and next action |
+| Observation | Interpretation |
 | --- | --- |
-| Missing `/lib/modules/.../build` | Matching headers/build tree are absent. Supply them or select an explicit compile-only `KDIR`. |
-| `gcc`, `cc`, `make`, or linker missing | Install the build toolchain in Linux. A Windows compiler is insufficient. |
-| `modinfo`/`insmod` missing from PATH | Check `/usr/sbin`, `/sbin`, and the `kmod` package. A non-login WSL command may have a different PATH. |
-| Kernel/compiler version warning | Compare target build compiler and current compiler; use a matching toolchain for definitive runtime validation. Do not hide warnings. |
-| `Skipping BTF generation ... unavailability of vmlinux` | The headers lack the kernel's BTF input. The module may still compile/link; record this diagnostic. |
-| `Invalid module format` | Read the kernel log; check release, configuration, architecture, and symbol versions. Rebuild for the exact target. |
-| `Key was rejected by service` / signing error | Use a module signed with a key trusted by that kernel. |
-| `Operation not permitted` | Check module capability, signature/lockdown policy, container restrictions, and `/proc/sys/kernel/modules_disabled`. |
-| `File exists` at insertion | A module with that name is already loaded; inspect it before acting. |
-| `Module is in use` at removal | Unmount SecureRAM and close legitimate holders; its module owner protects active users. Never force removal. |
-| No visible `pr_info` on console | Informational logs may be filtered on the console. Read the kernel ring buffer with adequate permission. |
+| Block open fails ENOKEY | Expected in NO_KEY/LOCKED; inspect privileged query. |
+| Key change fails EBUSY | Close/unmount block users, or check that transition is valid. |
+| Key load fails EINVAL | Check exact length, distinct halves, ABI version/size/reserved fields and provider geometry. |
+| Key load reports provider/allocation error | Remains fail closed; inspect configuration/provider availability and memory pressure. |
+| Module format/signature rejection | Rebuild for running kernel and follow signing policy; never bypass it. |
+| Module busy | Open block/control files pin it; close legitimate users. |
+| Test log absent | Confirm the current insertion uses M4_TEST=1 and a real write occurred; old logs prove nothing. |
 
-An out-of-tree module can set the kernel's out-of-tree taint flag even with a
-GPL license. Unsigned modules may also taint a permissive kernel. These notices
-are distinct from compiler warnings and kernel faults; report them accurately.
-
-## Understand the module foundation
-
-- `module_init()` and `module_exit()` register loader callbacks, not a user-space
-  `main()`. Initialization returns zero on success and a negative errno on
-  failure. M2 unwinds each successful acquisition when a later step fails.
-- `__init` marks initialization-only code so the kernel can reclaim it after
-  successful initialization. `__exit` describes the unload path for a module.
-  Persistent runtime code must not call code that has already been discarded.
-- `static` keeps these function names private to this translation unit.
-- `pr_info()` writes to the kernel log. `pr_fmt()` consistently prefixes messages
-  with `secureram:`. Logs must never contain future key/plaintext material.
-- `MODULE_*` declarations embed metadata inspected by `modinfo`.
-  `MODULE_LICENSE("GPL")` is the kernel's recognized license marker; SPDX and
-  the repository license specify GPL version 2 only. A license marker is not
-  a security check or module signature.
-- `(u64)capacity_mb * SZ_1M` converts the validated parameter to bytes without
-  narrow-integer overflow. The header centralizes geometry and bounds, while
-  storage allocation and disk publication are explicit lifecycle steps.
+Watch fresh `dmesg --follow-new` in the VM. Never log keys, plaintext, backing
+bytes, sensitive ioctl contents or pointers. Out-of-tree/signature taints are
+distinct from Oops, BUG, warning backtraces and driver correctness failures.
 
 ## Learn before M2
 
-1. User versus kernel address spaces; why user pointers need safe copy helpers
-   at a control boundary and are not ordinary kernel pointers.
-2. VFS, a filesystem, the page cache, a block device, and the block layer;
-   distinguish a `bio` from a `request` and a `/dev` name from actual storage.
-3. Linux's 512-byte sector accounting versus a device's logical block size;
-   byte offsets, alignment, overflow-safe bounds checks, and advertised capacity.
-4. Virtual versus physical contiguity, pages, allocation failure, `kmalloc`
-   versus `vmalloc`, and mapping request segments without assuming contiguity.
-5. Sleepable versus atomic context, worker ownership, mutex/spinlock rules, and
-   why one blk-mq hardware queue does not eliminate races.
-6. Publishing a device only after initialization, returning correct I/O status,
-   completing each request exactly once, failure unwinding, and draining work
-   before freeing storage.
+These foundational topics remain relevant to every subsequent milestone.
 
-M2 implements the plaintext device within these boundaries; its VM runtime
-acceptance is recorded in [the M2 report](m2-report.md). Cryptography and its
-control ABI remain later milestones.
+Trace VFS -> page cache -> bio/request -> blk-mq -> pending worker -> crypto
+unit -> store. Distinguish 512-byte sectors, 4096-byte logical units, 16-byte AES
+blocks and pages. Explain why segment boundaries cannot select tweaks, why
+encrypted zeros must be initialized, and why encryption does not authenticate.
 
-For M3, also understand why the pass-through layer adds no confidentiality,
-why request segments are not crypto units, why XTS does not authenticate bytes,
-and why key changes must close admission and drain work before freeing secrets.
-See [the security design](m3-security-design.md) and
-[M3 viva notes](m3-report.md#18-viva-concepts).
+## M4 viva preparation
+
+Identify every resource owner, partial-failure unwind, request completion and
+zeroization point. Explain spinlocks versus mutexes, gate-before-drain, why the
+worker cannot take the control mutex, final-close cache flushing, and module
+references on both endpoints. Separate locked access gating from destruction,
+confidentiality from integrity/freshness, and compiled evidence from observed
+runtime behavior. See [M4 viva notes](m4-report.md#viva-concepts).

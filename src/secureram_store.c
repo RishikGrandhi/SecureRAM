@@ -21,9 +21,16 @@ int secureram_store_init(struct secureram_store *store, u64 size)
 
 void secureram_store_destroy(struct secureram_store *store)
 {
+	secureram_store_clear(store);
 	vfree(store->data);
 	store->data = NULL;
 	store->size = 0;
+}
+
+void secureram_store_clear(struct secureram_store *store)
+{
+	if (store->data)
+		memzero_explicit(store->data, store->size);
 }
 
 bool secureram_store_contains(const struct secureram_store *store,
