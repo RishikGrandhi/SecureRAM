@@ -6,8 +6,10 @@ set -Eeuo pipefail
 umask 077
 export LC_ALL=C
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export PYTHONDONTWRITEBYTECODE=1
 
-readonly M5_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+M5_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+readonly M5_ROOT
 readonly M5_DEVICE=/dev/secureram0
 readonly M5_CONTROL=/dev/secureramctl
 readonly M5_VERSION=0.5.0
@@ -18,11 +20,13 @@ readonly M5_CONTROL_HELPER="$M5_ROOT/.cache/m4-control"
 M5_VM_RUN_DIR=${M5_VM_RUN_DIR:-}
 M5_STATUS_FILE=${M5_STATUS_FILE:-}
 M5_BUILD_USER=${M5_BUILD_USER:-${SUDO_USER:-}}
+M5_BUILD_GROUP=${M5_BUILD_GROUP:-}
 M5_MOUNT_POINT=${M5_MOUNT_POINT:-}
 M5_MOUNTED_BY_HARNESS=0
 M5_RUNTIME_OWNED=0
 M5_EPHEMERAL_FILES=()
 M5_EPHEMERAL_DIRS=()
+M5_ACTIVE_CHECKS=()
 
 m5_die()
 {
@@ -36,6 +40,8 @@ m5_require_root()
 	[[ -n $M5_BUILD_USER && $M5_BUILD_USER != root ]] ||
 		m5_die "invoke with sudo from the ordinary user who owns the checkout"
 	id "$M5_BUILD_USER" >/dev/null 2>&1 || m5_die "build user does not exist: $M5_BUILD_USER"
+	M5_BUILD_GROUP=$(id -gn "$M5_BUILD_USER")
+	[[ -n $M5_BUILD_GROUP ]] || m5_die "could not determine build user's primary group"
 }
 
 m5_require_run_context()
@@ -58,9 +64,10 @@ m5_phase_preflight()
 m5_require_tools()
 {
 	local tool
-	for tool in awk bash cat cmp date dd dmesg find findmnt gcc git grep insmod kill make \
-		mkfs.ext4 mktemp modinfo modprobe mount mountpoint nm python3 rm rmdir \
-		rmmod runuser sed stdbuf strings sync tee udevadm umount; do
+	for tool in awk bash cat chown chmod cmp date dd dmesg env find findmnt gcc git grep id \
+		insmod kill make mkdir mkfs.ext4 mktemp modinfo modprobe mount mountpoint nm \
+		python3 rm rmdir rmmod runuser sed sleep stdbuf strings sync tee touch udevadm \
+		umount uname; do
 		command -v "$tool" >/dev/null 2>&1 || m5_die "required VM tool missing: $tool"
 	done
 }
@@ -68,7 +75,10 @@ m5_require_tools()
 m5_record()
 {
 	local label=$1 status=$2 detail=${3:-}
-	[[ $status == PASS || $status == FAIL ]] || m5_die "invalid result status: $status"
+	case $status in
+		PASS|FAIL|'NOT RUN'|'NOT COMPLETED') ;;
+		*) m5_die "invalid result status: $status" ;;
+	esac
 	[[ $detail != *$'\t'* && $detail != *$'\n'* ]] || m5_die "result detail contains a separator"
 	printf '%s\t%s\t%s\n' "$label" "$status" "$detail" >> "$M5_STATUS_FILE"
 }
@@ -76,7 +86,85 @@ m5_record()
 m5_run_as_builder()
 {
 	runuser -u "$M5_BUILD_USER" -- env \
-		PATH="$PATH" LC_ALL=C KDIR="/lib/modules/$(uname -r)/build" "$@"
+		PATH="$PATH" LC_ALL=C PYTHONDONTWRITEBYTECODE=1 \
+		KDIR="/lib/modules/$(uname -r)/build" "$@"
+}
+
+m5_prepare_evidence_directory()
+{
+	local evidence_root=$1 run_directory=$2 expected_root="$M5_ROOT/.cache/m5-vm"
+	local owner
+
+	[[ $evidence_root == "$expected_root" ]] || m5_die "refusing unexpected evidence root: $evidence_root"
+	[[ $run_directory == "$evidence_root/"* && $run_directory != "$evidence_root/" ]] ||
+		m5_die "refusing unexpected evidence run directory: $run_directory"
+	[[ ! -L $M5_ROOT/.cache ]] || m5_die "refusing symlinked repository cache directory"
+	m5_run_as_builder mkdir -p -- "$M5_ROOT/.cache"
+	[[ -d $M5_ROOT/.cache ]] || m5_die "repository cache path is not a directory"
+	[[ ! -L $evidence_root ]] || m5_die "refusing symlinked M5 evidence root"
+	[[ ! -e $evidence_root || -d $evidence_root ]] || m5_die "M5 evidence root is not a directory"
+
+	if [[ -d $evidence_root ]]; then
+		owner=$(find "$evidence_root" -maxdepth 0 -printf '%U\n')
+		if [[ $owner != "$(id -u "$M5_BUILD_USER")" ]]; then
+			printf 'Repairing prior M5 evidence ownership for %s\n' "$M5_BUILD_USER"
+		fi
+		chown -hR -- "$M5_BUILD_USER:$M5_BUILD_GROUP" "$evidence_root"
+		chmod -R u+rwX,go-rwx -- "$evidence_root"
+	else
+		m5_run_as_builder mkdir -- "$evidence_root"
+	fi
+
+	[[ ! -e $run_directory && ! -L $run_directory ]] ||
+		m5_die "evidence run directory already exists: $run_directory"
+	m5_run_as_builder mkdir -- "$run_directory"
+	m5_run_as_builder chmod 0700 -- "$evidence_root" "$run_directory"
+	m5_run_as_builder touch -- \
+		"$run_directory/status.tsv" \
+		"$run_directory/main.log" \
+		"$run_directory/summary.txt" \
+		"$run_directory/dmesg.log" \
+		"$run_directory/production.log" \
+		"$run_directory/tamper.log" \
+		"$run_directory/capacity.log" \
+		"$run_directory/final-production.log"
+}
+
+m5_release_evidence_directory()
+{
+	local run_directory=$1 expected_root="$M5_ROOT/.cache/m5-vm"
+
+	[[ $run_directory == "$expected_root/"* && $run_directory != "$expected_root/" ]] ||
+		m5_die "refusing ownership change outside the M5 evidence root"
+	[[ -d $run_directory && ! -L $run_directory ]] ||
+		m5_die "M5 evidence run directory is unavailable or symlinked"
+	chown -hR -- "$M5_BUILD_USER:$M5_BUILD_GROUP" "$run_directory"
+	chmod -R u+rwX,go-rwx -- "$run_directory"
+}
+
+m5_begin_checks()
+{
+	local label
+	[[ $# -gt 0 ]] || m5_die "m5_begin_checks requires at least one label"
+	M5_ACTIVE_CHECKS=("$@")
+	for label in "${M5_ACTIVE_CHECKS[@]}"; do
+		m5_record "$label" 'NOT COMPLETED' 'assertion group started'
+	done
+}
+
+m5_complete_checks()
+{
+	M5_ACTIVE_CHECKS=()
+}
+
+m5_capacity_bytes_from_mb()
+{
+	local requested_capacity_mb
+	[[ $# -eq 1 ]] || m5_die "capacity conversion requires exactly one argument"
+	requested_capacity_mb=$1
+	[[ $requested_capacity_mb =~ ^[0-9]+$ ]] ||
+		m5_die "capacity is not an unsigned integer: $requested_capacity_mb"
+	printf '%d\n' "$((requested_capacity_mb * 1024 * 1024))"
 }
 
 m5_assert_checkout()
@@ -313,13 +401,15 @@ m5_prove_test_build()
 
 m5_load_module()
 {
-	local capacity_mb=$1 expected_bytes=$((capacity_mb * 1024 * 1024))
+	local requested_capacity_mb calculated_capacity_bytes
+	requested_capacity_mb=$1
+	calculated_capacity_bytes=$(m5_capacity_bytes_from_mb "$requested_capacity_mb")
 	m5_assert_module_absent
 	modprobe hkdf
-	insmod ./secureram.ko "capacity_mb=$capacity_mb"
+	insmod ./secureram.ko "capacity_mb=$requested_capacity_mb"
 	M5_RUNTIME_OWNED=1
 	m5_wait_present
-	m5_identity_guard "$expected_bytes"
+	m5_identity_guard "$calculated_capacity_bytes"
 }
 
 m5_load_key()
@@ -345,11 +435,11 @@ m5_run_raw()
 
 m5_expect_control_busy()
 {
-	local command=$1 expected_state=$2 expected_generation=$3 expected_bytes=$4 output
+	local command=$1 expected_state=$2 expected_generation=$3 expected_bytes=$4 output result
 	m5_identity_guard "$expected_bytes"
 	set +e
 	output=$($M5_CONTROL_HELPER "$command" 2>&1)
-	local result=$?
+	result=$?
 	set -e
 	printf '%s\n' "$output"
 	[[ $result -ne 0 ]] || m5_die "$command unexpectedly succeeded"
@@ -384,7 +474,7 @@ m5_safe_unmount()
 
 m5_cleanup_runtime()
 {
-	local result=0 capacity_bytes
+	local result=0 cleanup_capacity_bytes
 	set +e
 	if ! m5_safe_unmount; then
 		printf '%s\n' 'CLEANUP FAIL: could not safely unmount harness mount' >&2
@@ -396,15 +486,17 @@ m5_cleanup_runtime()
 	if ((${#M5_EPHEMERAL_DIRS[@]})); then
 		local ephemeral_dir
 		for ephemeral_dir in "${M5_EPHEMERAL_DIRS[@]}"; do
+			[[ -e $ephemeral_dir || -L $ephemeral_dir ]] || continue
 			rmdir -- "$ephemeral_dir" 2>/dev/null || result=1
 		done
 	fi
 	if [[ $M5_RUNTIME_OWNED -eq 1 && -e /sys/module/secureram ]]; then
-		capacity_bytes=0
+		cleanup_capacity_bytes=0
 		if [[ -r /sys/class/block/secureram0/size ]]; then
-			capacity_bytes=$(( $(< /sys/class/block/secureram0/size) * 512 ))
+			cleanup_capacity_bytes=$(( $(< /sys/class/block/secureram0/size) * 512 ))
 		fi
-		if [[ $capacity_bytes -gt 0 ]] && m5_identity_guard "$capacity_bytes"; then
+		if [[ $cleanup_capacity_bytes -gt 0 ]] &&
+		   m5_identity_guard "$cleanup_capacity_bytes"; then
 			if [[ -x $M5_CONTROL_HELPER ]]; then
 				"$M5_CONTROL_HELPER" destroy || result=1
 			else
@@ -423,8 +515,13 @@ m5_cleanup_runtime()
 
 m5_phase_exit()
 {
-	local original=$1 cleanup=0
+	local original=$1 cleanup=0 label
 	trap - EXIT
+	if [[ $original -ne 0 ]] && ((${#M5_ACTIVE_CHECKS[@]})); then
+		for label in "${M5_ACTIVE_CHECKS[@]}"; do
+			m5_record "$label" FAIL 'phase aborted during this assertion group'
+		done
+	fi
 	if ! m5_cleanup_runtime; then
 		cleanup=1
 	fi

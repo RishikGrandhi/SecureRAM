@@ -28,20 +28,26 @@ for invalid in 0 257; do
 done
 
 for capacity_mb in 1 256; do
-	capacity_bytes=$((capacity_mb * 1024 * 1024))
+	current_capacity_bytes=$(m5_capacity_bytes_from_mb "$capacity_mb")
+	if [[ $capacity_mb -eq 1 ]]; then
+		m5_begin_checks '1 MiB capacity'
+	else
+		m5_begin_checks '256 MiB capacity'
+	fi
 	m5_load_module "$capacity_mb"
-	m5_assert_query 0 0 "$capacity_bytes"
-	m5_load_key "$capacity_bytes"
-	m5_assert_query 2 1 "$capacity_bytes"
-	m5_run_raw "$capacity_bytes" active
-	m5_destroy_key "$capacity_bytes"
-	m5_assert_query 0 1 "$capacity_bytes"
+	m5_assert_query 0 0 "$current_capacity_bytes"
+	m5_load_key "$current_capacity_bytes"
+	m5_assert_query 2 1 "$current_capacity_bytes"
+	m5_run_raw "$current_capacity_bytes" active
+	m5_destroy_key "$current_capacity_bytes"
+	m5_assert_query 0 1 "$current_capacity_bytes"
 	m5_unload_owned
 	if [[ $capacity_mb -eq 1 ]]; then
 		m5_record '1 MiB capacity' PASS 'exact capacity, generation 1, full bounded raw suite, teardown'
 	else
 		m5_record '256 MiB capacity' PASS 'exact capacity, generation 1, full bounded raw suite, teardown'
 	fi
+	m5_complete_checks
 done
 
 trap - EXIT

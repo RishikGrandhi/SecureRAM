@@ -1,6 +1,10 @@
 # M5 Ubuntu VM verification procedure
 
-Status: **NOT RUN**. Run after the reviewed candidate is committed and pushed.
+Status: **NOT RUN**. The first automated attempt on commit `093ca58` and
+Linux 7.0.0-38-generic stopped in the test harness before module insertion.
+It exposed evidence-directory ownership and Bash variable-scope defects; it
+did not exercise or fail SecureRAM driver/runtime behavior. Run again after
+the reviewed harness fix is committed and pushed.
 Local Windows/WSL builds do not establish VM runtime acceptance. Use only the
 disposable Ubuntu VirtualBox VM and `/dev/secureram0`; stop at every unexpected
 result. Do not force unload, change target devices, or run raw tests over a
@@ -12,15 +16,11 @@ The preferred normal acceptance path is one command from a clean checkout on
 the `m5-integrity-tamper-detection` branch in the disposable VM:
 
 ```sh
-sudo bash tests/run-m5-vm-acceptance.sh
-```
-
-Optionally require an exact full commit hash already exported by the invoking
-user:
-
-```sh
+export M5_EXPECTED_COMMIT=$(git rev-parse HEAD)
 sudo --preserve-env=M5_EXPECTED_COMMIT bash tests/run-m5-vm-acceptance.sh
 ```
+
+This pins the run to the exact full commit hash exported by the invoking user.
 
 The runner refuses root-without-sudo invocation so compilation can run as the
 ordinary checkout owner. It verifies a clean expected branch, optional expected
@@ -44,16 +44,41 @@ Each phase tracks whether it inserted the module and mounted the filesystem;
 its EXIT trap only unmounts that revalidated mount and only destroys/unloads its
 owned SecureRAM instance. Cleanup errors remain visible and fail the run.
 
-Logs go to a unique ignored `.cache/m5-vm/<UTC-time>-<pid>/` directory. It holds
+Logs go to a unique ignored `.cache/m5-vm/<UTC-time>-<pid>/` directory. The
+harness restricts this subtree to the checkout owner, creates each run as that
+ordinary user, permits root to write privileged-test evidence, and returns all
+run files to that user during finalization. A new run also repairs ownership of
+this exact evidence subtree from older sudo runs without deleting historical
+evidence; it does not open permissions to group or other users. It holds
 the main transcript, production/tamper/capacity/final phase logs, build output,
 fresh `dmesg --follow-new` capture, relevant kernel lines, separate unrelated
 warning indicators, production symbol/string evidence, status ledger and concise
 summary. Generated comparison files are deleted and no key, tag or data bytes
-are printed. Every requested result begins FAIL and is replaced by PASS only
-after that assertion group completes, so early termination cannot report a
-partial pass. Kernel health rejects SecureRAM-attributable fault/warning/backtrace
+are printed. Every requested result begins `NOT RUN`, changes to `NOT COMPLETED`
+when its assertion group starts, and reaches PASS only after that group completes;
+a trapped command failure marks its active group FAIL. Kernel health remains
+`NOT RUN` when no fresh SecureRAM/ext4 runtime evidence was captured. When runtime
+evidence exists, it rejects SecureRAM-attributable fault/warning/backtrace
 signatures and failed internal diagnostics; all fatal/warning markers are retained
 separately so unrelated VM messages can be classified by a human.
+
+If the original failed harness left evidence root-owned and a one-time repair is
+needed before using the fixed runner, execute these commands from the verified
+repository root. They retain the evidence and keep it private to the ordinary
+checkout owner:
+
+```sh
+test "$(git rev-parse --show-toplevel)" = "$PWD"
+test -d .cache/m5-vm && test ! -L .cache/m5-vm
+sudo chown -hR -- "$USER:$(id -gn)" .cache/m5-vm
+sudo chmod -R u+rwX,go-rwx -- .cache/m5-vm
+```
+
+The non-destructive helper regression can be run without sudo or a loaded module:
+
+```sh
+bash tests/check-m5-vm-harness.sh
+```
 
 Human supervision remains required to choose/snapshot the disposable VM, verify
 that the intended commit was brought into it, grant sudo, observe storage/memory

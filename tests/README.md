@@ -75,18 +75,15 @@ After committing the reviewed candidate and checking it out cleanly in the
 disposable Ubuntu VM, run the structured harness from the repository root:
 
 ```sh
-sudo bash tests/run-m5-vm-acceptance.sh
+export M5_EXPECTED_COMMIT=$(git rev-parse HEAD)
+sudo --preserve-env=M5_EXPECTED_COMMIT bash tests/run-m5-vm-acceptance.sh
 ```
 
 The top-level script requires invocation through `sudo` by the ordinary checkout
 owner. It builds as that user and performs only lifecycle/device operations as
 root. It requires the `m5-integrity-tamper-detection` branch, a clean worktree and
-headers matching `uname -r`. To pin a reviewed commit as well, export its full
-hash before invoking sudo and preserve only that variable:
-
-```sh
-sudo --preserve-env=M5_EXPECTED_COMMIT bash tests/run-m5-vm-acceptance.sh
-```
+headers matching `uname -r`. The command above pins the reviewed full commit
+hash and preserves only that variable through sudo.
 
 The runner calls four readable phases: production, combined M5/M4 tamper,
 production capacity limits, and final production regression. Shared identity,
@@ -103,9 +100,18 @@ Evidence is retained under a unique `.cache/m5-vm/<UTC-time>-<pid>/` directory:
 the main transcript, four phase logs, build logs, fresh dmesg stream, production
 symbol/string inspection, relevant kernel messages, unrelated fault/warning indicators,
 status ledger and final summary. Ephemeral readback files are compared and removed;
-keys, tags and data bytes are never printed. Every summary item starts FAIL and
-changes to PASS only after its complete assertion group succeeds. Any unexpected
-command stops the current phase, runs guarded cleanup and leaves later items FAIL.
+keys, tags and data bytes are never printed. The evidence subtree and new run are
+owned by the ordinary checkout user with owner-only permissions; root can write
+during privileged phases, and finalization returns generated files to that user.
+The runner repairs ownership of this exact subtree from earlier sudo runs without
+deleting history. Every summary item starts `NOT RUN`, becomes `NOT COMPLETED`
+when reached, and changes to PASS only after its complete assertion group succeeds.
+A trapped command failure marks its active group FAIL. Later groups and kernel
+health without runtime evidence remain `NOT RUN`.
+
+`check-m5-vm-harness.sh` is a non-destructive, non-root regression for the strict
+capacity conversion, readonly-scope cleanup path and status transitions. It does
+not load a module or access a block device.
 
 The harness automates the production build/absence proof, NO_KEY/ABI checks,
 negative control tests, full raw suite, lock/unlock retention, destroy/rekey,
@@ -122,3 +128,8 @@ The allocation/provider/crypto fault campaigns, pending-request races, compat
 runtime ioctls and lockdep/KASAN/kmemleak diagnostics listed in the manual M5
 procedure remain outside this normal harness. Creating these scripts does not
 change the current **M5 runtime acceptance pending** status.
+
+The first automated VM attempt on candidate `093ca58` stopped before module
+insertion because of harness ownership and Bash scope defects. Its production
+build/exclusion result is useful build evidence, but it is not an M5 runtime
+failure or an acceptance run.
