@@ -7,7 +7,9 @@ M6 adds the production C CLI and diagnostic counters while preserving M5 crypto.
 Its successful Ubuntu VM acceptance and local evidence are recorded in the
 [M6 design/report](m6-report.md).
 M7 adds a local browser dashboard over the existing CLI, preserving that kernel
-architecture. Dashboard 0.7.0 is locally verified; its VM acceptance is pending.
+architecture. Automated VM acceptance passed on `08d1ade`; a subsequent real
+Firefox lifecycle POST exposed an Origin-header/referrer-policy integration defect.
+The minimal policy correction is locally verified; Firefox re-test is pending.
 See the [M7 report](m7-report.md) and [testing procedure](m7-testing.md).
 M4's completed evidence is in [its report](m4-report.md). Historical designs remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
@@ -82,6 +84,12 @@ restrictive headers constrain cross-site access. The fragment credential is
 removed from the address bar and kept only in page memory. No CORS, remote
 administration, arbitrary commands, file browsing, kernel-log access or key
 material is exposed. The browser itself runs unprivileged.
+
+The page and HTTP response use `Referrer-Policy: same-origin`. Under Fetch's
+Origin-header algorithm this preserves the exact serialized Origin on the local
+same-origin lifecycle POST while suppressing cross-origin referrer information.
+The server still rejects a missing, `null` or nonmatching POST Origin; Host,
+bearer-token and Sec-Fetch-Site checks are unchanged.
 
 Python owns the listener, token, asset bytes, bounded request slots and one CLI
 mutex. The CLI retains its existing key-generation/protected-buffer ownership;

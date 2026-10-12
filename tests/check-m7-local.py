@@ -21,9 +21,12 @@ class StaticCheck(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.ids = set()
         self.references = set()
+        self.referrer_policies = []
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
+        if tag == "meta" and values.get("name") == "referrer":
+            self.referrer_policies.append(values.get("content"))
         if "id" in values:
             assert values["id"] not in self.ids, "duplicate HTML id"
             self.ids.add(values["id"])
@@ -44,6 +47,7 @@ def main():
     parser = StaticCheck()
     parser.feed(html)
     assert parser.references <= parser.ids
+    assert parser.referrer_policies == ["same-origin"]
     js = (ROOT / "dashboard/static/app.js").read_text(encoding="utf-8")
     assert set(re.findall(r'(?:el|text)\("([^"$]+)"', js)) <= parser.ids
     assert not re.search(r"innerHTML|localStorage|sessionStorage|document\.cookie|eval\(", js)

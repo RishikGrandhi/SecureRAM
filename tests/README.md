@@ -3,9 +3,11 @@
 ## M7 dashboard candidate
 
 Dashboard 0.7.0 is locally verified on `m7-dashboard`. Kernel/CLI remain 0.6.0,
-ABI 1, features 15. **M7 VM runtime and real-driver Ubuntu browser acceptance are
-NOT RUN.** See [m7-testing.md](../docs/m7-testing.md) for observed local results,
-exact full-SHA-pinned VM invocation, evidence rules and the manual visual checklist.
+ABI 1, features 15. Automated M7 VM acceptance passed on commit `08d1ade`.
+A later real Firefox check reached status/stats but exposed `Origin: null` on
+lifecycle POSTs under the original `no-referrer` policy. The locally verified
+`same-origin` policy patch still requires real Firefox re-verification. See
+[m7-testing.md](../docs/m7-testing.md) for the evidence distinction and checklist.
 
 ```sh
 python3 tests/check-m7-local.py
@@ -17,7 +19,7 @@ python3 tests/check-m6-local.py --kdir /path/to/prepared/headers \
 | File | Responsibility |
 | --- | --- |
 | `check-m7-local.py` | Python/static/JS checks, HTTP tests, mocked harness, individual shell syntax and diff whitespace; no device access. |
-| `check-m7-dashboard.py` | Real HTTP server/socket tests with mocked CLI: auth, routes, parsing, fixed argv, deadlines/concurrency, traversal/symlinks, errors and shutdown. |
+| `check-m7-dashboard.py` | Real HTTP server/socket tests with mocked CLI: auth, routes, parsing, exact referrer/Origin contract, fixed argv, deadlines/concurrency, traversal/symlinks, errors and shutdown. |
 | `check-m7-ui.js` | Pure BigInt, state availability, sampled-delta and reset/gap assertions using Node. |
 | `check-m7-vm-harness.sh`, `m7-harness-mocks.sh` | Actual M7 phase overrides in the M6 mocked harness, retaining historical M5/M6 failure/cleanup tests. |
 | `check-m7-observe.py` | Actual HTTP/assertion client, failed-state counters/recovery, /proc loopback inspection and session-owner success/failure fixtures. |
@@ -33,8 +35,9 @@ request sudo, open a block device or install dependencies. Browser screenshots
 are fixture evidence only. The opt-in VM suite is destructive only to the
 hardcoded, repeatedly validated `/dev/secureram0`; it accepts no device arguments.
 All build products, screenshots and evidence logs stay ignored. Never save the
-dashboard startup token in logs/screenshots; real VM acceptance must be recorded
-against the reviewed M7 candidate after a separately authorized commit.
+dashboard startup token in logs/screenshots. The accepted `08d1ade` VM run is
+historical evidence; the current browser-policy fix needs its own reviewed
+candidate and real Firefox re-test before final M7 browser acceptance.
 
 ## M6 acceptance
 

@@ -134,6 +134,39 @@ class HTTPTests(unittest.TestCase):
             self.assertNotIn(self.server.token.encode(), raw)
         self.assertEqual(self.fake.calls, [])
 
+    def test_referrer_policy_preserves_exact_post_origin(self):
+        status, headers, page = request(self.server, "/")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers["Referrer-Policy"], "same-origin")
+        self.assertIn(b'<meta name="referrer" content="same-origin">', page)
+        self.assertNotIn(b'content="no-referrer"', page)
+
+        # Fetch specifies that same-origin preserves the serialized Origin for
+        # this POST, while no-referrer serializes it as null. Only the exact
+        # browser contract may reach the mocked lifecycle command.
+        self.assertEqual(request(self.server, "/api/actions/load-random", "POST",
+                                 headers={"Sec-Fetch-Site": "same-origin"})[0], 200)
+        rejected = (
+            ({"Origin": "null"}, 403),
+            ({"Origin": "http://evil.test"}, 403),
+            ({"Host": "evil.test"}, 403),
+            ({"Authorization": ""}, 401),
+            ({"Authorization": "Bearer wrong"}, 401),
+            ({"Sec-Fetch-Site": "cross-site"}, 403),
+        )
+        for request_headers, wanted in rejected:
+            with self.subTest(headers=request_headers):
+                self.assertEqual(request(self.server, "/api/actions/load-random", "POST",
+                                         headers=request_headers)[0], wanted)
+        conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port)
+        conn.request("POST", "/api/actions/load-random", "{}", headers={
+            "Authorization": "Bearer " + self.server.token,
+            "Content-Type": "application/json",
+        })
+        self.assertEqual(conn.getresponse().status, 403)
+        conn.close()
+        self.assertEqual([call[1] for call in self.fake.calls], ["load-random"])
+
     def test_auth_missing_wrong_empty_and_query_substitution(self):
         for path, method in (("/api/status", "GET"), ("/api/stats", "GET"),
                              ("/api/actions/load-random", "POST")):

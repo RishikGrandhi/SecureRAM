@@ -7,9 +7,12 @@ Started from clean `main` at full commit
 UAPI, block/control implementation, M6 design/testing, shared M5/M6 harnesses and
 build conventions, presented the design before edits, then worked only on
 `m7-dashboard`. M1–M6 remain complete and runtime verified as recorded in their
-reports. M7 implementation and local verification are a review candidate;
-**M7 Ubuntu VM acceptance and Ubuntu desktop visual acceptance are NOT RUN**.
-No candidate commit, push or merge is part of this handoff.
+reports. Automated M7 Ubuntu VM acceptance subsequently passed on exact commit
+`08d1ade75215dc237342569f9c9c3dc2fd2957a3`. A later manual real-Firefox check
+loaded the UI and read status/stats, but lifecycle POSTs failed because Firefox
+sent `Origin: null` under the original `no-referrer` policy. The minimal policy
+fix below is locally verified in the current patch; real Firefox re-verification is
+still pending. No push or merge is part of this handoff.
 
 Dashboard version is **0.7.0**. Kernel and CLI remain **0.6.0**, ABI **1**, production
 features **15**. No file in `src/`, `include/` or `tools/`, no ioctl/state/feature
@@ -25,7 +28,8 @@ on resumption was the M7 testing procedure, root/architecture/development/test
 guide integration, failed-state/mobile/reconnect browser checks, final review and
 rerun evidence. Browser testing found and fixed same-tab fragment reauthorization;
 cleanup review added bounded backend cleanup even when startup has not revealed
-the port. The tree remains uncommitted at the original base SHA.
+the port. That implementation became candidate commit `08d1ade` before its
+automated VM acceptance.
 
 ## Architecture and ownership
 
@@ -66,7 +70,7 @@ motivate the explicit filesystem, logging and resource restrictions here.
 | Authorization | Every API route requires a nonempty exact bearer value, compared with compare_digest; duplicate Authorization headers fail. Wrong/empty/missing/query tokens fail. Static assets reveal no token or device metadata. |
 | Rebinding/cross-site | Exactly one Host, equal to `127.0.0.1:port`. Present Origin must match; POST requires it. Sec-Fetch-Site, when present, must be same-origin or none; same-site is rejected too. A raw client can forge Origin but still needs the token. No CORS grants or preflight support. See [fetch-metadata semantics](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site). |
 | Methods/body | Lifecycle POST only, four literal actions. JSON content type, valid single Content-Length, 128-byte cap; no Transfer-Encoding or Expect. Duplicate fields, non-finite constants, invalid UTF-8, unknown fields, wrong types and missing typed Destroy confirmation are rejected. GET never calls an action. |
-| Headers | CSP permits only own scripts/styles/connects/images; no inline code, base, forms, embedding or other resources. nosniff, no-referrer, frame denial, same-origin resource policy, disabled camera/microphone/geolocation, no-store. |
+| Headers | CSP permits only own scripts/styles/connects/images; no inline code, base, forms, embedding or other resources. nosniff, `same-origin` referrer policy, frame denial, same-origin resource policy, disabled camera/microphone/geolocation, no-store. The same policy is present in HTML metadata. |
 | Static files | Three exact raw routes. No percent-decoding, normalization, dynamic filename join, directory browsing or redirection. Startup verifies root containment and regular files, rejects symlink roots/files, reads at most 256 KiB each and preloads bytes. O_NOFOLLOW closes Linux final-component symlink races; O_NONBLOCK prevents a replaced FIFO blocking open. Trusted parent directories remain an assumption. |
 | CLI | Fixed absolute repository executable; reject symlinked/nonregular path, no PATH lookup. Explicit argv and `shell=False`; no browser strings become arguments except a member of the hardcoded action set. Empty stdin, close_fds, minimal C-locale environment (no inherited LD/Python/shell settings). Action stdout discarded. No filesystem/environment/kernel-log endpoints. |
 | Errors/logging | Small fixed JSON messages and CLI exit codes; never raw stderr, output, exception strings or traceback. C-locale diagnostics are classified into module absent, permission, ABI, busy/invalid transition, no key, integrity, uncertain action and generic failure. Request logging is disabled, including parser errors. Stderr logs fixed diagnostic codes only. |
@@ -174,13 +178,14 @@ credential. Backend stderr is a separate fixed-diagnostic log. One backend
 survives all expected module unload/reload cycles. All original M5 ciphertext,
 tag, relocation, passed-fd, failed-buffer and full-zero-scan assertions remain;
 M7 adds rapid rejected failed-state actions and destroy/fresh-load recovery via
-HTTP. No arbitrary device argument is introduced. The actual VM suite remains
-pending; successful mocks verify orchestration/assertions, not kernel behavior.
+HTTP. No arbitrary device argument is introduced. The actual suite later passed
+on `08d1ade`; successful mocks alone still verify orchestration/assertions, not
+kernel behavior.
 
 | Previous defect/risk | M7 treatment and local exercise |
 | --- | --- |
 | SHA mismatch | Required 40-character lower-case M7 pin; shared full HEAD comparison and exact m7-dashboard branch/clean checkout guard. Empty/short/malformed pins rejected in mocks. |
-| SUDO_USER and .cache | Existing builder-owned evidence preparation, ordinary-user builds and final ownership release retained. M7 evidence is .cache/m7-vm; no token files. Real sudo/runuser behavior still needs the M7 VM run. |
+| SUDO_USER and .cache | Existing builder-owned evidence preparation, ordinary-user builds and final ownership release retained. M7 evidence is .cache/m7-vm; no token files. The accepted `08d1ade` VM run exercised the real sudo/runuser path. |
 | Nounset / dynamic scope | Shared initialized ownership/cleanup variables retained. New locals do not collide with readonly capacity names; actual functions run under set -Eeuo pipefail in mocks. |
 | Redirections / shell parsing | Shared actual ext4 redirections/comparisons/remount flow executed with temporary files; separate bash -n for every shell file. No eval, bash -c, sh -c or generated shell command string. |
 | False PASS / missing logs | NOT RUN ledger initialization, explicit assertion groups, failure-preserving phase EXIT traps and shared finalization. Missing/no-runtime dmesg is NOT RUN; lost collection/warnings FAIL. Synthetic failure, aborted session and final ownership failure must not yield OVERALL PASS. |
@@ -205,18 +210,50 @@ is parsed, and closes its startup pipe on every cleanup outcome. Remaining
 practical limits are stated above, not upgraded into
 security guarantees.
 
+## Post-acceptance Firefox integration defect
+
+The full automated M7 VM suite passed on `08d1ade`. Its HTTP client intentionally
+sent the exact expected Origin itself, so it verified backend enforcement but did
+not reproduce a browser's Origin-header generation. The later Ubuntu desktop
+Firefox check used the printed `http://127.0.0.1:<port>/#token=...` URL against
+the real 0.6.0 driver in NO_KEY at 64 MiB, ABI 1 and features 15. Static UI,
+`GET /api/status` and `GET /api/stats` worked. Clicking Load Random Key failed
+with the dashboard message “Cross-origin requests are forbidden”; DevTools showed
+`Origin: null` and `Sec-Fetch-Site: same-origin`. Direct CLI status remained
+NO_KEY, generation 0, proving the rejected request did not change driver state.
+
+This behavior follows the Fetch Standard's algorithm to
+[append a request Origin header](https://fetch.spec.whatwg.org/#append-a-request-origin-header):
+for a non-CORS, non-GET/HEAD request, `no-referrer` sets the serialized Origin to
+`null`; `same-origin` leaves it intact when request origin and target match, and
+sets it to `null` when they do not. The page supplied `no-referrer` through both
+the HTTP header and HTML metadata. Both now use `same-origin`.
+
+The fix changes only outgoing-browser policy. It does not accept `Origin: null`
+or change server routing. POST still requires the exact `http://127.0.0.1:port`
+Origin; missing/null/cross-origin values fail. Exact Host, bearer token,
+Sec-Fetch-Site, no-CORS and loopback-only checks remain. Cross-origin referrer
+information stays suppressed, and the startup token remains a URL fragment that
+is removed with `history.replaceState`; fragments are stripped from referrers.
+Regression tests assert the response/header metadata contract, exact-origin POST
+success and rejection of null/cross-origin/missing Origin, wrong Host/token and
+cross-site fetch metadata. Python clients cannot reproduce Firefox's header
+generation, so the real Firefox re-test remains explicitly pending.
+
 ## Observed local evidence — 12 October 2026
 
 | Check | Result |
 | --- | --- |
 | Python syntax / static HTML/CSS/JS integrity | PASS on Windows Python 3.13 and WSL Python 3.14; all asset references/IDs and offline/CSP constraints checked. |
-| Backend/HTTP tests | PASS: all 23 tests in WSL, including Linux symlink tests, real loopback sockets, bounded concurrency, authorization, framing, traversal, errors, exact types and real SIGINT/SIGTERM entrypoint shutdown with only the UID gate mocked. Windows: 23 discovered, 21 passed, two Linux/symlink tests explicitly skipped. |
+| Backend/HTTP tests | Original candidate PASS: 23 tests. After the policy patch, all 24 pass in WSL; Windows passes 22 with the two Linux/symlink checks skipped. The added regression binds `same-origin` response/HTML policy to exact-origin POST success while retaining null/cross-origin/Host/token/fetch-metadata rejection. |
 | JavaScript | PASS with the existing Node runtime: syntax plus BigInt/u64 maximum, state availability, reset/gap handling and delta-rate assertions. |
 | M7 mocked VM harness | PASS: real M7-overridden phase functions; all capacities, ext4/busy/remount, early abort/cleanup/refusal/ledger guards; five Python HTTP/integrity/session tests reject bad fixtures and exercise clean, aborted and forced-stop paths, including an unknown startup port. |
 | Existing M6 compile/static regressions | PASS for the complete runner: production, M5-only and combined W=1 builds, strict real CLI/syscall fixture, four ABI object builds, checkpatch, symbol/import/test-exclusion checks. Retain compiler/pahole/BTF environmental warnings, detailed in m7-testing.md. |
 | Shell syntax | Separate bash -n for all 16 shell files. ShellCheck NOT RUN: not installed; no package installed. |
 | Browser rendering | Observed in the Codex browser with a visibly labelled unprivileged fixture: NO_KEY, load/ACTIVE, lock/LOCKED, unlock, exact typed Destroy, return to NO_KEY, 1440-pixel desktop and 390-pixel narrow layouts, counter/chart refresh and visible disconnection/staleness. Failed-state warning/Destroy-only behavior and destroy/fresh-load recovery were observed; reload requires authorization, same-tab startup URL restores it and an old token fails after restart. This is synthetic browser evidence, not Ubuntu/device runtime acceptance. |
-| M7 Ubuntu VM / manual Ubuntu desktop | NOT RUN. Must be recorded separately against a reviewed full commit. |
+| Patched-policy browser smoke | PASS in the Codex in-app browser: emitted meta policy was `same-origin`, Load Random Key reached ACTIVE, no console warning/error appeared, then Destroy returned the fixture to NO_KEY. This is not Firefox and does not close the real-browser re-test. |
+| M7 Ubuntu VM | PASS on committed candidate `08d1ade`; the current policy patch has not been rerun in the VM. |
+| Manual Ubuntu Firefox | PARTIAL/DEFECT OBSERVED on `08d1ade`: layout and GET observation worked; lifecycle POST failed with `Origin: null`. Post-fix Firefox re-test NOT RUN. |
 
 The source and procedure preserve every M5/M6 limit: **not AEAD**, no same-unit
 same-generation replay prevention, no whole-request atomic plaintext-release
@@ -236,14 +273,13 @@ anti-replay and no physical RAM-erasure guarantee. M7 strengthens none of those.
 | `tests/m7-http.py`, `m7-integrity.py`, `m7-preview.py` | New fixed HTTP assertion client, reused tamper adapter and isolated browser fixture. |
 | `tests/m5-vm-common.sh`, `m6-vm-phases.sh`, `vm-report.sh`, `check-m6-vm-harness.sh` | Small shared profile/override/health/mock reuse changes; historical defaults retained. |
 | `README.md`, `docs/architecture.md`, `docs/development.md`, `tests/README.md` | Current M7 navigation, control path, verification and viva integration. |
-| `docs/m7-report.md`, `docs/m7-testing.md` | Design/review/evidence and complete pending VM/manual acceptance procedure. |
+| `docs/m7-report.md`, `docs/m7-testing.md` | Design/review/evidence, accepted automated VM result, browser defect and pending post-fix manual procedure. |
 
-The final audit checks tracked and untracked source whitespace, local Markdown
-targets, ignored generated artifacts, unchanged kernel/UAPI/CLI/build paths and
-the empty index. `git diff --stat` covers tracked modifications only; new files
-remain untracked intentionally. No staging, commit, push, merge, VM execution or
-next-milestone work is included. Review this candidate, then separately authorize
-the commit/VM sequence in [m7-testing.md](m7-testing.md).
+The post-acceptance patch audit checks whitespace, local Markdown targets,
+ignored generated artifacts, unchanged kernel/UAPI/CLI/build paths and the empty
+index. No staging, commit, push, merge, VM execution or next-milestone work is
+included. Review this patch, then repeat the exact real Firefox sequence in
+[m7-testing.md](m7-testing.md).
 
 ## Viva points
 

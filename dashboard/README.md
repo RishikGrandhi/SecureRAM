@@ -66,6 +66,14 @@ exactly `127.0.0.1:<actual-port>`. POST also requires the matching
 single valid Content-Length of at most 128 bytes. No query-string tokens/cookies,
 cross-origin access, chunked bodies or arbitrary commands are supported.
 
+The response header and HTML metadata both select `Referrer-Policy: same-origin`.
+This lets a standards-compliant browser serialize the exact local Origin on the
+same-origin POST while still suppressing referrer information on cross-origin
+requests. It does not relax authorization: missing, `null` and nonmatching POST
+Origins remain rejected, as do a wrong Host/token or cross-site fetch metadata.
+The fragment token is removed before requests and fragments are never included
+in HTTP referrer values.
+
 | Method and path | Body | Result |
 | --- | --- | --- |
 | `GET /api/status` | None | Validated CLI status and dashboard version/compatibility metadata. |
@@ -113,6 +121,9 @@ use port forwarding, reverse proxies, remote administration or LAN exposure.
 Local denial of service and a compromised authorized browser/extension remain
 outside this educational dashboard's protection.
 
-M7 VM acceptance and the Ubuntu desktop visual check remain **NOT RUN** until
-separately observed. [The testing procedure](../docs/m7-testing.md) records local
-evidence separately and supplies the pinned, opt-in VM suite and manual checklist.
+Automated M7 VM acceptance passed on commit `08d1ade`. A subsequent real Firefox
+check found that the original `no-referrer` policy produced `Origin: null` for
+lifecycle POSTs; GET status/stats still worked and the driver remained NO_KEY.
+The `same-origin` correction has local regression coverage, but the exact Firefox
+lifecycle sequence remains pending. [The testing procedure](../docs/m7-testing.md)
+separates the accepted automated evidence from this required browser re-test.

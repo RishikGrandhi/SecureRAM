@@ -9,11 +9,14 @@ runtime acceptance.
 
 ## Current M7 dashboard candidate
 
-Work is on `m7-dashboard`, based on M6 merge
-`02701a3fd75cb7bb1444d859e6b17d17833ad865`. Dashboard is 0.7.0; driver and CLI
-stay 0.6.0, ABI 1, features 15. No kernel/UAPI/build-rule change is needed.
-M7 local verification and labelled browser-fixture rendering have passed;
-M7 VM acceptance and the real-driver Ubuntu desktop visual check are NOT RUN.
+Work is on `m7-dashboard`; candidate
+`08d1ade75215dc237342569f9c9c3dc2fd2957a3` passed automated Ubuntu VM
+acceptance. Dashboard is 0.7.0; driver and CLI stay 0.6.0, ABI 1, features 15.
+No kernel/UAPI/build-rule change is needed. A later real Firefox check showed
+that the page's `no-referrer` policy serialized same-origin lifecycle POST Origin
+as `null`. The current correction uses `same-origin` in both response header
+and HTML metadata and is locally verified; the real Firefox action sequence must
+be repeated before this patched candidate is called browser-accepted.
 
 Run the dependency-free dashboard checks in the existing Linux/WSL environment:
 
@@ -36,7 +39,9 @@ operations still go through the unchanged CLI and privileged UAPI.
 See [the dashboard guide](../dashboard/README.md), [M7 design/review](m7-report.md),
 [M7 local/VM procedure](m7-testing.md) and [test inventory](../tests/README.md).
 The VM harness requires a separately reviewed, committed full M7 SHA on a clean
-`m7-dashboard` checkout; the present handoff does not commit, push or run it.
+`m7-dashboard` checkout. Its run on `08d1ade` remains valid historical automated
+evidence, but it did not reproduce browser-generated Origin serialization. The
+current policy patch is not pushed or merged.
 
 ## Accepted M6 implementation
 

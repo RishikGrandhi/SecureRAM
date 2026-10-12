@@ -39,7 +39,7 @@ SECURITY_HEADERS = {
                                "connect-src 'self'; img-src 'self'; base-uri 'none'; "
                                "form-action 'none'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    "Referrer-Policy": "same-origin",
     "X-Frame-Options": "DENY",
     "Cross-Origin-Resource-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",

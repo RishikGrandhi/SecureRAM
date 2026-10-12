@@ -1,11 +1,13 @@
 # M7 testing and VM acceptance
 
-**M7 VM runtime acceptance: NOT RUN.** This is an uncommitted review candidate
-on `m7-dashboard`, based on full M6 merge commit
-`02701a3fd75cb7bb1444d859e6b17d17833ad865`. No M7 candidate SHA exists yet.
-Driver/CLI remain 0.6.0, ABI 1, features 15; dashboard is 0.7.0.
-M1-M6 acceptance remains recorded in the historical reports. Local builds,
-HTTP mocks and browser fixtures do not extend that evidence to M7 VM acceptance.
+**Automated M7 VM runtime acceptance: PASS on exact commit
+`08d1ade75215dc237342569f9c9c3dc2fd2957a3`.** Driver/CLI remain 0.6.0,
+ABI 1, features 15; dashboard is 0.7.0. A subsequent real Ubuntu Firefox check
+loaded static UI/status/stats but exposed `Origin: null` on lifecycle POSTs under
+the original `no-referrer` policy. The current `same-origin` policy correction
+is locally tested; its real Firefox re-verification is **NOT RUN**. Preserve the
+accepted automated result as historical evidence while keeping the browser defect
+and current patch status separate.
 
 ## Local checks (no module or device access)
 
@@ -48,6 +50,14 @@ tracebacks. Linux entrypoint subprocess tests exercise real SIGINT and SIGTERM
 with only the UID gate mocked, without invoking a real CLI/device; ordinary-user
 production launch is separately rejected.
 
+The browser-policy regression requires `Referrer-Policy: same-origin` in both the
+HTTP response and HTML metadata, then proves a POST carrying the exact expected
+Origin and `Sec-Fetch-Site: same-origin` reaches the one allowed lifecycle command.
+Missing, `null` and cross-origin Origin, wrong Host, missing/wrong token and
+cross-site fetch metadata remain rejected before subprocess invocation. Python's
+HTTP client supplies headers explicitly; it precisely tests the contract but does
+not claim to reproduce Firefox's Origin-generation behavior.
+
 The M7 harness self-test executes actual M7 overrides around all four M6 phase
 functions with module/device/build operations mocked. It retains the historical
 M5/M6 failure, cleanup, ext4/redirection and reporting tests. Python observer tests
@@ -61,14 +71,14 @@ These mocks do not verify real sudo ownership, kernel state transitions or crypt
 
 | Check | Observed result |
 | --- | --- |
-| M7 local runner, WSL | PASS: 23 backend/HTTP tests; five observer/session tests; Python/static checks; Node syntax/helpers; M7 and inherited M5/M6 mocked harness paths. |
-| M7 local runner, Windows | PASS: 23 backend tests discovered, 21 passed and two Linux/symlink checks skipped; Python/static and Node checks passed. Full Linux coverage is provided by the WSL run. |
+| M7 local runner, WSL | PASS after policy fix: 24 backend/HTTP tests; five observer/session tests; Python/static checks; Node syntax/helpers; M7 and inherited M5/M6 mocked harness paths. |
+| M7 local runner, Windows | PASS after policy fix: 24 backend tests discovered, 22 passed and two Linux/symlink checks skipped; Python/static and Node checks passed. Full Linux coverage is provided by the WSL run. |
 | Individual shell syntax | PASS: each of all 16 shell files was passed separately to `bash -n`. |
 | ShellCheck | NOT RUN: not installed. No dependency installation performed. |
 | M6 complete local runner | PASS: production, M5-only and combined M4/M5 W=1 builds; MODPOST/link; strict CLI/helper build; real CLI argument/help/version and syscall fixtures; LP64/ILP32 production/test ABI objects; strict checkpatch; import/export and production exclusion proofs; historical mocked harness. |
-| Browser rendering | PASS for the labelled, unprivileged synthetic fixture in the Codex browser on Windows; see below. This is not a real device observation. |
-| M7 Ubuntu VM acceptance | NOT RUN. |
-| Ubuntu desktop browser against the real driver | NOT RUN. |
+| Browser rendering | PASS for the patched policy in the labelled, unprivileged Codex browser fixture on Windows: same-origin lifecycle Load reached ACTIVE with no console warning/error. This is neither Firefox nor a real device observation. |
+| M7 Ubuntu VM acceptance | PASS on exact committed candidate `08d1ade75215dc237342569f9c9c3dc2fd2957a3`; full automated ledger passed before the manual browser defect was found. |
+| Ubuntu Firefox against the real driver | PARTIAL/DEFECT OBSERVED on `08d1ade`: UI and GET status/stats worked; Load Random Key was rejected because Firefox sent `Origin: null`; CLI remained NO_KEY/generation 0. Post-fix re-test NOT RUN. |
 
 Reproducible compile target used in WSL:
 
@@ -78,8 +88,8 @@ python3 tests/check-m6-local.py \
   --checkpatch /home/rishik_grandhi/.cache/secureram-m2-20261010/root/usr/src/linux-hwe-7.0-headers-7.0.0-38/scripts/checkpatch.pl
 ```
 
-Ignored transcripts are `build-m7-local.log`, `build-m7-windows-local.log` and
-`build-m7-m6-regression.log`.
+Current ignored transcripts are `build-m7-fix-local.log`,
+`build-m7-fix-windows.log` and `build-m7-fix-m6-regression.log`.
 The latter ends with the complete M6 local-verification PASS. WSL runs
 `6.18.33.2-microsoft-standard-WSL2`; prepared headers target Ubuntu
 `7.0.0-38-generic`. Retained environmental warnings are GCC 15.2 versus target
@@ -113,7 +123,7 @@ The existing browser tooling was used without installing a browser package.
 Ignored screenshots are `.cache/m7-dashboard.jpg`, `.cache/m7-mobile.jpg` and
 `.cache/m7-integrity.jpg`, plus failed-state mobile and recovered-state captures.
 
-## Prepared VM invocation — do not use the base SHA
+## Full-SHA VM invocation
 
 After separate review/authorization to commit the candidate, use a clean checkout
 of that exact M7 commit on `m7-dashboard` in the disposable Ubuntu desktop VM.
@@ -133,8 +143,9 @@ export M7_EXPECTED_COMMIT=$(git rev-parse HEAD)
 sudo --preserve-env=M7_EXPECTED_COMMIT bash tests/run-m7-vm-acceptance.sh
 ```
 
-There is intentionally no hardcoded candidate SHA in this uncommitted handoff.
-The pin must be the reviewed M7 commit, never the M6 base or a shortened hash.
+The accepted historical invocation pinned `08d1ade75215dc237342569f9c9c3dc2fd2957a3`.
+Any rerun for a committed patch must pin that new reviewed M7 commit, never the
+M6 base, the old candidate or a shortened hash.
 The harness requires exactly 40 lower-case hex characters, compares full HEAD,
 requires branch `m7-dashboard` and a clean checkout, verifies kernel/header match,
 rejects WSL and takes no device arguments. Invoke through sudo so SUDO_USER names
@@ -206,8 +217,8 @@ The full-SHA, SUDO_USER, `.cache` ownership, nounset initialization, Bash dynami
 scope/readonly names, redirection, individual syntax-check, no-eval, no generated
 shell-command, missing-log and fail-fast summary audit is recorded in
 [the M7 report](m7-report.md#harness-reuse-and-defect-audit). M7 reuses the accepted
-M5/M6 functions and tests their actual overridden flow; real sudo/runuser,
-ownership and cleanup still require the M7 VM run. OS-level killing, power loss
+M5/M6 functions and tests their actual overridden flow; the `08d1ade` VM run
+exercised real sudo/runuser, ownership and cleanup. OS-level killing, power loss
 or an uninterruptible kernel operation is not an orderly-cleanup guarantee.
 
 Review `main.log`, phase/build logs, `status.tsv`, `summary.txt`, `dmesg.log`,
@@ -218,7 +229,7 @@ the failed run; never silently retry until green. All evidence/build products ar
 ignored by Git. If interrupted, inspect retained cleanup results and actual VM
 state before starting anything else.
 
-## Manual Ubuntu desktop demonstration — NOT RUN
+## Post-fix Ubuntu Firefox re-test — NOT RUN
 
 After automated acceptance and cleanup, use the final production build for the
 VM's running kernel. Confirm the disposable VM and that no SecureRAM instance
@@ -236,6 +247,32 @@ Use the ordinary user's browser in the same VM to open the printed loopback URL.
 Do not launch a root browser, forward the port or save the credential. Record
 date, exact M7 SHA, Ubuntu/kernel/browser version, observed results and any layout
 defect; screenshots must omit the startup terminal/URL token.
+
+This re-test closes the observed integration defect. Start Firefox DevTools before
+the first action and preserve only non-secret header/result notes:
+
+1. Confirm the initial dashboard and direct CLI both report NO_KEY (0), generation
+   0, 64 MiB, ABI 1, features 15 and versions 0.6.0/0.7.0.
+2. Confirm `/`, `/app.js`, `/api/status` or `/api/stats` responses show
+   `Referrer-Policy: same-origin`; the page source has the matching meta policy.
+3. Click Load Random Key once. Inspect that POST: Host is the printed
+   `127.0.0.1:<port>`, Origin is exactly `http://127.0.0.1:<same-port>` (not
+   `null`), and Sec-Fetch-Site is `same-origin`. Do not record the bearer value.
+4. Require HTTP success, dashboard ACTIVE (2), generation 1, and matching direct
+   CLI status. If the action response is ambiguous, refresh/inspect state; never
+   retry automatically.
+5. With no block users, click Lock and require LOCKED (3), then Unlock and require
+   ACTIVE (2); inspect that both POST Origins remain exact.
+6. Open Destroy, verify Cancel is harmless and lowercase text cannot confirm.
+   Type exact `DESTROY`, submit once, and require dashboard plus CLI NO_KEY (0),
+   generation 1.
+7. Repeat the responsive, counter refresh and disconnect/reconnect observations
+   below. Restart the backend and verify its old token fails and its new printed
+   URL works. Stop the backend normally and complete device cleanup.
+
+Do not mark the patch browser-accepted unless the exact-origin lifecycle POSTs and
+driver states above are observed in real Ubuntu Firefox. The Python suite and
+other browser automation are supporting evidence only.
 
 | Visual/action check | Required observation (record actual PASS/FAIL/NOT RUN) |
 | --- | --- |

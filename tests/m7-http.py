@@ -111,15 +111,22 @@ def security():
         code, headers, raw = request(route)
         assert code == 200 and raw
         assert headers["Cache-Control"] == "no-store"
-        assert headers["Referrer-Policy"] == "no-referrer"
+        assert headers["Referrer-Policy"] == "same-origin"
         assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
         assert headers["X-Content-Type-Options"] == "nosniff"
         assert "Access-Control-Allow-Origin" not in headers
+        if route == "/":
+            assert b'<meta name="referrer" content="same-origin">' in raw
     for route in ("/../README.md", "/../../etc/passwd", "/%2e%2e/%2e%2e/etc/passwd", "/dev/secureramctl", "/dev/secureram0"):
         assert request(route)[0] == 404
     for command in ("load-random", "lock", "unlock", "destroy"):
         assert request("/api/actions/" + command)[0] == 405
         assert request("/api/actions/" + command, "POST", headers={"Authorization": ""})[0] == 401
+    action_route = "/api/actions/load-random"
+    assert request(action_route, "POST", headers={"Origin": "null"})[0] == 403
+    assert request(action_route, "POST", headers={"Origin": "http://evil.example"})[0] == 403
+    assert request(action_route, "POST", headers={"Host": "evil.example"})[0] == 403
+    assert request(action_route, "POST", headers={"Sec-Fetch-Site": "cross-site"})[0] == 403
     for command in ("tamper", "run-command", "lock;id", "$(id)"):
         assert request("/api/actions/" + command, "POST")[0] == 404
     assert request("/api/actions/destroy", "POST")[0] == 400
