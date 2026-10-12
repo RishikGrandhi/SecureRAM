@@ -55,7 +55,7 @@ m5_check_kernel_health()
 	fi
 	m5_record 'Kernel health' FAIL 'runtime evidence captured; health review did not complete'
 	: > "$failures"
-	if [[ ${SR_MILESTONE:-5} == 6 ]]; then
+	if [[ ${SR_MILESTONE:-5} == 6 || ${SR_MILESTONE:-5} == 7 ]]; then
 		# A warning may be environmental; retain it for classification, never
 		# declare health PASS before the operator has resolved that evidence.
 		grep -Ein "$faults|WARNING:|Call Trace:" "$log" >> "$failures" || true

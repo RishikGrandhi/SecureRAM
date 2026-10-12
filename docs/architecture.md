@@ -6,6 +6,9 @@ current design and evidence are in [the M5 report](m5-report.md).
 M6 adds the production C CLI and diagnostic counters while preserving M5 crypto.
 Its successful Ubuntu VM acceptance and local evidence are recorded in the
 [M6 design/report](m6-report.md).
+M7 adds a local browser dashboard over the existing CLI, preserving that kernel
+architecture. Dashboard 0.7.0 is locally verified; its VM acceptance is pending.
+See the [M7 report](m7-report.md) and [testing procedure](m7-testing.md).
 M4's completed evidence is in [its report](m4-report.md). Historical designs remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
 [M3 threat model](m3-threat-model.md).
@@ -60,6 +63,46 @@ All accepted I/O runs on one ordered WQ_MEM_RECLAIM worker. Dispatch only uses
 a spinlock and preallocated request-private list node. No sleeping crypto,
 user-copy or allocation occurs there. The worker completes each accepted request
 once and never touches it again. Dispatch rejection occurs before start/ownership.
+
+## M7 user-space control boundary
+
+```text
+ordinary browser, offline HTML/CSS/JS
+  -> authenticated same-origin HTTP, literal 127.0.0.1 only
+  -> Python stdlib backend, bounded workers + serialized CLI calls
+  -> absolute tools/secureramctl, fixed argv, shell=False, timeout
+  -> existing root-only /dev/secureramctl and per-ioctl capability check
+```
+
+The administrator explicitly starts the backend with
+`sudo python3 -I dashboard/server.py` from a trusted checkout. It serves three
+fixed preloaded assets and six fixed API routes. A cryptographic startup token
+authorizes every API request; exact Host and Origin/fetch-metadata checks and
+restrictive headers constrain cross-site access. The fragment credential is
+removed from the address bar and kept only in page memory. No CORS, remote
+administration, arbitrary commands, file browsing, kernel-log access or key
+material is exposed. The browser itself runs unprivileged.
+
+Python owns the listener, token, asset bytes, bounded request slots and one CLI
+mutex. The CLI retains its existing key-generation/protected-buffer ownership;
+the kernel owns all crypto, lifecycle enforcement and statistics. No ioctl or
+cryptographic operation is reimplemented in Python/JavaScript. Status and stats
+are strict validated M6 JSON; 64-bit values become decimal strings at the HTTP
+boundary for lossless browser BigInt handling. Separate snapshots are not a
+transaction. Displayed state and disabled buttons are advisory observations.
+
+Eight worker slots, body/read deadlines, a 128-byte body cap, short controller
+lock waits and 15-second child timeouts bound ordinary work. Fixed sanitized
+errors reveal no raw CLI output or exceptions. An action may have completed
+before a timeout or follow-up failure: never retry automatically; refresh first.
+Stale observations disable UI actions. INTEGRITY_FAILED can only recover through
+the existing destroy/fresh-load path. Server shutdown changes no device state.
+
+This adds usability and observability, not stronger cryptography or isolation
+from malicious root/kernel/hypervisor/browser code. The checkout and its parent
+directories must remain trusted while privileged code runs. The exact API,
+filesystem/symlink policy, concurrency and practical limits are in the
+[dashboard guide](../dashboard/README.md) and [M7 design](m7-report.md).
 
 ## Geometry and cryptographic layout
 

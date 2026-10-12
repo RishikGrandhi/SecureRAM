@@ -5,6 +5,7 @@ set -Eeuo pipefail
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 readonly script_dir
 SR_MILESTONE=6
+if [[ ${M7_HARNESS_SELFTEST:-0} == 1 ]]; then SR_MILESTONE=7; fi
 source "$script_dir/m5-vm-common.sh"
 source "$script_dir/m6-vm-phases.sh"
 source "$script_dir/vm-report.sh"
@@ -98,7 +99,7 @@ m5_control()
 		*) m5_die "unexpected helper $*" ;;
 	esac
 }
-m5_management()
+mock_management()
 {
 	case $1 in
 		help) printf '%s\n' Usage ;;
@@ -120,7 +121,8 @@ m5_management()
 		*) m5_die "unexpected CLI $*" ;;
 	esac
 }
-m6_observe()
+m5_management() { mock_management "$@"; }
+mock_observe()
 {
 	trace "observe $*"
 	case $1 in
@@ -132,6 +134,7 @@ m6_observe()
 		*) m5_die "unexpected observer $*" ;;
 	esac
 }
+m6_observe() { mock_observe "$@"; }
 m5_run_raw()
 {
 	m5_identity_guard "$1"
@@ -143,12 +146,16 @@ python3()
 {
 	if [[ $1 == -c ]]; then
 		command python3 "$@"
-	elif [[ $1 == tests/m6-integrity.py && $2 == production ]]; then
+	elif [[ ($1 == tests/m6-integrity.py || $1 == "$M5_ROOT/tests/m7-integrity.py") && $2 == production ]]; then
 		trace production-enotty
-	elif [[ $1 == tests/m6-integrity.py && $2 == tamper ]]; then
+	elif [[ ($1 == tests/m6-integrity.py || $1 == "$M5_ROOT/tests/m7-integrity.py") && $2 == tamper ]]; then
 		mock_check test "$mock_state" -eq 0
 		mock_generation=6 mock_failures=3
 		trace tamper
+	elif [[ $1 == "$M5_ROOT/tests/m6-observe.py" ]]; then
+		shift; mock_observe "$@"
+	elif [[ ${M7_HARNESS_SELFTEST:-0} == 1 && $1 == "$M5_ROOT/tests/m7-http.py" ]]; then
+		shift; m7_mock_http "$@"
 	else
 		m5_die "unexpected python invocation $*"
 	fi
@@ -203,8 +210,13 @@ rmdir()
 	command rmdir "$@"
 }
 
-# Every real M6 phase, full capacity range, shared ext4 and phase EXIT cleanup.
-for phase in m6_production m6_tamper m6_capacity m6_final; do
+# Every real phase, full capacity range, shared ext4 and phase EXIT cleanup.
+mock_phases=(m6_production m6_tamper m6_capacity m6_final)
+if [[ ${M7_HARNESS_SELFTEST:-0} == 1 ]]; then
+	source "$script_dir/m7-harness-mocks.sh"
+	mock_phases=(m7_production m7_tamper m6_capacity m6_final)
+fi
+for phase in "${mock_phases[@]}"; do
 	m6_run_phase "$phase"
 done
 grep -q 'load 1048576' "$mock_trace"
@@ -286,3 +298,11 @@ fi
 grep -q 'OVERALL.*FAIL' "$test_directory/summary.txt"
 ! grep -q 'OVERALL.*PASS' "$test_directory/finalize-output"
 printf '%s\n' 'PASS: M6 full mocked phases, capacities, ext4/busy/remount, fail-fast, owned cleanup, refusal, summary, early abort and evidence guards'
+if [[ ${M7_HARNESS_SELFTEST:-0} == 1 ]]; then
+	grep -q 'http action load-random' "$mock_trace"
+	grep -q 'http action destroy' "$mock_trace"
+	grep -q 'http busy lock' "$mock_trace"
+	grep -q 'http security' "$mock_trace"
+	grep -q 'http observe status 2 1 268435456' "$mock_trace"
+	printf '%s\n' 'PASS: actual M7 phase overrides, HTTP lifecycle/busy/observation routing and security assertions'
+fi

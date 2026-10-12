@@ -7,7 +7,38 @@ versions. M5 adds integrity; its [report](m5-report.md) and
 [VM procedure](m5-testing.md) separate compile/static evidence from the completed
 runtime acceptance.
 
-## Current M6 implementation
+## Current M7 dashboard candidate
+
+Work is on `m7-dashboard`, based on M6 merge
+`02701a3fd75cb7bb1444d859e6b17d17833ad865`. Dashboard is 0.7.0; driver and CLI
+stay 0.6.0, ABI 1, features 15. No kernel/UAPI/build-rule change is needed.
+M7 local verification and labelled browser-fixture rendering have passed;
+M7 VM acceptance and the real-driver Ubuntu desktop visual check are NOT RUN.
+
+Run the dependency-free dashboard checks in the existing Linux/WSL environment:
+
+```sh
+python3 tests/check-m7-local.py
+```
+
+Also run the complete M6 regression command below. Neither local runner inserts
+a module or opens a device. Use the existing Node runtime for JavaScript checks;
+ShellCheck is optional when installed. `tests/m7-preview.py` is a separate
+ordinary-user, visibly labelled mock fixture for browser layout work, never a
+production server mode. `--state 4` previews its failed-state presentation.
+
+In the separately authorized Ubuntu VM, explicitly launch the real adapter with
+`sudo python3 -I dashboard/server.py` and use the printed URL in an ordinary
+browser. Treat that URL as a credential; never save it in evidence. Ctrl+C/SIGTERM
+stops HTTP service without locking/destroying/unloading the medium. All kernel
+operations still go through the unchanged CLI and privileged UAPI.
+
+See [the dashboard guide](../dashboard/README.md), [M7 design/review](m7-report.md),
+[M7 local/VM procedure](m7-testing.md) and [test inventory](../tests/README.md).
+The VM harness requires a separately reviewed, committed full M7 SHA on a clean
+`m7-dashboard` checkout; the present handoff does not commit, push or run it.
+
+## Accepted M6 implementation
 
 M6 is version 0.6.0 on `m6-cli-observability`, with ABI 1 and feature mask 15.
 Runtime acceptance passed on commit `50e11e6ddce88a986719ae2ef7ce972377a69e49`
@@ -125,7 +156,8 @@ workflow. Do not hide actual driver warnings behind this exception.
 
 ## Manual runtime smoke check
 
-Follow [the M6 procedure](m6-testing.md) to reproduce the accepted
+Follow [the M7 procedure](m7-testing.md) for the current dashboard candidate's
+prepared acceptance and manual demonstration. Use [the M6 procedure](m6-testing.md) to reproduce the accepted
 implementation's checks: matching-kernel load, keyless denial, valid key
 installation, raw/filesystem I/O, safe key destruction, unload and inspection
 of fresh kernel logs. The M1 and M2 reports linking here describe their
@@ -212,3 +244,15 @@ Explain getrandom short reads/EINTR, mlock, dump disabling and explicit erasure,
 including the limits against malicious root and unrecoverability of demo keys.
 Distinguish static builds/mocks from observed VM evidence and explain harness
 ownership, full commit pinning, fail-fast reporting and safe cleanup refusal.
+
+## M7 viva preparation
+
+Trace browser -> loopback adapter -> C CLI -> existing ioctl and explain why
+the browser never handles keys or block data. Explain root versus CAP_SYS_ADMIN,
+Host validation versus bearer authentication, Origin/fetch metadata versus CORS,
+fragment versus query credentials, fixed argv versus shell commands, and CSP's
+limits if the browser or trusted checkout is compromised. Explain bounded workers,
+serialized subprocess calls and why a timeout is not rollback. Distinguish live
+observations from authoritative state, exact u64/BigInt counters from sampled chart
+rates, and fixture rendering/local tests from VM acceptance. See the detailed
+[M7 viva points](m7-report.md#viva-points) and unchanged security non-guarantees.
