@@ -7,12 +7,14 @@ Started from clean `main` at full commit
 UAPI, block/control implementation, M6 design/testing, shared M5/M6 harnesses and
 build conventions, presented the design before edits, then worked only on
 `m7-dashboard`. M1–M6 remain complete and runtime verified as recorded in their
-reports. Automated M7 Ubuntu VM acceptance subsequently passed on exact commit
+reports. Automated M7 Ubuntu VM acceptance first passed on exact commit
 `08d1ade75215dc237342569f9c9c3dc2fd2957a3`. A later manual real-Firefox check
 loaded the UI and read status/stats, but lifecycle POSTs failed because Firefox
-sent `Origin: null` under the original `no-referrer` policy. The minimal policy
-fix below is locally verified in the current patch; real Firefox re-verification is
-still pending. No push or merge is part of this handoff.
+sent `Origin: null` under the original `no-referrer` policy. Final tested candidate
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` changed both emitted policies to
+`same-origin` without weakening server validation. It then passed a complete
+automated VM rerun and real Ubuntu Firefox acceptance. No merge is part of this
+documentation handoff.
 
 Dashboard version is **0.7.0**. Kernel and CLI remain **0.6.0**, ABI **1**, production
 features **15**. No file in `src/`, `include/` or `tools/`, no ioctl/state/feature
@@ -178,14 +180,14 @@ credential. Backend stderr is a separate fixed-diagnostic log. One backend
 survives all expected module unload/reload cycles. All original M5 ciphertext,
 tag, relocation, passed-fd, failed-buffer and full-zero-scan assertions remain;
 M7 adds rapid rejected failed-state actions and destroy/fresh-load recovery via
-HTTP. No arbitrary device argument is introduced. The actual suite later passed
-on `08d1ade`; successful mocks alone still verify orchestration/assertions, not
-kernel behavior.
+HTTP. No arbitrary device argument is introduced. The actual suite first passed
+on `08d1ade` and passed again on final candidate `ff1b6df`; successful mocks alone
+still verify orchestration/assertions, not kernel behavior.
 
 | Previous defect/risk | M7 treatment and local exercise |
 | --- | --- |
 | SHA mismatch | Required 40-character lower-case M7 pin; shared full HEAD comparison and exact m7-dashboard branch/clean checkout guard. Empty/short/malformed pins rejected in mocks. |
-| SUDO_USER and .cache | Existing builder-owned evidence preparation, ordinary-user builds and final ownership release retained. M7 evidence is .cache/m7-vm; no token files. The accepted `08d1ade` VM run exercised the real sudo/runuser path. |
+| SUDO_USER and .cache | Existing builder-owned evidence preparation, ordinary-user builds and final ownership release retained. M7 evidence is .cache/m7-vm; no token files. The accepted `08d1ade` and final `ff1b6df` VM runs exercised the real sudo/runuser path. |
 | Nounset / dynamic scope | Shared initialized ownership/cleanup variables retained. New locals do not collide with readonly capacity names; actual functions run under set -Eeuo pipefail in mocks. |
 | Redirections / shell parsing | Shared actual ext4 redirections/comparisons/remount flow executed with temporary files; separate bash -n for every shell file. No eval, bash -c, sh -c or generated shell command string. |
 | False PASS / missing logs | NOT RUN ledger initialization, explicit assertion groups, failure-preserving phase EXIT traps and shared finalization. Missing/no-runtime dmesg is NOT RUN; lost collection/warnings FAIL. Synthetic failure, aborted session and final ownership failure must not yield OVERALL PASS. |
@@ -210,7 +212,7 @@ is parsed, and closes its startup pipe on every cleanup outcome. Remaining
 practical limits are stated above, not upgraded into
 security guarantees.
 
-## Post-acceptance Firefox integration defect
+## Post-acceptance Firefox integration defect and verification
 
 The full automated M7 VM suite passed on `08d1ade`. Its HTTP client intentionally
 sent the exact expected Origin itself, so it verified backend enforcement but did
@@ -238,9 +240,15 @@ is removed with `history.replaceState`; fragments are stripped from referrers.
 Regression tests assert the response/header metadata contract, exact-origin POST
 success and rejection of null/cross-origin/missing Origin, wrong Host/token and
 cross-site fetch metadata. Python clients cannot reproduce Firefox's header
-generation, so the real Firefox re-test remains explicitly pending.
+generation, so final candidate `ff1b6df` was re-tested with Firefox 155.0.1 on
+Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic. The same-origin POST carried the exact
+local Origin rather than `null`, and Load Random Key succeeded against the real
+driver. The observed lifecycle was NO_KEY generation 0 -> ACTIVE generation 1 ->
+LOCKED -> ACTIVE -> NO_KEY generation 1. Cancel and lowercase confirmation left
+the device ACTIVE; exact `DESTROY` was required. This closes the observed browser
+integration defect without changing the backend acceptance rules.
 
-## Observed local evidence — 12 October 2026
+## Observed verification evidence — 12 October 2026
 
 | Check | Result |
 | --- | --- |
@@ -251,9 +259,12 @@ generation, so the real Firefox re-test remains explicitly pending.
 | Existing M6 compile/static regressions | PASS for the complete runner: production, M5-only and combined W=1 builds, strict real CLI/syscall fixture, four ABI object builds, checkpatch, symbol/import/test-exclusion checks. Retain compiler/pahole/BTF environmental warnings, detailed in m7-testing.md. |
 | Shell syntax | Separate bash -n for all 16 shell files. ShellCheck NOT RUN: not installed; no package installed. |
 | Browser rendering | Observed in the Codex browser with a visibly labelled unprivileged fixture: NO_KEY, load/ACTIVE, lock/LOCKED, unlock, exact typed Destroy, return to NO_KEY, 1440-pixel desktop and 390-pixel narrow layouts, counter/chart refresh and visible disconnection/staleness. Failed-state warning/Destroy-only behavior and destroy/fresh-load recovery were observed; reload requires authorization, same-tab startup URL restores it and an old token fails after restart. This is synthetic browser evidence, not Ubuntu/device runtime acceptance. |
-| Patched-policy browser smoke | PASS in the Codex in-app browser: emitted meta policy was `same-origin`, Load Random Key reached ACTIVE, no console warning/error appeared, then Destroy returned the fixture to NO_KEY. This is not Firefox and does not close the real-browser re-test. |
-| M7 Ubuntu VM | PASS on committed candidate `08d1ade`; the current policy patch has not been rerun in the VM. |
-| Manual Ubuntu Firefox | PARTIAL/DEFECT OBSERVED on `08d1ade`: layout and GET observation worked; lifecycle POST failed with `Origin: null`. Post-fix Firefox re-test NOT RUN. |
+| Patched-policy browser smoke | PASS in the Codex in-app browser: emitted meta policy was `same-origin`, Load Random Key reached ACTIVE, no console warning/error appeared, then Destroy returned the fixture to NO_KEY. This preliminary fixture evidence is separate from the final real Firefox result. |
+| Historical M7 Ubuntu VM | PASS on `08d1ade`; this preceded discovery of the browser-generated `Origin: null` incompatibility. |
+| Final M7 Ubuntu VM | **OVERALL PASS** on exact candidate `ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`, including every production, CLI, lifecycle, raw/ext4, integrity/recovery, capacity, dashboard/API/security, health and cleanup phase. Evidence: `/home/rishik-grandhi/SecureRAM/.cache/m7-vm/20261012T163519Z-12978`. |
+| Manual Ubuntu Firefox | **PASS** on `ff1b6df`, Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic, Firefox 155.0.1. Exact same-origin POST succeeded; lifecycle, Destroy confirmation, responsive layout and disconnect/reconnect passed. |
+| Real-driver statistics | **PASS**: after a second load reached ACTIVE generation 2, one 4096-byte direct write and read changed counts 2/1 -> 3/2 and volumes 20/4 KiB -> 24/8 KiB; integrity failures stayed zero and the throughput chart reflected activity. |
+| Final manual cleanup | **PASS**: generation-2 key destroyed, backend stopped normally, module unloaded, udev settled, and `/dev/secureram0`, `/dev/secureramctl` and `/sys/module/secureram` were absent. |
 
 The source and procedure preserve every M5/M6 limit: **not AEAD**, no same-unit
 same-generation replay prevention, no whole-request atomic plaintext-release
@@ -273,13 +284,13 @@ anti-replay and no physical RAM-erasure guarantee. M7 strengthens none of those.
 | `tests/m7-http.py`, `m7-integrity.py`, `m7-preview.py` | New fixed HTTP assertion client, reused tamper adapter and isolated browser fixture. |
 | `tests/m5-vm-common.sh`, `m6-vm-phases.sh`, `vm-report.sh`, `check-m6-vm-harness.sh` | Small shared profile/override/health/mock reuse changes; historical defaults retained. |
 | `README.md`, `docs/architecture.md`, `docs/development.md`, `tests/README.md` | Current M7 navigation, control path, verification and viva integration. |
-| `docs/m7-report.md`, `docs/m7-testing.md` | Design/review/evidence, accepted automated VM result, browser defect and pending post-fix manual procedure. |
+| `docs/m7-report.md`, `docs/m7-testing.md` | Design/review/evidence, historical browser defect, final automated VM result and accepted post-fix Firefox observations. |
 
-The post-acceptance patch audit checks whitespace, local Markdown targets,
-ignored generated artifacts, unchanged kernel/UAPI/CLI/build paths and the empty
-index. No staging, commit, push, merge, VM execution or next-milestone work is
-included. Review this patch, then repeat the exact real Firefox sequence in
-[m7-testing.md](m7-testing.md).
+The documentation audit checks whitespace, local Markdown targets, ignored
+generated artifacts, unchanged implementation paths and the empty index. This
+documentation update does not rerun the VM or alter its evidence directory. No
+commit, push, merge or next-milestone work is included. The exact final automated
+and manual observations are recorded in [m7-testing.md](m7-testing.md).
 
 ## Viva points
 

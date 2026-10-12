@@ -3,12 +3,14 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M7 review candidate: Dashboard 0.7.0.** An offline, localhost-only browser console
-uses the existing CLI for status, statistics and lifecycle actions. Automated M7
-Ubuntu VM acceptance passed on commit `08d1ade75215dc237342569f9c9c3dc2fd2957a3`.
-Subsequent real Firefox testing exposed a `Referrer-Policy: no-referrer` /
-`Origin: null` incompatibility on lifecycle POSTs. The current policy fix is
-locally verified; real Firefox re-verification remains pending. See the
+**M7 final tested candidate: Dashboard 0.7.0 at
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`.** An offline, localhost-only browser
+console uses the existing CLI for status, statistics and lifecycle actions. The
+original `08d1ade75215dc237342569f9c9c3dc2fd2957a3` candidate passed automated VM
+acceptance, after which real Firefox exposed a `Referrer-Policy: no-referrer` /
+`Origin: null` incompatibility on lifecycle POSTs. The final candidate changed
+the policy to `same-origin` without relaxing backend Origin validation, then
+passed a complete automated VM rerun and real Ubuntu Firefox acceptance. See the
 [dashboard guide](dashboard/README.md), [M7 report](docs/m7-report.md) and
 [M7 testing procedure](docs/m7-testing.md). Kernel/CLI remain 0.6.0, ABI 1 and
 production features 15; M7 changes no crypto.
@@ -90,7 +92,7 @@ into the Microsoft WSL kernel. See [development](docs/development.md).
 ## VM verification and use
 
 Follow [the M7 procedure](docs/m7-testing.md) for the accepted automated
-dashboard/driver evidence and pending post-fix Firefox demonstration. The accepted
+dashboard/driver evidence and post-fix Firefox observations. The accepted
 [M6 procedure](docs/m6-testing.md) records safe identity checks, production
 regression, tamper tests, fail-closed recovery, ext4 and clean unload. Runtime
 operations occur only through its explicitly invoked VM harness or manual commands;

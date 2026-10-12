@@ -121,9 +121,13 @@ use port forwarding, reverse proxies, remote administration or LAN exposure.
 Local denial of service and a compromised authorized browser/extension remain
 outside this educational dashboard's protection.
 
-Automated M7 VM acceptance passed on commit `08d1ade`. A subsequent real Firefox
-check found that the original `no-referrer` policy produced `Origin: null` for
-lifecycle POSTs; GET status/stats still worked and the driver remained NO_KEY.
-The `same-origin` correction has local regression coverage, but the exact Firefox
-lifecycle sequence remains pending. [The testing procedure](../docs/m7-testing.md)
-separates the accepted automated evidence from this required browser re-test.
+Automated M7 VM acceptance first passed on commit `08d1ade`. A subsequent real
+Firefox check found that the original `no-referrer` policy produced `Origin: null`
+for lifecycle POSTs; GET status/stats still worked and the driver remained NO_KEY.
+Final candidate `ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` changed only the policy
+to `same-origin`, retained every backend validation, and passed both the complete
+automated VM suite and the real Firefox regression re-test. The manual session
+also passed load/lock/unlock/destroy, exact Destroy confirmation, responsive and
+disconnect/reconnect behavior, real direct-I/O statistics refresh, and clean
+unload. [The testing record](../docs/m7-testing.md) keeps the historical defect
+separate from the final accepted evidence.

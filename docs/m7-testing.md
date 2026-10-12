@@ -1,13 +1,14 @@
 # M7 testing and VM acceptance
 
-**Automated M7 VM runtime acceptance: PASS on exact commit
-`08d1ade75215dc237342569f9c9c3dc2fd2957a3`.** Driver/CLI remain 0.6.0,
-ABI 1, features 15; dashboard is 0.7.0. A subsequent real Ubuntu Firefox check
-loaded static UI/status/stats but exposed `Origin: null` on lifecycle POSTs under
-the original `no-referrer` policy. The current `same-origin` policy correction
-is locally tested; its real Firefox re-verification is **NOT RUN**. Preserve the
-accepted automated result as historical evidence while keeping the browser defect
-and current patch status separate.
+**Final M7 acceptance: PASS on exact commit
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`.** The complete automated Ubuntu VM
+suite reported **OVERALL PASS**, and the real Ubuntu Firefox regression/lifecycle
+session passed against the production driver. Driver/CLI remain 0.6.0, ABI 1,
+features 15; dashboard is 0.7.0. Historical candidate
+`08d1ade75215dc237342569f9c9c3dc2fd2957a3` first passed automated acceptance,
+after which Firefox exposed `Origin: null` under `no-referrer`. The final candidate
+uses `same-origin`, retains exact backend Origin checks, and has now passed both
+automated and real-browser re-verification.
 
 ## Local checks (no module or device access)
 
@@ -67,7 +68,7 @@ mock backend start/stop plus phase/startup/cleanup failures. Expected synthetic
 FAIL messages are successful negative tests only when the self-test exits zero.
 These mocks do not verify real sudo ownership, kernel state transitions or crypto.
 
-## Observed local evidence — 12 October 2026
+## Observed verification evidence — 12 October 2026
 
 | Check | Observed result |
 | --- | --- |
@@ -77,8 +78,10 @@ These mocks do not verify real sudo ownership, kernel state transitions or crypt
 | ShellCheck | NOT RUN: not installed. No dependency installation performed. |
 | M6 complete local runner | PASS: production, M5-only and combined M4/M5 W=1 builds; MODPOST/link; strict CLI/helper build; real CLI argument/help/version and syscall fixtures; LP64/ILP32 production/test ABI objects; strict checkpatch; import/export and production exclusion proofs; historical mocked harness. |
 | Browser rendering | PASS for the patched policy in the labelled, unprivileged Codex browser fixture on Windows: same-origin lifecycle Load reached ACTIVE with no console warning/error. This is neither Firefox nor a real device observation. |
-| M7 Ubuntu VM acceptance | PASS on exact committed candidate `08d1ade75215dc237342569f9c9c3dc2fd2957a3`; full automated ledger passed before the manual browser defect was found. |
-| Ubuntu Firefox against the real driver | PARTIAL/DEFECT OBSERVED on `08d1ade`: UI and GET status/stats worked; Load Random Key was rejected because Firefox sent `Origin: null`; CLI remained NO_KEY/generation 0. Post-fix re-test NOT RUN. |
+| Historical M7 Ubuntu VM acceptance | PASS on exact candidate `08d1ade75215dc237342569f9c9c3dc2fd2957a3`; this full ledger passed before the browser-generated Origin defect was found. |
+| Final M7 Ubuntu VM acceptance | **OVERALL PASS** on exact candidate `ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`; evidence is `/home/rishik-grandhi/SecureRAM/.cache/m7-vm/20261012T163519Z-12978`. |
+| Historical Ubuntu Firefox check | DEFECT OBSERVED on `08d1ade`: UI and GET status/stats worked; Load Random Key was rejected because Firefox sent `Origin: null`; CLI remained NO_KEY/generation 0. |
+| Final Ubuntu Firefox acceptance | **PASS** on `ff1b6df`: exact same-origin POST, real lifecycle, confirmation safety, responsive layout, disconnect/reconnect, direct-I/O statistics refresh and clean unload all passed. |
 
 Reproducible compile target used in WSL:
 
@@ -143,9 +146,17 @@ export M7_EXPECTED_COMMIT=$(git rev-parse HEAD)
 sudo --preserve-env=M7_EXPECTED_COMMIT bash tests/run-m7-vm-acceptance.sh
 ```
 
-The accepted historical invocation pinned `08d1ade75215dc237342569f9c9c3dc2fd2957a3`.
-Any rerun for a committed patch must pin that new reviewed M7 commit, never the
-M6 base, the old candidate or a shortened hash.
+The historical accepted invocation pinned
+`08d1ade75215dc237342569f9c9c3dc2fd2957a3`. The final accepted rerun pinned
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` and used:
+
+```sh
+sudo env M7_EXPECTED_COMMIT="$(git rev-parse HEAD)" bash tests/run-m7-vm-acceptance.sh
+```
+
+It reported OVERALL PASS and retained evidence at
+`/home/rishik-grandhi/SecureRAM/.cache/m7-vm/20261012T163519Z-12978`. Any future
+rerun must pin its reviewed M7 commit, never the M6 base or a shortened hash.
 The harness requires exactly 40 lower-case hex characters, compares full HEAD,
 requires branch `m7-dashboard` and a clean checkout, verifies kernel/header match,
 rejects WSL and takes no device arguments. Invoke through sudo so SUDO_USER names
@@ -217,8 +228,9 @@ The full-SHA, SUDO_USER, `.cache` ownership, nounset initialization, Bash dynami
 scope/readonly names, redirection, individual syntax-check, no-eval, no generated
 shell-command, missing-log and fail-fast summary audit is recorded in
 [the M7 report](m7-report.md#harness-reuse-and-defect-audit). M7 reuses the accepted
-M5/M6 functions and tests their actual overridden flow; the `08d1ade` VM run
-exercised real sudo/runuser, ownership and cleanup. OS-level killing, power loss
+M5/M6 functions and tests their actual overridden flow; both accepted M7 VM runs,
+including final candidate `ff1b6df`, exercised real sudo/runuser, ownership and
+cleanup. OS-level killing, power loss
 or an uninterruptible kernel operation is not an orderly-cleanup guarantee.
 
 Review `main.log`, phase/build logs, `status.tsv`, `summary.txt`, `dmesg.log`,
@@ -229,77 +241,93 @@ the failed run; never silently retry until green. All evidence/build products ar
 ignored by Git. If interrupted, inspect retained cleanup results and actual VM
 state before starting anything else.
 
-## Post-fix Ubuntu Firefox re-test — NOT RUN
+## Final Ubuntu Firefox acceptance — PASS
 
-After automated acceptance and cleanup, use the final production build for the
-VM's running kernel. Confirm the disposable VM and that no SecureRAM instance
-or mount remains. In the trusted checkout, launch explicitly:
+The post-fix session ran on exact candidate
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` with Ubuntu 24.04.5 LTS, Linux
+7.0.0-38-generic and Mozilla Firefox 155.0.1. The production SecureRAM module was
+loaded at 64 MiB. Because this kernel requires the HKDF dependency for manual
+insertion, setup used:
 
 ```sh
 sudo modprobe hkdf
 sudo insmod ./secureram.ko capacity_mb=64
-sudo udevadm settle
-sudo ./tools/secureramctl status --json
 sudo python3 -I dashboard/server.py
 ```
 
-Use the ordinary user's browser in the same VM to open the printed loopback URL.
-Do not launch a root browser, forward the port or save the credential. Record
-date, exact M7 SHA, Ubuntu/kernel/browser version, observed results and any layout
-defect; screenshots must omit the startup terminal/URL token.
+Initial CLI state was SecureRAM/CLI 0.6.0, ABI 1, features 15, NO_KEY (0),
+generation 0, capacity 64 MiB, crypto unit 4096, AES-256-XTS and HMAC-SHA-256.
+The ordinary user's Firefox opened the newly printed loopback URL. Its bearer
+token remained ephemeral and was not recorded.
 
-This re-test closes the observed integration defect. Start Firefox DevTools before
-the first action and preserve only non-secret header/result notes:
+The original `08d1ade` failure remains part of the evidence: under
+`Referrer-Policy: no-referrer`, Firefox sent `Origin: null`, the backend correctly
+rejected Load Random Key, and the driver stayed NO_KEY generation 0. On `ff1b6df`,
+both response header and HTML metadata used `same-origin`. The Load POST used the
+exact `127.0.0.1:<same-port>` browser/server pair, carried a non-null Origin equal
+to that local origin and `Sec-Fetch-Site: same-origin`, and succeeded without a
+cross-origin error. No backend Origin, Host, bearer or fetch-metadata check was
+relaxed.
 
-1. Confirm the initial dashboard and direct CLI both report NO_KEY (0), generation
-   0, 64 MiB, ABI 1, features 15 and versions 0.6.0/0.7.0.
-2. Confirm `/`, `/app.js`, `/api/status` or `/api/stats` responses show
-   `Referrer-Policy: same-origin`; the page source has the matching meta policy.
-3. Click Load Random Key once. Inspect that POST: Host is the printed
-   `127.0.0.1:<port>`, Origin is exactly `http://127.0.0.1:<same-port>` (not
-   `null`), and Sec-Fetch-Site is `same-origin`. Do not record the bearer value.
-4. Require HTTP success, dashboard ACTIVE (2), generation 1, and matching direct
-   CLI status. If the action response is ambiguous, refresh/inspect state; never
-   retry automatically.
-5. With no block users, click Lock and require LOCKED (3), then Unlock and require
-   ACTIVE (2); inspect that both POST Origins remain exact.
-6. Open Destroy, verify Cancel is harmless and lowercase text cannot confirm.
-   Type exact `DESTROY`, submit once, and require dashboard plus CLI NO_KEY (0),
-   generation 1.
-7. Repeat the responsive, counter refresh and disconnect/reconnect observations
-   below. Restart the backend and verify its old token fails and its new printed
-   URL works. Stop the backend normally and complete device cleanup.
+The real browser and real kernel completed this lifecycle:
 
-Do not mark the patch browser-accepted unless the exact-origin lifecycle POSTs and
-driver states above are observed in real Ubuntu Firefox. The Python suite and
-other browser automation are supporting evidence only.
-
-| Visual/action check | Required observation (record actual PASS/FAIL/NOT RUN) |
-| --- | --- |
-| Initial layout | Readable state/lifecycle/statistics/metadata panels; NO_KEY=0, actual geometry, driver/CLI 0.6.0, ABI 1, features 15 and dashboard 0.7.0. |
-| Load random key | ACTIVE=2, generation increments, availability changes; no key displayed. |
-| Refresh/statistics | Values refresh. To see real read accounting after ACTIVE, a separate VM terminal may run `sudo dd if=/dev/secureram0 of=/dev/null bs=4096 count=16 iflag=direct status=none` after confirming the just-loaded device identity; compare the CLI stats. Cache hits need not reach the driver. |
-| Lock/unlock | With no block users, LOCKED=3 then ACTIVE=2; keys/contents are retained. |
-| Destroy dialog | Cancel leaves state unchanged; confirm remains disabled until exact DESTROY is typed. Confirm destroys data and returns NO_KEY. |
-| Responsive view | Narrow the window (about 390 pixels), check wrapping/order, readable controls and no horizontal clipping. |
-| Disconnect/reconnect | Stop the server with Ctrl+C; controls become disabled/stale. Restart and open its new printed URL; old token must not authorize the new session. Server stop itself changes no driver state. |
-| Failed-state warning | Use a separately authorized test-build session if demonstrating real tamper. Do not run tamper/raw suites concurrently with browser actions or claim a synthetic fixture is real corruption. The automated harness covers the actual API latch/recovery. |
-
-Stop the backend, close the browser, close/unmount any demo users, then clean the
-owned demo instance (never force unload):
-
-```sh
-sudo ./tools/secureramctl destroy
-sudo rmmod secureram
-sudo udevadm settle
-test ! -e /dev/secureram0
-test ! -e /dev/secureramctl
-test ! -e /sys/block/secureram0
-test ! -e /sys/class/misc/secureramctl
-test ! -e /sys/module/secureram
+```text
+NO_KEY (0), generation 0
+  -> Load Random Key
+ACTIVE (2), generation 1
+  -> Lock
+LOCKED (3), generation 1
+  -> Unlock
+ACTIVE (2), generation 1
+  -> exact typed DESTROY
+NO_KEY (0), generation 1
 ```
 
-The manual check validates presentation, not additional crypto guarantees.
-Compat runtime ioctls, allocation/provider fault campaigns, pending-request races,
-lockdep/KASAN/kmemleak and physical memory-erasure claims remain outside normal M7
-acceptance, as in M5/M6. The unchanged limitations are in [the report](m7-report.md).
+Destroy confirmation safety passed: lowercase/wrong confirmation did not
+authorize destruction, Cancel left ACTIVE generation 1 unchanged, and exact
+`DESTROY` was required. Direct CLI verification after the sequence matched the
+dashboard: NO_KEY, generation 1, capacity 64.00 MiB, ABI 1 and features 15.
+
+Wide and narrow layouts remained readable; cards and buttons did not overlap,
+text and activity history remained usable, and resizing alone caused no
+disconnect. Stopping the backend produced Connection lost/stale state and made
+lifecycle controls unavailable. Restarting produced a fresh session/token;
+opening its new URL reconnected and showed retained real driver state. This final
+manual session did not separately attempt the old token against the restarted
+backend. Automated authorization tests establish rejection of missing, empty and
+wrong bearer tokens.
+
+For the live statistics check, a second random key load reached ACTIVE generation
+2. Before explicit I/O, the dashboard showed two successful reads, one successful
+write, 20.00 KiB read, 4.00 KiB written and zero integrity failures. The following
+operations were then run against the validated SecureRAM device:
+
+```sh
+sudo dd if=/dev/zero of=/dev/secureram0 bs=4096 count=1 oflag=direct status=none
+sudo dd if=/dev/secureram0 of=/dev/null bs=4096 count=1 iflag=direct status=none
+```
+
+After refresh it showed three successful reads, two successful writes, 24.00 KiB
+read, 8.00 KiB written and zero integrity failures: exactly one additional
+4096-byte direct write and read. The throughput chart visibly reflected activity.
+
+Final cleanup passed. The generation-2 key was destroyed first, the backend was
+stopped normally with Ctrl+C, then cleanup used:
+
+```sh
+sudo rmmod secureram
+sudo udevadm settle
+```
+
+`/dev/secureram0`, `/dev/secureramctl` and `/sys/module/secureram` were confirmed
+absent. No forced unload was used.
+
+The manual check validates browser integration and presentation, not additional
+cryptographic guarantees. M7 remains loopback-only with an ephemeral memory-only
+bearer and exact Host/Origin/token/Sec-Fetch-Site checks, no permissive CORS and
+no remote administration. It does not strengthen the underlying crypto: this is
+not AEAD, same-unit same-generation replay remains possible, and there is no
+whole-request atomic plaintext-release guarantee, malicious root/kernel/hypervisor
+protection, crash-persistent anti-replay or physical RAM-erasure guarantee.
+Compat runtime ioctls, allocation/provider fault campaigns, pending-request races
+and lockdep/KASAN/kmemleak remain outside normal M7 acceptance, as in M5/M6.

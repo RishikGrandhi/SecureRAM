@@ -2,12 +2,13 @@
 
 ## M7 dashboard candidate
 
-Dashboard 0.7.0 is locally verified on `m7-dashboard`. Kernel/CLI remain 0.6.0,
-ABI 1, features 15. Automated M7 VM acceptance passed on commit `08d1ade`.
-A later real Firefox check reached status/stats but exposed `Origin: null` on
-lifecycle POSTs under the original `no-referrer` policy. The locally verified
-`same-origin` policy patch still requires real Firefox re-verification. See
-[m7-testing.md](../docs/m7-testing.md) for the evidence distinction and checklist.
+Dashboard 0.7.0 final tested candidate
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` passed complete automated M7 VM
+acceptance and real Ubuntu Firefox acceptance. Kernel/CLI remain 0.6.0, ABI 1,
+features 15. The earlier `08d1ade` candidate passed automated acceptance before
+Firefox exposed `Origin: null` under the original `no-referrer` policy. The final
+`same-origin` correction retained exact backend Origin enforcement and passed the
+real regression re-test. See [m7-testing.md](../docs/m7-testing.md) for the evidence.
 
 ```sh
 python3 tests/check-m7-local.py
@@ -35,9 +36,9 @@ request sudo, open a block device or install dependencies. Browser screenshots
 are fixture evidence only. The opt-in VM suite is destructive only to the
 hardcoded, repeatedly validated `/dev/secureram0`; it accepts no device arguments.
 All build products, screenshots and evidence logs stay ignored. Never save the
-dashboard startup token in logs/screenshots. The accepted `08d1ade` VM run is
-historical evidence; the current browser-policy fix needs its own reviewed
-candidate and real Firefox re-test before final M7 browser acceptance.
+dashboard startup token in logs/screenshots. The accepted `08d1ade` VM run remains
+historical evidence; `ff1b6df` is the final candidate that passed both its own
+complete VM rerun and real Firefox browser acceptance.
 
 ## M6 acceptance
 

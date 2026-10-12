@@ -9,7 +9,9 @@ Its successful Ubuntu VM acceptance and local evidence are recorded in the
 M7 adds a local browser dashboard over the existing CLI, preserving that kernel
 architecture. Automated VM acceptance passed on `08d1ade`; a subsequent real
 Firefox lifecycle POST exposed an Origin-header/referrer-policy integration defect.
-The minimal policy correction is locally verified; Firefox re-test is pending.
+Final candidate `ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` changed the policy to
+`same-origin` without weakening exact Origin enforcement, then passed the complete
+automated VM suite and real Ubuntu Firefox acceptance.
 See the [M7 report](m7-report.md) and [testing procedure](m7-testing.md).
 M4's completed evidence is in [its report](m4-report.md). Historical designs remain in the
 [M2 design](m2-design.md), [M3 security design](m3-security-design.md) and
