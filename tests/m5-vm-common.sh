@@ -12,10 +12,11 @@ M5_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 readonly M5_ROOT
 readonly M5_DEVICE=/dev/secureram0
 readonly M5_CONTROL=/dev/secureramctl
-# Both milestone runners select a fixed profile; M5 remains the default.
+# Milestone runners select a fixed profile; M5 remains the default.
 case ${SR_MILESTONE:-5} in
     5) M5_VERSION=0.5.0; M5_FEATURES=7; M5_EVIDENCE_NAME=m5-vm ;;
     6) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m6-vm ;;
+    7) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m7-vm ;;
     *) printf '%s\n' 'Unsupported acceptance profile' >&2; return 1 ;;
 esac
 readonly M5_VERSION M5_FEATURES M5_EVIDENCE_NAME

@@ -20,6 +20,12 @@ m6_observe()
 	python3 "$M5_ROOT/tests/m6-observe.py" "$@"
 }
 
+# M7 substitutes an HTTP observer/loader around the same M5 assertions.
+m6_integrity()
+{
+	python3 tests/m6-integrity.py "$@"
+}
+
 m6_done()
 {
 	local check_label
@@ -72,7 +78,7 @@ m6_production()
 	m5_load_module 64
 	m5_assert_query 0 0 "$production_bytes"
 	m6_observe status 0 0 "$production_bytes"
-	python3 tests/m6-integrity.py production
+	m6_integrity production
 	m5_run_raw "$production_bytes" denied
 	m5_control negative
 	m6_expect_busy lock
@@ -137,7 +143,7 @@ m6_tamper()
 	m5_load_module 64
 	m6_observe baseline
 	m5_identity_guard 67108864
-	python3 tests/m6-integrity.py tamper
+	m6_integrity tamper
 	m6_observe status 0 6 67108864
 	m6_cli stats --json | python3 -c 'import json,sys; assert json.load(sys.stdin)["integrity_failures"] == 3'
 	m5_destroy_key 67108864
@@ -186,7 +192,7 @@ m6_final()
 	m5_prove_production final-production
 	m5_load_module 64
 	m6_observe baseline
-	python3 tests/m6-integrity.py production
+	m6_integrity production
 	m5_load_key 67108864
 	m6_observe status 2 1 67108864
 	m5_run_raw 67108864 active

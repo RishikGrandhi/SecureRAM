@@ -1,5 +1,45 @@
 # Verification by milestone
 
+## M7 dashboard candidate
+
+Dashboard 0.7.0 final tested candidate
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5` passed complete automated M7 VM
+acceptance and real Ubuntu Firefox acceptance. Kernel/CLI remain 0.6.0, ABI 1,
+features 15. The earlier `08d1ade` candidate passed automated acceptance before
+Firefox exposed `Origin: null` under the original `no-referrer` policy. The final
+`same-origin` correction retained exact backend Origin enforcement and passed the
+real regression re-test. See [m7-testing.md](../docs/m7-testing.md) for the evidence.
+
+```sh
+python3 tests/check-m7-local.py
+# Retain the full M6 build/ABI/CLI regression too:
+python3 tests/check-m6-local.py --kdir /path/to/prepared/headers \
+  --checkpatch /path/to/kernel/scripts/checkpatch.pl
+```
+
+| File | Responsibility |
+| --- | --- |
+| `check-m7-local.py` | Python/static/JS checks, HTTP tests, mocked harness, individual shell syntax and diff whitespace; no device access. |
+| `check-m7-dashboard.py` | Real HTTP server/socket tests with mocked CLI: auth, routes, parsing, exact referrer/Origin contract, fixed argv, deadlines/concurrency, traversal/symlinks, errors and shutdown. |
+| `check-m7-ui.js` | Pure BigInt, state availability, sampled-delta and reset/gap assertions using Node. |
+| `check-m7-vm-harness.sh`, `m7-harness-mocks.sh` | Actual M7 phase overrides in the M6 mocked harness, retaining historical M5/M6 failure/cleanup tests. |
+| `check-m7-observe.py` | Actual HTTP/assertion client, failed-state counters/recovery, /proc loopback inspection and session-owner success/failure fixtures. |
+| `m7-preview.py` | Separate unprivileged, labelled synthetic browser fixture; never a production option. |
+| `run-m7-vm-acceptance.sh` | Explicit root/SUDO_USER, full M7 commit, clean branch, matching kernel/header, evidence and summary orchestration. |
+| `m7-vm-session.py` | Own real backend lifecycle across reloads; capture startup credential only in memory; check listener and shutdown. |
+| `m7-vm-phases.sh` | Small overrides of actual M6 phases: lifecycle through HTTP with independent CLI/status/accounting assertions retained. |
+| `m7-http.py`, `m7-integrity.py` | Fixed API/host/auth/static/adversarial assertions and HTTP observations/recovery around unchanged M5 tamper cases. |
+
+The shared profile 7 uses 0.6.0/features 15 and `.cache/m7-vm`; historical M5/M6
+profiles and entrypoints retain their behavior. Local tests never load a module,
+request sudo, open a block device or install dependencies. Browser screenshots
+are fixture evidence only. The opt-in VM suite is destructive only to the
+hardcoded, repeatedly validated `/dev/secureram0`; it accepts no device arguments.
+All build products, screenshots and evidence logs stay ignored. Never save the
+dashboard startup token in logs/screenshots. The accepted `08d1ade` VM run remains
+historical evidence; `ff1b6df` is the final candidate that passed both its own
+complete VM rerun and real Firefox browser acceptance.
+
 ## M6 acceptance
 
 M6 runtime acceptance **passed** on commit

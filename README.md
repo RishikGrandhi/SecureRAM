@@ -3,6 +3,18 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
+**M7 final tested candidate: Dashboard 0.7.0 at
+`ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`.** An offline, localhost-only browser
+console uses the existing CLI for status, statistics and lifecycle actions. The
+original `08d1ade75215dc237342569f9c9c3dc2fd2957a3` candidate passed automated VM
+acceptance, after which real Firefox exposed a `Referrer-Policy: no-referrer` /
+`Origin: null` incompatibility on lifecycle POSTs. The final candidate changed
+the policy to `same-origin` without relaxing backend Origin validation, then
+passed a complete automated VM rerun and real Ubuntu Firefox acceptance. See the
+[dashboard guide](dashboard/README.md), [M7 report](docs/m7-report.md) and
+[M7 testing procedure](docs/m7-testing.md). Kernel/CLI remain 0.6.0, ABI 1 and
+production features 15; M7 changes no crypto.
+
 **M6 complete, version 0.6.0:** a dependency-free management CLI, JSON status,
 and privileged runtime statistics. **M6 VM runtime acceptance passed** on commit
 `50e11e6ddce88a986719ae2ef7ce972377a69e49` using Ubuntu 24.04.5 LTS and
@@ -35,6 +47,9 @@ privileged secureramctl CLI -> /dev/secureramctl -> validated ioctl
   -> close I/O admission -> drain -> change key/state -> reopen if ACTIVE
 
 GET_STATS -> independent counter lock -> coherent read-only snapshot
+
+ordinary browser -> 127.0.0.1 Python backend -> existing secureramctl JSON/actions
+  -> unchanged privileged control path above
 ```
 
 `/dev/secureram0` defaults to **64 MiB**, with a load-time `capacity_mb=1..256`
@@ -76,7 +91,9 @@ into the Microsoft WSL kernel. See [development](docs/development.md).
 
 ## VM verification and use
 
-Follow [the M6 procedure](docs/m6-testing.md) for safe identity checks, production
+Follow [the M7 procedure](docs/m7-testing.md) for the accepted automated
+dashboard/driver evidence and post-fix Firefox observations. The accepted
+[M6 procedure](docs/m6-testing.md) records safe identity checks, production
 regression, tamper tests, fail-closed recovery, ext4 and clean unload. Runtime
 operations occur only through its explicitly invoked VM harness or manual commands;
 ordinary builds never load or access the device. M4's completed evidence remains in
@@ -118,6 +135,30 @@ test ! -e /dev/secureramctl
 Never force unload. Open block/control files pin the module. Destroy irreversibly
 discards the volatile medium; do not use it as swap.
 
+## Local dashboard
+
+After building `make tools` and separately loading the matching-kernel module in
+the disposable VM, run from a trusted checkout:
+
+```sh
+sudo python3 -I dashboard/server.py
+```
+
+Open its printed URL in the ordinary user's browser in the same VM. Python 3.10+
+standard library and offline HTML/CSS/JS are sufficient. The backend binds only
+127.0.0.1 on an ephemeral port and requires a fresh startup token for every API
+request. Host/Origin checks, fixed POST actions and no-shell CLI calls constrain
+the privileged HTTP surface. No device permissions are weakened. Do not save or
+share the URL credential, redirect startup stdout into logs, forward the port or
+launch a root browser. Ctrl+C stops the server without changing driver state.
+
+The UI shows state, geometry, versions/features, exact counters and sampled I/O,
+with state-aware controls and typed Destroy confirmation. INTEGRITY_FAILED is a
+prominent warning; only destroy followed by fresh load can recover. Stale/lost
+connections disable controls. Button state is advisory; the CLI/kernel enforces
+every transition. See [the guide](dashboard/README.md) for the API, trust model,
+startup/shutdown and limits. This token protects the local HTTP interface only.
+
 ## Limits and layout
 
 READ/WRITE handle segmented requests as complete 4096-byte crypto units. A
@@ -151,8 +192,11 @@ and [architecture](docs/architecture.md).
 | `src/secureram_stats.c`, `include/secureram_stats.h` | Device-lifetime counters, saturation and coherent snapshots. |
 | `tools/secureramctl.c`, `tools/Makefile` | C management CLI, protected random key load, human/JSON output. |
 | `tests/run-m6-vm-acceptance.sh`, `tests/m6-*`, `tests/check-m6-*` | M6 acceptance, CLI mocks and local static checks. |
+| `dashboard/server.py`, `dashboard/static/` | Local privileged CLI adapter and offline browser UI; dashboard 0.7.0. |
+| `tests/run-m7-vm-acceptance.sh`, `tests/m7-*`, `tests/check-m7-*` | Prepared M7 VM suite, isolated UI fixture, HTTP/observer/harness checks. |
 | `docs/` | Designs, evidence, procedures and viva notes. |
 
-No GUI, dashboard, benchmarking, persistence or networking is included.
+No remote administration, benchmarking or persistent storage is included.
+The dashboard's loopback HTTP service is the only new network surface.
 The successful M6 acceptance evidence is recorded in [the M6 report](docs/m6-report.md).
 Source is **GPL-2.0-only**; see [LICENSE](LICENSE).

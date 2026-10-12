@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <title>SecureRAM — Local console</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="SecureRAM dashboard"><span class="brand-mark" aria-hidden="true">S<span>R</span></span><span>SecureRAM<small>Secure Virtual RAM-backed Storage</small></span></a>
+    <div class="header-meta"><span class="local-badge">LOOPBACK ONLY</span><span class="mono">DASHBOARD 0.7.0</span></div>
+  </header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow">OPERATING SYSTEMS / DEVICE CONSOLE</p><h1>Storage, under control.</h1><p class="subtitle">Volatile block storage. Live kernel state. Explicit lifecycle control.</p></div><div class="connection"><span id="connection" role="status">Connecting…</span><small id="updated">Awaiting first observation</small></div></div>
+    <div id="error-panel" class="notice" role="alert" hidden><strong id="error-title"></strong><p id="error-message"></p></div>
+    <div id="integrity-warning" class="integrity-warning" role="alert" hidden><strong>INTEGRITY FAILURE — I/O is blocked</strong><p>A ciphertext authentication failure was observed. Close and unmount all users, destroy the key and data, then load a fresh key. Unlock cannot clear this latch.</p></div>
+    <div id="data-panels" class="dashboard-grid" aria-busy="true">
+      <section class="state-card" id="state-card" data-state="unknown" aria-labelledby="state-heading">
+        <div class="panel-top"><h2 id="state-heading">Device state</h2><span class="chip mono">/dev/secureram0</span></div>
+        <div class="state-line"><span class="state-light" aria-hidden="true"></span><h3 id="state-name">AWAITING DEVICE</h3><span class="state-number mono" id="state-number">—</span></div>
+        <p id="state-description" class="state-description">Waiting for an authorized kernel observation.</p>
+        <div class="state-details"><div><small>CAPACITY</small><strong id="capacity">—</strong></div><div><small>GENERATION</small><strong id="generation">—</strong></div><div><small>MEDIUM</small><strong>Volatile RAM</strong></div></div>
+        <p id="stale-label" class="stale-label" hidden>LAST OBSERVATION — values are stale; current state is unknown.</p>
+      </section>
+      <section class="panel lifecycle" aria-labelledby="lifecycle-heading">
+        <div class="panel-top"><h2 id="lifecycle-heading">Lifecycle controls</h2><span class="index">01</span></div>
+        <p>Changes require an unmounted device with no open block users.</p>
+        <div class="action-grid"><button id="load-random" class="primary" disabled>Load Random Key <span aria-hidden="true">↗</span></button><button id="lock" disabled>Lock</button><button id="unlock" disabled>Unlock</button><button id="destroy" class="danger" disabled>Destroy key &amp; data</button></div>
+        <p id="action-result" class="action-result" role="status">Waiting for device state.</p>
+      </section>
+      <section class="metrics" aria-label="Runtime statistics">
+        <article class="metric"><h2>Successful reads</h2><strong id="read_requests">—</strong><small>requests completed</small></article>
+        <article class="metric"><h2>Successful writes</h2><strong id="write_requests">—</strong><small>requests completed</small></article>
+        <article class="metric"><h2>Read volume</h2><strong id="read_bytes">—</strong><small id="read_bytes-raw">— bytes</small></article>
+        <article class="metric"><h2>Write volume</h2><strong id="write_bytes">—</strong><small id="write_bytes-raw">— bytes</small></article>
+        <article class="metric failure-metric"><h2>Auth failures</h2><strong id="integrity_failures">—</strong><small>actual MAC mismatches</small></article>
+      </section>
+      <section class="panel throughput" aria-labelledby="throughput-heading">
+        <div class="panel-top"><h2 id="throughput-heading">I/O activity</h2><span class="index">02</span></div>
+        <div class="chart-meta"><p>Sampled successful bytes per second</p><div class="legend"><span class="read-key">Read <b id="read-rate">—</b></span><span class="write-key">Write <b id="write-rate">—</b></span></div></div>
+        <div class="chart"><svg id="throughput-chart" viewBox="0 0 680 150" preserveAspectRatio="none" role="img" aria-label="Sampled read and write throughput, up to 60 observations"><path class="gridline" d="M0 20H680 M0 75H680 M0 130H680"></path><polyline id="read-line" class="read-line" points=""></polyline><polyline id="write-line" class="write-line" points=""></polyline></svg><div class="chart-axis"><span id="chart-scale">Awaiting samples</span><span>NOW</span></div></div>
+        <p class="panel-note">Deltas between observations, not a benchmark. Cache hits may bypass the driver. Gaps and counter resets start a new series.</p>
+      </section>
+      <section class="panel security" aria-labelledby="security-heading">
+        <div class="panel-top"><h2 id="security-heading">Security layers</h2><span class="index">03</span></div>
+        <div class="security-row"><span class="security-symbol" aria-hidden="true">C</span><div><small>CONFIDENTIALITY</small><strong id="confidentiality">Awaiting device</strong></div></div>
+        <div class="security-row"><span class="security-symbol" aria-hidden="true">I</span><div><small>INTEGRITY</small><strong id="integrity">Awaiting device</strong></div></div>
+        <p class="panel-note">Separate Encrypt-then-MAC layers. XTS alone does not authenticate data. This construction is not AEAD.</p>
+      </section>
+      <section class="panel device" aria-labelledby="device-heading">
+        <div class="panel-top"><h2 id="device-heading">Device information</h2><span class="index">04</span></div>
+        <dl class="device-grid"><div><dt>Driver version</dt><dd id="driver-version">—</dd></div><div><dt>CLI version</dt><dd id="cli-version">—</dd></div><div><dt>ABI version</dt><dd id="abi">—</dd></div><div><dt>Crypto unit</dt><dd id="unit-bytes">—</dd></div><div><dt>Capacity, bytes</dt><dd id="capacity-raw">—</dd></div><div><dt>Feature mask</dt><dd id="features">—</dd></div></dl><div class="feature-list" id="feature-list" aria-label="Decoded device features">Awaiting advertised features</div>
+      </section>
+      <section class="panel activity" aria-labelledby="activity-heading">
+        <div class="panel-top"><h2 id="activity-heading">Session activity</h2><span class="session-badge">IN MEMORY · LAST 40</span></div>
+        <ol id="activity-list"><li class="empty-event">Events will appear after the first observation.</li></ol>
+      </section>
+    </div>
+    <details class="limits"><summary>Security boundary &amp; observation limits</summary><p>This dashboard adds usability and observability. It does not strengthen the cryptography. There is no same-unit, same-generation replay prevention, whole-request atomic plaintext-release guarantee, malicious root/kernel/hypervisor protection, crash-persistent anti-replay, or physical RAM-erasure guarantee.</p><p>The local session token does not replace OS privilege isolation. Status and statistics are separate snapshots. Counters survive destroy/rekey, reset on module reload and saturate at U64_MAX. Lock retains the resident keys; destroy discards the volatile medium. Closing this page or stopping the dashboard does not destroy a key.</p></details>
+  </main>
+  <footer><span><b>SecureRAM</b> <span id="footer-version">Driver —</span> / Dashboard 0.7.0</span><span>127.0.0.1 only <span aria-hidden="true">·</span> Offline assets <span aria-hidden="true">·</span> ~1s refresh</span></footer>
+  <dialog id="destroy-dialog" aria-labelledby="destroy-title"><form method="dialog"><p class="eyebrow">DESTRUCTIVE OPERATION</p><h2 id="destroy-title">Discard this medium?</h2><p>Destroy removes the key and all data in SecureRAM. This cannot be undone. A fresh key creates a new empty medium.</p><p>Unmount and close every block user first.</p><label for="destroy-confirm">Type <b>DESTROY</b> to confirm</label><input id="destroy-confirm" autocomplete="off" spellcheck="false" maxlength="7"><div class="dialog-actions"><button id="cancel-destroy" type="button">Cancel</button><button id="confirm-destroy" type="button" class="danger-solid" disabled>Destroy key &amp; data</button></div></form></dialog>
+  <noscript><p class="notice">JavaScript is required for authorized status and lifecycle controls.</p></noscript>
+</body>
+</html>
