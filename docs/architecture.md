@@ -4,8 +4,11 @@ M8 adds one security-owned snapshot of ciphertext, HMAC tags and key generation.
 It reuses the same zero-opener control mutex, admission gate and worker drain.
 It adds four dedicated ioctls without changing existing ABI 1 layouts. Driver,
 CLI and dashboard are 0.8.0; production features are 31. Build/local evidence is
-separate from pending VM acceptance. See [M8 design and ownership](m8-report.md)
-and [M8 tests](m8-testing.md). Earlier milestone evidence follows.
+separate from runtime evidence. Exact implementation commit
+`564d8bdb42558fc25db1a6648be9b695d424f9fc` passed the complete automated Ubuntu
+VM suite and a separate real Firefox snapshot rollback on Ubuntu 24.04.5 LTS,
+Linux 7.0.0-38-generic. See [M8 design and ownership](m8-report.md) and
+[M8 tests](m8-testing.md). Earlier milestone evidence follows.
 
 M1-M5 are complete and runtime verified. M5 adds Encrypt-then-MAC integrity to
 M4's XTS and privileged key management. Its successful Ubuntu VM acceptance,

@@ -1,6 +1,15 @@
 # Verification by milestone
 
-## M8 candidate — real VM acceptance pending
+## M8 accepted candidate
+
+Exact implementation commit `564d8bdb42558fc25db1a6648be9b695d424f9fc`
+passed the complete automated Ubuntu VM suite and a separate real Firefox/manual
+rollback session on Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic. Automated evidence
+is retained in the VM at
+`.cache/m8-vm/20261013T105429Z-3183`; its final result was `OVERALL PASS`.
+The manual session independently proved a 4096-byte baseline/overwrite/restore
+sequence through real dashboard actions, then delete, destroy and clean unload.
+See [the M8 procedure](../docs/m8-testing.md) for exact evidence and boundaries.
 
 Run `python3 tests/check-m8-local.py --kdir /path/to/headers --checkpatch
 /path/to/scripts/checkpatch.pl` in Linux/WSL. See

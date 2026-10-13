@@ -3,13 +3,17 @@
 SecureRAM is a university Operating Systems project implementing a volatile
 Linux block device backed by memory owned by a kernel driver.
 
-**M8 implemented; Ubuntu VM acceptance pending.** Driver, CLI and dashboard are
-0.8.0, ABI 1, production features 31. One volatile snapshot captures ciphertext
-and matching HMAC tags under the current key generation. Create/restore require
-ACTIVE and closed, unmounted block users; destroy/unload wipe the slot. No
-plaintext disk snapshot or filesystem-consistency guarantee is introduced.
-See the [M8 design/evidence](docs/m8-report.md) and
-[exact local/VM acceptance commands](docs/m8-testing.md). M8 remains on
+**M8 runtime and real Firefox acceptance passed** on exact implementation commit
+`564d8bdb42558fc25db1a6648be9b695d424f9fc` in Ubuntu 24.04.5 LTS with Linux
+7.0.0-38-generic. Driver, CLI and dashboard are 0.8.0, ABI 1, production features
+31. The automated suite passed every group; a separate real-browser session proved
+snapshot create, restore and delete, with a known 4096-byte block restored to its
+baseline SHA-256 and zero authentication failures. One volatile snapshot
+captures ciphertext and matching HMAC tags under the current key generation.
+Create/restore require ACTIVE and closed, unmounted block users; destroy/unload
+wipe the slot. No plaintext disk snapshot, persistence or filesystem-consistency
+guarantee is introduced. See the [M8 design/evidence](docs/m8-report.md) and
+[accepted verification record](docs/m8-testing.md). M8 remains on
 `m8-secure-snapshots`, unmerged. The following milestone evidence is historical.
 
 **M7 final tested candidate: Dashboard 0.7.0 at
@@ -103,8 +107,8 @@ into the Microsoft WSL kernel. See [development](docs/development.md).
 
 ## VM verification and use
 
-Follow [the M7 procedure](docs/m7-testing.md) for the accepted automated
-dashboard/driver evidence and post-fix Firefox observations. The accepted
+Follow [the M8 procedure](docs/m8-testing.md) for the accepted snapshot,
+dashboard, inherited regression and Firefox evidence. The accepted
 [M6 procedure](docs/m6-testing.md) records safe identity checks, production
 regression, tamper tests, fail-closed recovery, ext4 and clean unload. Runtime
 operations occur only through its explicitly invoked VM harness or manual commands;
@@ -154,7 +158,8 @@ RESTORE/DELETE confirmations and live slot metadata/counters. Use
 `sudo ./tools/secureramctl snapshot status --json` for the same kernel observation.
 `snapshot create`, `snapshot restore` and `snapshot delete` also accept `--json`.
 Create rejects an occupied slot; restore keeps it. Default extra memory is
-64 MiB + 512 KiB. See [the M8 procedure](docs/m8-testing.md) before acceptance.
+64 MiB + 512 KiB. See [the M8 procedure](docs/m8-testing.md) for the accepted
+runtime evidence and reusable verification commands.
 
 After building `make tools` and separately loading the matching-kernel module in
 the disposable VM, run from a trusted checkout:

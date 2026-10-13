@@ -4,7 +4,10 @@
 
 M7 was merged at `be43792`; its completed acceptance below remains historical.
 M8 is implemented on `m8-secure-snapshots` with driver/CLI/dashboard 0.8.0, ABI 1,
-features 31. Do not merge before the user's Ubuntu acceptance. See
+features 31. Exact implementation commit
+`564d8bdb42558fc25db1a6648be9b695d424f9fc` passed complete automated Ubuntu VM
+acceptance and separate real Firefox/manual rollback acceptance on Ubuntu 24.04.5
+LTS, Linux 7.0.0-38-generic. The feature branch remains unmerged. See
 [M8 design/evidence](m8-report.md) and [M8 verification commands](m8-testing.md).
 `tests/check-m8-local.py --kdir ... --checkpatch ...` composes the existing
 M6/M7 regressions and new M8 checks, without device access. The full-SHA M8 VM

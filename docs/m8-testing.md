@@ -1,9 +1,11 @@
-# M8 verification: local checks and pending Ubuntu acceptance
+# M8 verification: accepted Ubuntu and Firefox evidence
 
 M8 is implemented on `m8-secure-snapshots`, driver/CLI/dashboard 0.8.0, ABI 1,
 features 31. Local compile/static/automated and labelled browser-fixture checks
-passed on 13 October 2026. **Real Ubuntu M8 kernel, HTTP and Firefox acceptance
-are NOT RUN.** The [report](m8-report.md) records evidence and limitations.
+passed on 13 October 2026. Exact implementation commit
+`564d8bdb42558fc25db1a6648be9b695d424f9fc` also passed the complete real Ubuntu
+VM suite and a separate real Firefox/manual rollback session. The
+[report](m8-report.md) records evidence and limitations.
 
 ## Reproduce local checks (no device access)
 
@@ -94,7 +96,7 @@ tests/run-m8-vm-acceptance.sh`. Do not run another dashboard or administrator
 during the suite. The harness does not ask for confirmation after invocation;
 it is explicitly destructive to SecureRAM's volatile contents.
 
-Expected phases (prepared, **not observed here**):
+Observed automated phases on the accepted candidate:
 
 1. All M7/M6 production assertions: baseline/status/stats/CLI/UAPI/privilege,
    random key, full raw I/O and accounting, lock/unlock, destroy/rekey, ext4
@@ -122,7 +124,11 @@ Expected phases (prepared, **not observed here**):
    and fresh kernel-health review. M8 adds locking/sleep/free fault signatures to
    the existing WARN/BUG/Oops/panic/trace checks.
 
-The evidence directory is printed as `.cache/m8-vm/<UTC-time>-<pid>/`. Read
+The accepted evidence directory is
+`/home/rishik-grandhi/SecureRAM/.cache/m8-vm/20261013T105429Z-3183`; its final
+result was `OVERALL PASS`, and every result row, including all M8-specific rows,
+was PASS. For a new run, the evidence directory is printed as
+`.cache/m8-vm/<UTC-time>-<pid>/`. Read
 `summary.txt`, `status.tsv`, `main.log`, `snapshot.log`, `snapshot-tamper.log`,
 production/tamper/capacity/final logs, build/exclusion proofs, `dmesg.log` and
 kernel-health context. Each group starts NOT RUN and becomes PASS only after
@@ -139,6 +145,27 @@ campaigns. Snapshot peak memory is live store plus one slot (about 129 MiB at
 64 MiB capacity, 516 MiB at maximum, plus allocator/crypto/kernel overhead).
 
 ## Real Ubuntu Firefox acceptance after automated PASS
+
+The accepted manual session used real Firefox in Ubuntu 24.04.5 LTS, Linux
+7.0.0-38-generic, on the exact commit above. The production dashboard loaded at
+0.8.0 with ABI 1/features 31, initially showing NO_KEY and an absent snapshot.
+Load Random Key reached ACTIVE generation 1. Create Snapshot captured generation
+1. A known 4096-byte block read back as
+`fadafd4ada477876d1e37cc80a9491b4f8022988d5fbad41cc81e2be2f47f80c`;
+after a different known overwrite it read as
+`f8114ca7bba1accebae0ad761eb655462f853c2d4d1caf37293388e8c5bae8e1`;
+Firefox Restore Snapshot returned it exactly to the first hash with zero
+authentication failures. The observed snapshot counters progressed from
+`created=1` after create, through restore to
+`created=1, restored=1, deleted=0, failures=0`, and after Firefox Delete to
+`created=1, restored=1, deleted=1, failures=0`. Destroy returned the driver to
+NO_KEY generation 1. The server stopped normally; module removal left both
+device nodes and `/sys/module/secureram` absent. The startup credential was not
+recorded.
+
+The following remains the reusable procedure. Items beyond the observations in
+the preceding paragraph are acceptance checks for future reruns, not additional
+claims about the completed manual session.
 
 The final automated phase leaves a production module built and unloaded.
 In a first terminal, explicitly start a separate manual session:
@@ -210,4 +237,4 @@ test ! -e /sys/module/secureram
 ```
 
 Review fresh kernel logs for this separate session as well. Never force unload.
-M8 remains unmerged until the user accepts the real VM and browser evidence.
+The user accepted the recorded real VM and browser evidence. M8 remains unmerged.

@@ -134,8 +134,14 @@ labelled, with a mocked CLI and no device access. It is never enabled by the
 production server. `--state 4` can preview an integrity failure for UI testing.
 
 Run `python3 tests/check-m8-dashboard.py` and `node tests/check-m8-ui.js` for the
-new snapshot contracts. M8 local/browser fixture evidence passed; real Ubuntu
-driver/dashboard acceptance is pending in [the M8 procedure](../docs/m8-testing.md).
+new snapshot contracts. M8 local/browser fixture checks passed. The complete
+Ubuntu VM suite and a separate real Firefox production session passed on exact
+implementation commit `564d8bdb42558fc25db1a6648be9b695d424f9fc`; the manual
+session observed NO_KEY, load to ACTIVE generation 1, snapshot create, a real
+4096-byte overwrite/restore hash reversal, delete, destroy back to NO_KEY and
+clean module/device removal. The startup token was not recorded. See
+[the M8 procedure](../docs/m8-testing.md) for the distinct automated and manual
+evidence.
 Driver/CLI/dashboard are 0.8.0, ABI 1, production features 31. Existing ioctl
 encodings, state numbers, device permissions and cryptographic format remain.
 This is not AEAD; there is no same-unit same-generation replay prevention,

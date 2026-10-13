@@ -76,7 +76,9 @@ CPU caches or physical RAM remanence.
 
 ## Verification status
 
-Implemented on 13 October 2026. No M8 real-kernel/VM runtime PASS is claimed.
+Implemented and accepted on 13 October 2026. The exact tested implementation is
+`564d8bdb42558fc25db1a6648be9b695d424f9fc`. Automated and manual observations
+are recorded separately below.
 
 | Check | Observed result |
 | --- | --- |
@@ -90,8 +92,8 @@ Implemented on 13 October 2026. No M8 real-kernel/VM runtime PASS is claimed.
 | UI/static | PASS: Node syntax and M7/M8 pure display/state helpers; offline assets, IDs/accessibility references, prohibited sinks/storage and CSP checks. |
 | Harness tests | PASS: inherited M5/M6/M7 mocked phases/ledger/cleanup; five M7 observer/session tests; actual M8 phase ordering/full-SHA gate/fail-fast/unload/reload mocks; individual syntax for all 19 shell files. |
 | Browser fixture | PASS: actual in-app browser on Windows against a labelled, unprivileged mock. NO_KEY -> ACTIVE, create, lowercase RESTORE rejected, exact RESTORE succeeds/retains slot; lock blocks create/restore, Cancel retains slot, exact DELETE works while locked; unlock/create, disconnect disables controls, fresh URL reconnects. 390px layout has no horizontal overflow. No console warnings/errors before intentional disconnect. Screenshots `.cache/m8-dashboard.jpg`, `.cache/m8-mobile.jpg`; not Ubuntu Firefox or real-device evidence. |
-| Real Ubuntu M8 kernel/HTTP/SHA/cleanup acceptance | NOT RUN. Prepared harness and exact commands in [M8 testing](m8-testing.md). |
-| Real Ubuntu Firefox M8 acceptance | NOT RUN. M7's historical PASS does not accept M8. |
+| Real Ubuntu M8 kernel/HTTP/SHA/cleanup acceptance | **PASS** on the exact tested commit, Ubuntu 24.04.5 LTS and Linux 7.0.0-38-generic. Every ledger group passed, including snapshot rollback/lifecycle/UAPI, HTTP, unload/reload, integrity latch, final production regression, dashboard cleanup, kernel health and final cleanup. Evidence: `/home/rishik-grandhi/SecureRAM/.cache/m8-vm/20261013T105429Z-3183`. |
+| Real Ubuntu Firefox M8 acceptance | **PASS** on the exact tested commit. Production dashboard 0.8.0 loaded in real Firefox; load, create, restore, delete and destroy succeeded. A direct 4096-byte readback proved baseline -> different overwrite -> exact baseline restoration, with authentication failures remaining zero. |
 | ShellCheck / lockdep / KASAN / kmemleak / compat runtime / kernel allocation fault injection | NOT RUN. ShellCheck not installed; no new dependency installed. Userspace allocation failure tests are not kernel fault injection. |
 
 Local host is Windows with WSL `6.18.33.2-microsoft-standard-WSL2`; headers target
@@ -129,11 +131,12 @@ and harness self-tests passed again. A separate Windows HTTP rerun passed
 22 M7 tests with the same two platform skips and all three M8 tests. The
 warnings and unrun campaigns above are unchanged. The owned browser-preview
 fixture was stopped after inspection; its earlier screenshots remain labelled
-synthetic evidence. Real Ubuntu M8 kernel and Firefox acceptance remain NOT RUN.
+synthetic evidence. That local evidence was later supplemented, not replaced,
+by the real Ubuntu acceptance recorded below.
 
-The resumed delivery records this verification and supplies the local Git
-bundle described in [M8 testing](m8-testing.md); guest acceptance follows
-that procedure. No feature was restarted or removed. Local `main` and
+The resumed delivery recorded this verification and supplied the local Git
+bundle described in [M8 testing](m8-testing.md); the final guest evidence below
+records the completed acceptance. No feature was restarted or removed. Local `main` and
 `origin/main` remain at `be437923839ca7f182797ac5609aa6181943a4ce`.
 
 ## UAPI and compatibility detail
@@ -217,13 +220,62 @@ checks, so no ordinary return path leaves half-restored storage. A malicious
 kernel, invalid internal pointers, power loss or hardware fault is outside this
 logical atomicity guarantee.
 
-## Scope remaining for manual acceptance
+## Final Ubuntu acceptance evidence
 
-Run the committed M8 harness and review its preserved ledger/logs, then use real
-Ubuntu Firefox for the new controls and confirmations. The prepared suite tests
-invalidation through destroy/rekey; direct stale-generation and allocation
-failure branches are exercised locally in the actual C core. Do not describe
-the prepared runtime tests as passed until the guest output is observed.
-Kernel allocator/provider failures, in-flight kernel race instrumentation,
-lockdep/KASAN/kmemleak and 32-bit compat ioctl execution remain additional campaigns.
-No M9 implementation, push or merge was performed.
+The full VM harness ran against the exact candidate above. Its evidence directory
+is `/home/rishik-grandhi/SecureRAM/.cache/m8-vm/20261013T105429Z-3183` and its
+final result was `OVERALL PASS`. In addition to all inherited regression groups,
+the M8-specific PASS rows covered dashboard startup and loopback binding, HTTP
+authorization/static/status/statistics/adversarial/integrity behavior, snapshot
+rollback/lifecycle/UAPI, snapshot HTTP, unload/reload cleanup, integrity-latch
+behavior, the final production regression, dashboard cleanup, kernel health and
+final cleanup. The run reported dashboard 0.8.0. This is automated real-kernel
+evidence, distinct from the browser session below.
+
+The separate manual session used real Firefox on Ubuntu 24.04.5 LTS with Linux
+7.0.0-38-generic. Initial CLI output reported SecureRAM and CLI 0.8.0, ABI 1,
+NO_KEY, 67108864 bytes, 4096-byte crypto units, generation 0, feature mask 31,
+AES-256-XTS and HMAC-SHA-256. The dashboard showed version 0.8.0, NO_KEY and an
+absent slot. Load Random Key reached ACTIVE generation 1. The bearer credential
+was deliberately not retained.
+
+A known 4096-byte baseline file and direct `/dev/secureram0` readback both had:
+
+```text
+fadafd4ada477876d1e37cc80a9491b4f8022988d5fbad41cc81e2be2f47f80c
+```
+
+Firefox Create Snapshot made the slot available at generation 1 with `created=1`,
+while the device stayed ACTIVE and authentication failures stayed zero. A second
+known block and its live-device readback both had the different hash:
+
+```text
+f8114ca7bba1accebae0ad761eb655462f853c2d4d1caf37293388e8c5bae8e1
+```
+
+Firefox Restore Snapshot returned the direct device readback exactly to the
+baseline hash. The dashboard then showed an available generation-1 slot with
+`created=1`, `restored=1`, `deleted=0`, `failures=0`; device state remained
+ACTIVE generation 1 and authentication failures remained zero. Firefox Delete
+Snapshot made the slot absent and produced `created=1`, `restored=1`,
+`deleted=1`, `failures=0`, without changing the live ACTIVE generation.
+
+Destroy key & data completed through the dashboard. Final CLI status reported
+NO_KEY, generation 1, the same capacity/unit/features and crypto algorithms.
+The dashboard stopped normally with Ctrl+C. After `rmmod secureram` and
+`udevadm settle`, `/dev/secureram0`, `/dev/secureramctl` and
+`/sys/module/secureram` were all absent; the operator observed `module removed`.
+
+This manual evidence proves the recorded production UI path and one exact block
+rollback. It does not imply additional manual adversarial-browser cases beyond
+those observations. The automated suite supplies the wider negative, lifecycle,
+concurrency, integrity and cleanup coverage. Snapshots remain volatile and do
+not survive unload/reload; the automated test specifically verified that a
+populated slot is absent with reset counters after unload/reload.
+
+Kernel allocator/provider failure injection, in-flight race instrumentation,
+lockdep/KASAN/kmemleak and 32-bit compat ioctl execution remain additional
+campaigns. The security and consistency limits above remain unchanged: there is
+no crash persistence, filesystem/application checkpoint, malicious
+root/kernel/hypervisor protection, physical-erasure guarantee or new replay
+protection. No M9 implementation, push or merge was performed.
