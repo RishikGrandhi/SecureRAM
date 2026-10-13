@@ -72,7 +72,7 @@ m6_production()
 	m6_done
 	m5_begin_checks 'CLI help/version'
 	m6_cli help
-	[[ $(m6_cli version) == 'secureramctl 0.6.0 (ABI 1)' ]]
+	[[ $(m6_cli version) == "secureramctl $M5_VERSION (ABI 1)" ]]
 	m6_done
 	m5_begin_checks 'Version/features' 'Human status' 'JSON status' 'Stats baseline'
 	m5_load_module 64

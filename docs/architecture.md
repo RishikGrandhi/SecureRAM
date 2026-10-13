@@ -1,5 +1,12 @@
 # SecureRAM architecture
 
+M8 adds one security-owned snapshot of ciphertext, HMAC tags and key generation.
+It reuses the same zero-opener control mutex, admission gate and worker drain.
+It adds four dedicated ioctls without changing existing ABI 1 layouts. Driver,
+CLI and dashboard are 0.8.0; production features are 31. Build/local evidence is
+separate from pending VM acceptance. See [M8 design and ownership](m8-report.md)
+and [M8 tests](m8-testing.md). Earlier milestone evidence follows.
+
 M1-M5 are complete and runtime verified. M5 adds Encrypt-then-MAC integrity to
 M4's XTS and privileged key management. Its successful Ubuntu VM acceptance,
 current design and evidence are in [the M5 report](m5-report.md).
@@ -59,6 +66,7 @@ See the [M5 threat model](m5-report.md#threat-model-and-claims).
 | Block | Device context, mutex/opener count, admission/pending spinlock, workqueue/work item, tag set, disk/queue, embedded security/control. Validates requests and gathers/scatters units. |
 | Security | Embedded store, two 4096-byte buffers, IV, 64-byte tag scratch, state/generation, XTS transform/request and HMAC transform/descriptor. Temporary HKDF secrets during setup. No user pointers or blk-mq parsing. |
 | Store | Bounded ciphertext/tag vzalloc allocations, checked whole-unit pair copies and explicit clearing. Knows sizes but no cipher or key. |
+| Snapshot | Security-owned optional store and generation; bounded single-slot allocation, copy/restore, explicit wiping; four counters serialized by control_lock. No extra crypto/key/plaintext allocation. |
 | Statistics | Device-owned lock and five saturating u64 counters; coherent read-only snapshot. Borrowed by security for mismatch accounting; no key ownership. |
 | Control | Registered misc endpoint and safe fixed-size ABI translation. Does not interpret backing bytes. |
 | Block core/filesystem | Request pages, normal plaintext caches and successful read output; the driver does not erase caller-owned data. |
@@ -77,6 +85,12 @@ ordinary browser, offline HTML/CSS/JS
   -> absolute tools/secureramctl, fixed argv, shell=False, timeout
   -> existing root-only /dev/secureramctl and per-ioctl capability check
 ```
+
+M8 extends this boundary with `/api/snapshot` and three fixed snapshot actions,
+all through `secureramctl snapshot`. RESTORE/DELETE require typed confirmation.
+Feature mask 15 remains compatible for old devices, with snapshot controls
+unavailable; mask 31 enables the new panel. No independent snapshot data or
+security logic resides in Python/JavaScript. The M7 route counts below are historical.
 
 The administrator explicitly starts the backend with
 `sudo python3 -I dashboard/server.py` from a trusted checkout. It serves three

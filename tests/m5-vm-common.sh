@@ -17,6 +17,7 @@ case ${SR_MILESTONE:-5} in
     5) M5_VERSION=0.5.0; M5_FEATURES=7; M5_EVIDENCE_NAME=m5-vm ;;
     6) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m6-vm ;;
     7) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m7-vm ;;
+    8) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m8-vm ;;
     *) printf '%s\n' 'Unsupported acceptance profile' >&2; return 1 ;;
 esac
 readonly M5_VERSION M5_FEATURES M5_EVIDENCE_NAME
@@ -445,7 +446,7 @@ m5_load_key()
 {
 	local expected_bytes=$1
 	m5_identity_guard "$expected_bytes"
-	if [[ $M5_VERSION == 0.6.0 ]]; then
+	if [[ $M5_VERSION == 0.6.0 || $M5_VERSION == 0.8.0 ]]; then
 		m5_management load-random
 	else
 		"$M5_CONTROL_HELPER" load-test-key
@@ -456,7 +457,7 @@ m5_destroy_key()
 {
 	local expected_bytes=$1
 	m5_identity_guard "$expected_bytes"
-	if [[ $M5_VERSION == 0.6.0 ]]; then
+	if [[ $M5_VERSION == 0.6.0 || $M5_VERSION == 0.8.0 ]]; then
 		m5_management destroy
 	else
 		"$M5_CONTROL_HELPER" destroy
@@ -467,7 +468,7 @@ m5_run_raw()
 {
 	local expected_bytes=$1 mode=$2
 	m5_identity_guard "$expected_bytes"
-	if [[ $M5_VERSION == 0.6.0 ]]; then
+	if [[ $M5_VERSION == 0.6.0 || $M5_VERSION == 0.8.0 ]]; then
 		python3 tests/m6-raw-io.py "$mode"
 	else
 		python3 tests/m5-raw-io.py "$mode"

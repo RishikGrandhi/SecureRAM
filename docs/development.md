@@ -1,5 +1,17 @@
 # Developer workflow and learning notes
 
+## Current M8 work
+
+M7 was merged at `be43792`; its completed acceptance below remains historical.
+M8 is implemented on `m8-secure-snapshots` with driver/CLI/dashboard 0.8.0, ABI 1,
+features 31. Do not merge before the user's Ubuntu acceptance. See
+[M8 design/evidence](m8-report.md) and [M8 verification commands](m8-testing.md).
+`tests/check-m8-local.py --kdir ... --checkpatch ...` composes the existing
+M6/M7 regressions and new M8 checks, without device access. The full-SHA M8 VM
+runner must be explicitly invoked in the disposable Ubuntu VM; never in WSL.
+No push is performed automatically. A Git bundle can transfer the committed
+branch to the VM without publishing it.
+
 M1-M5 runtime acceptance is recorded in their reports. The
 [M4 report](m4-report.md) separates compile/static results from the completed
 VM runtime checks. Older procedures apply to their historical

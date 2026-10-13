@@ -18,7 +18,7 @@ def change(fd, command):
     if command == M5["DESTROY"]:
         # Preserve the original direct-ioctl EBUSY check while a block fd is open.
         # That check expects OSError; final recovery calls occur with zero openers.
-        M5["BASE"]["identity"]("0.6.0")
+        M5["BASE"]["identity"](HTTP["VERSION"])
         if M5["query"](fd)[0] == 4:
             # The first destroy check is inside the failed read's open block fd.
             # /proc/self/fd inspection is unnecessary: use the real ioctl for that
@@ -60,5 +60,5 @@ def observe(event, fd):
 if __name__ == "__main__":
     # Reuse the actual functions' globals, not a copied runpy dictionary.
     M5["main"].__globals__["change"] = change
-    M5["main"](version="0.6.0", features=15, observer=observe,
+    M5["main"](version=HTTP["VERSION"], features=HTTP["FEATURES"], observer=observe,
                load_command=[sys.executable, str(ROOT / "tests/m7-http.py"), "action", "load-random"])
