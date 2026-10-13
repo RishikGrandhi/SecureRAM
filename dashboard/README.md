@@ -1,6 +1,6 @@
-# SecureRAM Dashboard 0.7.0
+# SecureRAM Dashboard 0.8.0
 
-An offline, local browser console for the existing SecureRAM 0.6.0 CLI and
+An offline, local browser console for the SecureRAM 0.8.0 CLI and
 driver. Python 3.10+ standard library, HTML, CSS and JavaScript only. No install,
 package manager, CDN, font download, database or Internet connection is needed.
 
@@ -26,7 +26,7 @@ The default port is ephemeral. Open the **exact URL printed by this process** in
 the VM's ordinary desktop browser, not a browser launched as root. Example shape:
 
 ```text
-SecureRAM Dashboard 0.7.0
+SecureRAM Dashboard 0.8.0
 Listening only on 127.0.0.1
 Open: http://127.0.0.1:<port>/#token=<random-session-token>
 ```
@@ -50,6 +50,21 @@ key and all data. A fresh load creates an empty medium. All changes require
 unmounted/closed block users. The CLI/kernel validates every request, including
 stale, overlapping or hand-written HTTP requests. The dashboard has no key input,
 export or recovery facility. Lock retains resident keys.
+
+The M8 snapshot panel displays presence, ciphertext/tag sizes, captured generation
+and four diagnostic counters. ACTIVE enables Create when absent, Restore/Delete
+when present. Create refuses an occupied slot. Restore requires typing `RESTORE`;
+Delete requires `DELETE`, with Cancel preserving the slot. Restore retains the
+snapshot. LOCKED and INTEGRITY_FAILED permit only snapshot Delete; this does not
+unlock the device or clear the failure latch. Destroy also invalidates the slot.
+The UI disables snapshot controls on a stale/busy/incompatible or mismatched
+state observation. Device enforcement remains in the kernel.
+
+These are coherent encrypted block-state snapshots, not application/filesystem
+checkpoints. Unmount/close users first. Default extra RAM is 64 MiB + 512 KiB.
+Status/stats/snapshot observations are separate calls, not one transaction.
+An older feature-mask-15 device retains M7 lifecycle/statistics support; it shows
+snapshots as unsupported. Feature mask 31 enables the M8 panel.
 
 Status and statistics are polled sequentially, about once per second, only while
 visible. Failed refreshes mark observations stale and disable controls. An action
@@ -78,10 +93,14 @@ in HTTP referrer values.
 | --- | --- | --- |
 | `GET /api/status` | None | Validated CLI status and dashboard version/compatibility metadata. |
 | `GET /api/stats` | None | Validated ABI and five module-lifetime counters. |
+| `GET /api/snapshot` | None | Validated slot state, sizes, generation and counters. |
 | `POST /api/actions/load-random` | `{}` | Existing CLI action. |
 | `POST /api/actions/lock` | `{}` | Existing CLI action. |
 | `POST /api/actions/unlock` | `{}` | Existing CLI action. |
 | `POST /api/actions/destroy` | `{"confirm":"DESTROY"}` | Existing destructive CLI action. |
+| `POST /api/actions/snapshot-create` | `{}` | `secureramctl snapshot create`. |
+| `POST /api/actions/snapshot-restore` | `{"confirm":"RESTORE"}` | `secureramctl snapshot restore`. |
+| `POST /api/actions/snapshot-delete` | `{"confirm":"DELETE"}` | `secureramctl snapshot delete`. |
 
 Actions return `{"ok":true,"action":"lock","refresh_required":true}` (with the
 requested action). Read status afterward; success does not freeze the kernel
@@ -97,6 +116,9 @@ BigInt for exact display/deltas. Added status fields are `dashboard_version`,
 `compatible`, `compatibility_message`. Unknown state/feature values remain visible
 with controls disabled. Versions are reported from the CLI, never invented;
 loaded driver version can be null. Missing features or ABI problems are explicit.
+Snapshot sizes, generation and all four counters also become decimal strings;
+`exists` remains boolean and `state`/`abi` remain numbers. There are no snapshot
+bytes, kernel addresses or security secrets in the response.
 
 Unauthenticated static routes are only `/`, `/app.js`, `/styles.css`, with a fixed
 startup-loaded asset allowlist. They contain no device data or token. No directory
@@ -107,12 +129,15 @@ limits, security headers, exact error handling and trust assumptions.
 ## Verification and limits
 
 Run `python3 tests/check-m7-local.py` from the repository root. The standalone
-UI fixture `python3 tests/m7-preview.py` is **unprivileged test code**, visibly
+UI fixture `python3 tests/m8-preview.py` is **unprivileged test code**, visibly
 labelled, with a mocked CLI and no device access. It is never enabled by the
 production server. `--state 4` can preview an integrity failure for UI testing.
 
-M7 does not change cryptography, ioctl values, state numbers, feature bits or
-device permissions. Driver/CLI remain 0.6.0, ABI 1, production features 15.
+Run `python3 tests/check-m8-dashboard.py` and `node tests/check-m8-ui.js` for the
+new snapshot contracts. M8 local/browser fixture evidence passed; real Ubuntu
+driver/dashboard acceptance is pending in [the M8 procedure](../docs/m8-testing.md).
+Driver/CLI/dashboard are 0.8.0, ABI 1, production features 31. Existing ioctl
+encodings, state numbers, device permissions and cryptographic format remain.
 This is not AEAD; there is no same-unit same-generation replay prevention,
 whole-request atomic plaintext release, malicious root/kernel/hypervisor
 protection, crash-persistent anti-replay or physical RAM-erasure guarantee.

@@ -20,11 +20,15 @@ import subprocess
 import sys
 import threading
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "dashboard/static"
 CLI = ROOT / "tools/secureramctl"
-ACTIONS = frozenset(("load-random", "lock", "unlock", "destroy"))
+ACTIONS = frozenset(("load-random", "lock", "unlock", "destroy",
+                     "snapshot-create", "snapshot-restore", "snapshot-delete"))
+QUERIES = frozenset(("status", "stats", "snapshot"))
+CONFIRMATIONS = {"destroy": "DESTROY", "snapshot-restore": "RESTORE", "snapshot-delete": "DELETE"}
+SNAPSHOT_VALUES = ("data_bytes", "tag_bytes", "generation", "created", "restored", "deleted", "failures")
 COUNTERS = ("read_requests", "write_requests", "read_bytes", "write_bytes",
             "integrity_failures")
 NAMES = {0: "NO_KEY", 1: "PREPARING", 2: "ACTIVE", 3: "LOCKED", 4: "INTEGRITY_FAILED"}
@@ -84,7 +88,8 @@ def validate_json(command, raw):
         if len(raw) > 8192:
             raise ValueError("output too large")
         obj = strict_json(raw.decode("utf-8"))
-        fields = ({"abi", *COUNTERS} if command == "stats" else
+        fields = ({"abi", "exists", "state", *SNAPSHOT_VALUES} if command == "snapshot" else
+                  {"abi", *COUNTERS} if command == "stats" else
                   {"version", "cli_version", "abi", "state", "state_name", "capacity_bytes",
                    "unit_bytes", "generation", "features", "xts", "lock", "integrity", "stats"})
         if type(obj) is not dict or set(obj) != fields:
@@ -100,6 +105,22 @@ def validate_json(command, raw):
         if command == "stats":
             for key in COUNTERS:
                 uint(key, 64)
+                obj[key] = str(obj[key])
+            return obj
+        if command == "snapshot":
+            uint("state", 32)
+            if type(obj["exists"]) is not bool:
+                raise ValueError("presence")
+            for key in SNAPSHOT_VALUES:
+                uint(key, 64)
+            if obj["exists"]:
+                if (not 1048576 <= obj["data_bytes"] <= 268435456 or
+                        obj["data_bytes"] % 1048576 or
+                        obj["tag_bytes"] != obj["data_bytes"] // 128 or not obj["generation"]):
+                    raise ValueError("snapshot geometry")
+            elif any(obj[key] for key in ("data_bytes", "tag_bytes", "generation")):
+                raise ValueError("absent metadata")
+            for key in SNAPSHOT_VALUES:
                 obj[key] = str(obj[key])
             return obj
         for key in ("state", "features", "unit_bytes"):
@@ -121,9 +142,9 @@ def validate_json(command, raw):
             if type(obj[key]) is not bool or obj[key] != bool(obj["features"] & bit):
                 raise ValueError("feature flag")
         # Preserve unknown bits/state for diagnosis without enabling GUI actions.
-        obj["compatible"] = obj["features"] == 15 and obj["state"] in NAMES
+        obj["compatible"] = obj["features"] in (15, 31) and obj["state"] in NAMES
         obj["compatibility_message"] = (None if obj["compatible"] else
-                                        "Unsupported state or feature mask; M7 expects features 15.")
+                                        "Unsupported state or feature mask; expected features 15 or 31.")
         obj["generation"] = str(obj["generation"])
         obj["capacity_bytes"] = str(obj["capacity_bytes"])
         obj["dashboard_version"] = VERSION
@@ -138,6 +159,16 @@ def cli_error(result):
     status, code, message = 502, "cli_failure", "CLI operation failed. Refresh status before retrying."
     if result.returncode == 3:
         code, message = "abi_mismatch", "CLI reports an unsupported ioctl, feature or incompatible ABI."
+    elif "operation completed" in error or "key loaded and wiped" in error:
+        code, message = "action_uncertain", "Action completed but CLI follow-up failed. Refresh before any retry."
+    elif "no snapshot exists" in error:
+        status, code, message = 409, "snapshot_absent", "No snapshot exists."
+    elif "snapshot slot occupied" in error:
+        status, code, message = 409, "snapshot_exists", "Delete the existing snapshot before creating another."
+    elif "snapshot generation is incompatible" in error:
+        status, code, message = 409, "snapshot_stale", "Snapshot generation is incompatible; delete it."
+    elif "Cannot allocate memory" in error:
+        status, code, message = 503, "snapshot_memory", "Insufficient memory for the snapshot."
     elif "load the SecureRAM module first" in error:
         status, code, message = 503, "module_absent", "SecureRAM module is absent. Load it in the VM."
     elif "requires host CAP_SYS_ADMIN" in error:
@@ -148,8 +179,6 @@ def cli_error(result):
         status, code, message = 409, "no_key", "No usable key in the current state."
     elif "INTEGRITY_FAILED" in error:
         status, code, message = 409, "integrity_failed", "I/O failed. Check for an INTEGRITY_FAILED latch."
-    elif "key loaded and wiped" in error or "operation completed" in error:
-        code, message = "action_uncertain", "Action completed but CLI follow-up failed. Refresh before any retry."
     return APIError(status, code, message, result.returncode)
 
 
@@ -158,7 +187,7 @@ class Controller:
         self.lock = threading.Lock()
 
     def call(self, command):
-        if command not in ACTIONS | {"status", "stats"}:
+        if command not in ACTIONS | QUERIES:
             raise APIError(404, "unknown_action", "Unsupported operation.")
         # A busy response is preferable to an unbounded queue of privileged work.
         if not self.lock.acquire(timeout=0.2):
@@ -168,10 +197,13 @@ class Controller:
                 # No PATH search; refuse replaced/symlinked tools and directories.
                 if CLI.resolve(strict=True) != CLI or not stat.S_ISREG(CLI.stat().st_mode):
                     raise APIError(503, "cli_unsafe", "Expected a regular repository CLI executable.")
+                args = (["snapshot", "status", "--json"] if command == "snapshot" else
+                        command.split("-") if command.startswith("snapshot-") else
+                        [command] + (["--json"] if command in QUERIES else []))
                 result = subprocess.run(
-                    [str(CLI), command] + (["--json"] if command in ("status", "stats") else []),
+                    [str(CLI), *args],
                     shell=False, stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE if command in ("status", "stats") else subprocess.DEVNULL,
+                    stdout=subprocess.PIPE if command in QUERIES else subprocess.DEVNULL,
                     stderr=subprocess.PIPE, timeout=CLI_TIMEOUT, check=False, cwd=str(ROOT),
                     env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}, close_fds=True)
             except FileNotFoundError as error:
@@ -184,7 +216,7 @@ class Controller:
                 raise APIError(502, "cli_failure", "Could not execute the repository CLI.") from error
             if result.returncode != 0:
                 raise cli_error(result)
-            if command in ("status", "stats"):
+            if command in QUERIES:
                 return validate_json(command, result.stdout)
             return {"ok": True, "action": command, "refresh_required": True}
         finally:
@@ -330,7 +362,7 @@ class Handler(BaseHTTPRequestHandler):
             if site is not None and site not in ("same-origin", "none"):
                 raise APIError(403, "cross_origin", "Cross-site requests are forbidden.")
             # Fixed raw paths: no decoding, query, normalization, directory lookup or redirects.
-            is_api = self.path in ("/api/status", "/api/stats") or self.path.startswith("/api/actions/")
+            is_api = self.path in ("/api/status", "/api/stats", "/api/snapshot") or self.path.startswith("/api/actions/")
             if self.path not in ASSETS and not is_api:
                 raise APIError(404, "not_found", "Route not found.")
             if self.single_header("Transfer-Encoding") is not None or self.single_header("Expect") is not None:
@@ -375,10 +407,11 @@ class Handler(BaseHTTPRequestHandler):
                     body = strict_json(raw.decode("utf-8"))
                 except (ValueError, UnicodeError, RecursionError) as error:
                     raise APIError(400, "invalid_body", "Malformed JSON body.") from error
-                wanted = {"confirm": "DESTROY"} if action == "destroy" else {}
+                confirmation = CONFIRMATIONS.get(action)
+                wanted = {"confirm": confirmation} if confirmation else {}
                 if type(body) is not dict or body != wanted:
-                    raise APIError(400, "confirmation_required" if action == "destroy" else "invalid_body",
-                                   'Destroy requires {"confirm":"DESTROY"}.' if action == "destroy" else "Action body must be {}.")
+                    raise APIError(400, "confirmation_required" if confirmation else "invalid_body",
+                                   "Exact typed confirmation is required." if confirmation else "Action body must be {}.")
                 self.read_deadline.cancel()
                 self.reply(200, self.server.controller.call(action))
         except APIError as error:

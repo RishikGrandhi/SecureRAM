@@ -3,6 +3,8 @@
 (() => {
   const counters = ["read_requests", "write_requests", "read_bytes", "write_bytes", "integrity_failures"];
   const actions = ["load-random", "lock", "unlock", "destroy"];
+  const snapshotActions = ["snapshot-create", "snapshot-restore", "snapshot-delete"];
+  const confirmations = {destroy: "DESTROY", "snapshot-restore": "RESTORE", "snapshot-delete": "DELETE"};
   const descriptions = {
     0: "No key is installed. Load a random key to create an empty medium.",
     1: "The kernel is preparing authenticated encrypted storage.",
@@ -27,6 +29,11 @@
     return {read: Number(current.read_bytes - previous.read_bytes) * 1000 / elapsed,
             write: Number(current.write_bytes - previous.write_bytes) * 1000 / elapsed};
   }
+  function snapshotEnabled(state, features, fresh, busy, snapshot) {
+    if (features !== 31 || !fresh || busy || !snapshot || snapshot.state !== state) return [];
+    if (state === 2) return snapshot.exists ? ["snapshot-restore", "snapshot-delete"] : ["snapshot-create"];
+    return [0, 3, 4].includes(state) && snapshot.exists ? ["snapshot-delete"] : [];
+  }
   function parseStats(data) {
     const result = {};
     for (const key of counters) {
@@ -37,7 +44,7 @@
     return result;
   }
   // Pure display helpers are tested with the existing Node runtime, no packages.
-  if (typeof module !== "undefined" && module.exports) module.exports = {bytes, enabled, sample, parseStats};
+  if (typeof module !== "undefined" && module.exports) module.exports = {bytes, enabled, sample, parseStats, snapshotEnabled};
   if (typeof document === "undefined") return;
 
   const el = id => document.getElementById(id);
@@ -49,6 +56,7 @@
   let current = null, fresh = false, busy = false, polling = false, timer = null;
   let previous = null, previousTime = 0, samples = [], connected = null;
   let lastState = null, lastGeneration = null, lastFailures = null;
+  let snapshot = null, pendingSnapshotAction = null;
   const activity = [];
   const validToken = /^[A-Za-z0-9_-]{43}$/.test(token);
   if (!validToken) token = "";
@@ -65,6 +73,10 @@
     const allowed = enabled(current?.state, current?.compatible, fresh, busy);
     for (const action of actions) el(action).disabled = !allowed.includes(action);
     el("confirm-destroy").disabled = el("destroy-confirm").value !== "DESTROY" || !allowed.includes("destroy");
+    const allowedSnapshots = snapshotEnabled(current?.state, current?.features, fresh, busy, snapshot);
+    for (const action of snapshotActions) el(action).disabled = !allowedSnapshots.includes(action);
+    el("confirm-snapshot").disabled = !allowedSnapshots.includes(pendingSnapshotAction) ||
+      el("snapshot-confirm").value !== confirmations[pendingSnapshotAction];
   }
   function showError(title, message) {
     text("error-title", title); text("error-message", message); el("error-panel").hidden = false;
@@ -114,6 +126,7 @@
     text("integrity", data.integrity ? "HMAC-SHA-256" : "Not advertised");
     text("footer-version", `Driver ${data.version || "unavailable"}`);
     const features = ["xts", "lock", "integrity", "stats"].filter(k => data[k]);
+    if (data.features & 16) features.push("snapshot");
     el("feature-list").replaceChildren(...features.map(name => {
       const tag = document.createElement("span"); tag.textContent = name.toUpperCase(); return tag;
     }));
@@ -142,6 +155,13 @@
     else samples = [];
     previous = values; previousTime = now; drawChart();
   }
+  function renderSnapshot(data) {
+    snapshot = data;
+    text("snapshot-status", data ? (data.exists ? "Available" : "Absent") : "Not supported by this driver");
+    text("snapshot-size", data?.exists ? `${bytes(data.data_bytes)} + ${bytes(data.tag_bytes)} tags` : "—");
+    text("snapshot-generation", data?.exists ? data.generation : "—");
+    text("snapshot-counters", data ? `Created ${data.created} · Restored ${data.restored} · Deleted ${data.deleted} · Failed ${data.failures}` : "—");
+  }
   async function refresh() {
     if (polling || !token || document.hidden) return;
     polling = true;
@@ -150,6 +170,7 @@
       renderStatus(status); // Show a failure latch even if the following stats request fails.
       const stats = await api("/api/stats");
       renderStats(stats);
+      renderSnapshot(status.features === 31 ? await api("/api/snapshot") : null);
       if (connected === false) event("Backend reconnected; fresh observations received.");
       connected = true; fresh = true;
       el("data-panels").dataset.stale = "false"; el("stale-label").hidden = true;
@@ -178,15 +199,18 @@
     timer = setTimeout(async () => { if (!busy) await refresh(); schedule(); }, 1000);
   }
   async function act(action) {
-    if (busy || !enabled(current?.state, current?.compatible, fresh, false).includes(action)) return;
+    const allowed = [...enabled(current?.state, current?.compatible, fresh, busy),
+      ...snapshotEnabled(current?.state, current?.features, fresh, busy, snapshot)];
+    if (busy || !allowed.includes(action)) return;
     busy = true; updateButtons(); text("action-result", "Operation running…");
     clearTimeout(timer);
     // Polling runs sequentially, but an already pending observation can still finish.
     while (polling) await new Promise(resolve => setTimeout(resolve, 25));
     stale();
     try {
-      await api(`/api/actions/${action}`, action === "destroy" ? {confirm: "DESTROY"} : {});
-      const message = ({"load-random": "Key loaded", lock: "Device locked", unlock: "Device unlocked", destroy: "Key and data destroyed"})[action];
+      await api(`/api/actions/${action}`, confirmations[action] ? {confirm: confirmations[action]} : {});
+      const message = ({"load-random": "Key loaded", lock: "Device locked", unlock: "Device unlocked", destroy: "Key and data destroyed",
+        "snapshot-create": "Snapshot created", "snapshot-restore": "Snapshot restored", "snapshot-delete": "Snapshot deleted"})[action];
       event(`${message}. Refreshing kernel state.`); text("action-result", `${message}.`);
     } catch (error) {
       const message = error.code ? error.message : "Connection lost during action; outcome unknown. Check state before retrying.";
@@ -204,6 +228,24 @@
   el("cancel-destroy").addEventListener("click", () => el("destroy-dialog").close());
   el("confirm-destroy").addEventListener("click", () => {
     if (el("destroy-confirm").value === "DESTROY") { el("destroy-dialog").close(); void act("destroy"); }
+  });
+  for (const action of snapshotActions) el(action).addEventListener("click", () => {
+    if (action === "snapshot-create") { void act(action); return; }
+    pendingSnapshotAction = action;
+    text("snapshot-dialog-title", action === "snapshot-restore" ? "Restore captured storage?" : "Delete this snapshot?");
+    text("snapshot-dialog-message", action === "snapshot-restore" ?
+      "Restore discards all changes since capture. The snapshot remains available. Unmount and close block users first." :
+      "Delete permanently removes the rollback copy. Current storage is retained. Close all block users first.");
+    text("snapshot-confirm-word", confirmations[action]);
+    el("snapshot-confirm").value = ""; updateButtons(); el("snapshot-dialog").showModal(); el("snapshot-confirm").focus();
+  });
+  el("snapshot-confirm").addEventListener("input", updateButtons);
+  el("snapshot-dialog").querySelector("form").addEventListener("submit", e => e.preventDefault());
+  el("cancel-snapshot").addEventListener("click", () => el("snapshot-dialog").close());
+  el("confirm-snapshot").addEventListener("click", () => {
+    if (pendingSnapshotAction && el("snapshot-confirm").value === confirmations[pendingSnapshotAction]) {
+      el("snapshot-dialog").close(); void act(pendingSnapshotAction);
+    }
   });
   document.addEventListener("visibilitychange", () => {
     stale();
