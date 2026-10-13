@@ -20,6 +20,7 @@ static unsigned long long generation;
 static int dumped, locked;
 static size_t generated;
 static unsigned int random_calls;
+static unsigned int snapshot_exists;
 
 static int scenario(const char *name)
 {
@@ -44,6 +45,7 @@ int __wrap_open(const char *path, int flags, ...)
 		return fail(EACCES);
 	state = getenv("M6_STATE") ? (unsigned int)strtoul(getenv("M6_STATE"), NULL, 10) : 0;
 	generation = state ? 1 : 0;
+	snapshot_exists = scenario("m8-present") ? 1U : 0U;
 	return 123;
 }
 
@@ -160,7 +162,29 @@ int __wrap_ioctl(int fd, unsigned long command, ...)
 		status->state = state;
 		status->unit_size = 4096;
 		status->features = scenario("old-driver") ? 7U : 15U;
+		if (getenv("M6_MOCK") && !strncmp(getenv("M6_MOCK"), "m8-", 3))
+			status->features = 31;
 		status->reserved = scenario("query-reserved") ? 1U : 0U;
+		return 0;
+	}
+	if (command == SECURERAM_IOC_SNAPSHOT_STATUS) {
+		struct secureram_ioc_snapshot *snapshot = payload;
+
+		if (scenario("m8-followup"))
+			return fail(EIO);
+		memset(snapshot, 0, sizeof(*snapshot));
+		snapshot->header.version = 1;
+		snapshot->header.size = scenario("m8-size") ? 95U : (unsigned int)sizeof(*snapshot);
+		snapshot->exists = snapshot_exists;
+		snapshot->state = state;
+		snapshot->data_bytes = snapshot_exists ? 67108864U : 0U;
+		snapshot->tag_bytes = snapshot_exists ? 524288U : 0U;
+		snapshot->generation = snapshot_exists ? generation : 0;
+		snapshot->created = UINT64_MAX;
+		if (scenario("m8-reserved"))
+			snapshot->reserved[1] = 1;
+		if (scenario("m8-metadata"))
+			snapshot->data_bytes = 7;
 		return 0;
 	}
 	if (command == SECURERAM_IOC_GET_STATS) {
@@ -191,6 +215,29 @@ int __wrap_ioctl(int fd, unsigned long command, ...)
 		return 0;
 	}
 	assert(header->size == 16);
+	if (command == SECURERAM_IOC_SNAPSHOT_CREATE ||
+	    command == SECURERAM_IOC_SNAPSHOT_RESTORE || command == SECURERAM_IOC_SNAPSHOT_DELETE) {
+		assert(!header->flags);
+		if (scenario("m8-busy"))
+			return fail(EBUSY);
+		if (command == SECURERAM_IOC_SNAPSHOT_DELETE) {
+			snapshot_exists = 0;
+			return 0;
+		}
+		if (state != 2)
+			return fail(EBUSY);
+		if (scenario("m8-stale"))
+			return fail(ESTALE);
+		if (command == SECURERAM_IOC_SNAPSHOT_CREATE) {
+			if (snapshot_exists)
+				return fail(EEXIST);
+			if (scenario("m8-memory"))
+				return fail(ENOMEM);
+			snapshot_exists = 1;
+			return 0;
+		}
+		return snapshot_exists ? 0 : fail(ENODATA);
+	}
 	if (scenario("busy"))
 		return fail(EBUSY);
 	if (command == SECURERAM_IOC_DESTROY_KEY) {

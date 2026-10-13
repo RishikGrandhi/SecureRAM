@@ -328,7 +328,7 @@ int secureram_block_query(struct secureram_device *device,
 	status->state = READ_ONCE(device->security.state);
 	status->unit_size = SECURERAM_UNIT_BYTES;
 	status->features = SECURERAM_FEATURE_XTS | SECURERAM_FEATURE_LOCK |
-		SECURERAM_FEATURE_INTEGRITY | SECURERAM_FEATURE_STATS;
+		SECURERAM_FEATURE_INTEGRITY | SECURERAM_FEATURE_STATS | SECURERAM_FEATURE_SNAPSHOT;
 	mutex_unlock(&device->control_lock);
 	return 0;
 }
@@ -337,6 +337,56 @@ void secureram_block_stats(struct secureram_device *device,
 			   struct secureram_ioc_stats *stats)
 {
 	secureram_stats_snapshot(&device->stats, stats);
+}
+
+void secureram_block_snapshot_status(struct secureram_device *device,
+				     struct secureram_ioc_snapshot *status)
+{
+	struct secureram_snapshot *snapshot = &device->security.snapshot;
+
+	mutex_lock(&device->control_lock);
+	memset(status, 0, sizeof(*status));
+	status->header.version = SECURERAM_ABI_VERSION;
+	status->header.size = sizeof(*status);
+	status->exists = snapshot->valid;
+	status->state = READ_ONCE(device->security.state);
+	if (snapshot->valid) {
+		status->data_bytes = snapshot->store.size;
+		status->tag_bytes = snapshot->store.tag_size;
+		status->generation = snapshot->generation;
+	}
+	status->created = snapshot->created;
+	status->restored = snapshot->restored;
+	status->deleted = snapshot->deleted;
+	status->failures = snapshot->failures;
+	mutex_unlock(&device->control_lock);
+}
+
+int secureram_block_snapshot_change(struct secureram_device *device,
+				    unsigned int command)
+{
+	struct secureram_security *security = &device->security;
+	int ret;
+
+	mutex_lock(&device->control_lock);
+	if (READ_ONCE(security->state) == SECURERAM_DYING) {
+		ret = -ENODEV;
+		goto out;
+	}
+	if (device->openers) {
+		ret = -EBUSY;
+		goto out;
+	}
+	secureram_admission(device, false);
+	flush_workqueue(device->workqueue);
+	ret = secureram_snapshot_change(&security->snapshot, &security->store,
+					security->generation, READ_ONCE(security->state), command);
+	secureram_admission(device, READ_ONCE(security->state) == SECURERAM_ACTIVE);
+out:
+	if (ret)
+		secureram_snapshot_failure(&security->snapshot);
+	mutex_unlock(&device->control_lock);
+	return ret;
 }
 
 int secureram_block_change(struct secureram_device *device, unsigned int command,

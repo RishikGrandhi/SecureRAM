@@ -55,10 +55,14 @@ m5_check_kernel_health()
 	fi
 	m5_record 'Kernel health' FAIL 'runtime evidence captured; health review did not complete'
 	: > "$failures"
-	if [[ ${SR_MILESTONE:-5} == 6 || ${SR_MILESTONE:-5} == 7 ]]; then
+	if [[ ${SR_MILESTONE:-5} == 6 || ${SR_MILESTONE:-5} == 7 || ${SR_MILESTONE:-5} == 8 ]]; then
 		# A warning may be environmental; retain it for classification, never
 		# declare health PASS before the operator has resolved that evidence.
 		grep -Ein "$faults|WARNING:|Call Trace:" "$log" >> "$failures" || true
+	fi
+	if [[ ${SR_MILESTONE:-5} == 8 ]]; then
+		grep -Ein 'possible.*locking|possible.*deadlock|suspicious RCU|sleeping function called|double free|kmemleak' \
+			"$log" >> "$failures" || true
 	fi
 	grep -Ein 'secureram:.*(test.*FAILED|FAILED.*test)' "$log" >> "$failures" || true
 	grep -Ein "$attributed|secureram_[[:alnum:]_]+\\+0x" "$log" \

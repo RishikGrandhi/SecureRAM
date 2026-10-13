@@ -449,7 +449,7 @@ class ContractTests(unittest.TestCase):
                     try:
                         extra.sendall(b"GET / HTTP/1.1\r\n\r\n")
                         self.assertEqual(extra.recv(32), b"")
-                    except ConnectionResetError:
+                    except (ConnectionResetError, ConnectionAbortedError):
                         pass
                 self.assertFalse(server.slots.acquire(blocking=False))
             finally:

@@ -11,6 +11,8 @@ import sys
 from urllib.parse import urlsplit
 
 COUNTERS = ("read_requests", "write_requests", "read_bytes", "write_bytes", "integrity_failures")
+VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") == "8" else "0.6.0"
+FEATURES = 31 if VERSION == "0.8.0" else 15
 
 
 def request(path, method="GET", body=None, headers=None):
@@ -55,9 +57,9 @@ def status(state, generation, capacity):
     names = {0: "NO_KEY", 1: "PREPARING", 2: "ACTIVE", 3: "LOCKED", 4: "INTEGRITY_FAILED"}
     assert (result["state"], result["state_name"], result["generation"], result["capacity_bytes"]) == (
         state, names[state], str(generation), str(capacity))
-    assert result["version"] == result["cli_version"] == "0.6.0"
-    assert result["dashboard_version"] == "0.7.0"
-    assert result["features"] == 15 and result["unit_bytes"] == 4096
+    assert result["version"] == result["cli_version"] == VERSION
+    assert result["dashboard_version"] == "0.8.0"
+    assert result["features"] == FEATURES and result["unit_bytes"] == 4096
     assert result["compatible"] is True
     assert all(result[key] is True for key in ("xts", "lock", "integrity", "stats"))
 

@@ -31,7 +31,7 @@ def main():
                     *[f"-Wl,--wrap={name}" for name in WRAPS], "-o", str(MOCK)], check=True)
     for mock in (False, True):
         assert "Usage:" in run(["help"], mock=mock)
-        assert run(["version"], mock=mock) == "secureramctl 0.6.0 (ABI 1)\n"
+        assert run(["version"], mock=mock) == "secureramctl 0.8.0 (ABI 1)\n"
         for args in ([], ["oops"], ["--json"], ["help", "--json"],
                      ["load-random", "--json"], ["status", "extra"],
                      ["stats", "--json", "extra"], ["destroy", "yes"]):

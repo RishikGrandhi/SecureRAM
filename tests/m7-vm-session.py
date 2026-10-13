@@ -39,7 +39,7 @@ def read_startup(process):
             if not chunk or len(data) + len(chunk) > 4096:
                 raise RuntimeError("dashboard startup failed")
             data += chunk
-    match = re.fullmatch(rb"SecureRAM Dashboard 0\.7\.0\nListening only on 127\.0\.0\.1\n"
+    match = re.fullmatch(rb"SecureRAM Dashboard 0\.8\.0\nListening only on 127\.0\.0\.1\n"
                          rb"Open: (http://127\.0\.0\.1:([0-9]+)/)#token=([A-Za-z0-9_-]{43})\n", data)
     if not match:
         raise RuntimeError("unexpected dashboard startup protocol")
@@ -96,13 +96,14 @@ def run_session():
                                       cwd=ROOT, env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"})
             origin, token = read_startup(server)
             port = urlsplit(origin).port
-            record("Dashboard startup", "PASS", "backend 0.7.0 started; credential retained only in memory")
+            record("Dashboard startup", "PASS", "backend 0.8.0 started; credential retained only in memory")
             assert_loopback(server.pid, port)
             record("Loopback-only binding", "PASS", "owned /proc socket is exclusively 127.0.0.1")
             env = dict(os.environ, M7_ORIGIN=origin, M7_TOKEN=token)
             try:
                 # Child shell owns all device cleanup; Popen context waits on unwind.
-                with subprocess.Popen(["bash", str(ROOT / "tests/m7-vm-phases.sh")], cwd=ROOT, env=env) as phases:
+                script = "m8-vm-phases.sh" if os.environ.get("SR_MILESTONE") == "8" else "m7-vm-phases.sh"
+                with subprocess.Popen(["bash", str(ROOT / "tests" / script)], cwd=ROOT, env=env) as phases:
                     result = phases.wait()
                 if result:
                     raise RuntimeError("M7 runtime phase failed; inspect retained phase logs")

@@ -1,5 +1,37 @@
 # Verification by milestone
 
+## M8 accepted candidate
+
+Exact implementation commit `564d8bdb42558fc25db1a6648be9b695d424f9fc`
+passed the complete automated Ubuntu VM suite and a separate real Firefox/manual
+rollback session on Ubuntu 24.04.5 LTS, Linux 7.0.0-38-generic. Automated evidence
+is retained in the VM at
+`.cache/m8-vm/20261013T105429Z-3183`; its final result was `OVERALL PASS`.
+The manual session independently proved a 4096-byte baseline/overwrite/restore
+sequence through real dashboard actions, then delete, destroy and clean unload.
+See [the M8 procedure](../docs/m8-testing.md) for exact evidence and boundaries.
+
+Run `python3 tests/check-m8-local.py --kdir /path/to/headers --checkpatch
+/path/to/scripts/checkpatch.pl` in Linux/WSL. See
+[the M8 procedure](../docs/m8-testing.md) for exact commands and the separate
+full-SHA VM harness. Local tests never load/access devices or install packages.
+
+| File | Responsibility |
+| --- | --- |
+| `check-m8-core.py`, `m8-core.c` | Actual snapshot/store C linked to narrow allocator/scheduler shims; ASan/UBSan, two allocation failures, paired copy, stale/geometry rejection, 100 cycles, saturation and wipe-before-free. |
+| `check-m8-cli.py` | Real parser and inherited syscall fixtures, fixed new ioctl dispatch, errors, JSON, backwards-compatible status/stats. |
+| `check-m8-dashboard.py`, `check-m8-ui.js` | Real HTTP adapter with mocked CLI, strict new JSON/confirmations/authorization and pure UI gating. |
+| `m8-preview.py` | Visibly labelled, unprivileged browser fixture. |
+| `m8-snapshot.py` | Opt-in real-device full SHA rollback, UAPI/privilege/lock/invalidation/concurrency/repeated cycles, HTTP metadata/actions, integrity-latch check. |
+| `run-m8-vm-acceptance.sh`, `m8-vm-phases.sh` | Profile 8 reuses all M6/M7 phases and evidence owner; adds M8 groups and unload with populated slot. |
+| `check-m8-vm-harness.sh` | Actual new phase functions with mocks, ordering and fail-fast assertions. |
+
+Only profile 8 changes runtime expectations to 0.8.0/features 31. Earlier
+profiles keep exact historical driver expectations; rerun them at their original
+commits. Shared local CLI/version checks track the current build. The inherited
+Windows socket-bound test now accepts both reset and aborted connection errors
+as closed excess connections, retaining its slot-bound assertion.
+
 ## M7 dashboard candidate
 
 Dashboard 0.7.0 final tested candidate

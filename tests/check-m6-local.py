@@ -54,7 +54,7 @@ def main():
             assert not re.search(r"tamper|secureram_test_binding", symbols)
             assert not re.search(r"M[456] test|secureram_.*tamper|SECURERAM_IOC_TAMPER", strings)
     info = run("modinfo", ["/usr/sbin/modinfo", "secureram.ko"])
-    assert re.search(r"version:\s+0.6.0", info) and re.search(r"depends:\s+hkdf", info)
+    assert re.search(r"version:\s+0.8.0", info) and re.search(r"depends:\s+hkdf", info)
     imports = run("imports", ["nm", "-u", "secureram.ko"])
     exported = {line.split()[1] for line in (target / "Module.symvers").read_text().splitlines()}
     assert {line.split()[-1] for line in imports.splitlines()} <= exported

@@ -16,6 +16,10 @@ sudo ./tools/secureramctl load-random
 sudo ./tools/secureramctl lock
 sudo ./tools/secureramctl unlock
 sudo ./tools/secureramctl destroy
+sudo ./tools/secureramctl snapshot create
+sudo ./tools/secureramctl snapshot status --json
+sudo ./tools/secureramctl snapshot restore
+sudo ./tools/secureramctl snapshot delete
 ```
 
 The caller supplies sudo externally. There is no setuid bit, privilege escalation,
@@ -54,7 +58,7 @@ Confidentiality: AES-256-XTS
 Integrity: HMAC-SHA-256
 ```
 
-JSON is supported only for status and stats. Success writes one JSON object to
+JSON is supported for status, stats and all four snapshot commands. Success writes one JSON object to
 stdout; diagnostics go to stderr, with a nonzero exit status on failure. Do not
 parse human output. Stable status fields are:
 
@@ -71,6 +75,45 @@ Unknown future state values retain their numeric value with name UNKNOWN.
 Unknown feature bits remain visible in the mask. Cipher names in human output
 are emitted only when their feature is advertised. ABI version/size/reserved
 mismatches fail; STATS must be advertised before GET_STATS is attempted.
+
+The examples above retain M6's values to illustrate the unchanged schema.
+Current M8 versions are 0.8.0 and features are 31 (SNAPSHOT bit 16); no extra
+field is added to the existing status or stats JSON.
+
+## Snapshot commands (M8)
+
+`snapshot create|status|restore|delete [--json]` operates only on the one
+kernel-owned volatile slot. All commands require the SNAPSHOT feature. Mutations
+require zero block users. Create/restore require ACTIVE. Create fails with
+EEXIST if the slot is occupied; explicitly delete it before replacement.
+Restore discards current storage changes but retains the slot. Delete is
+idempotent and allowed in NO_KEY/LOCKED/INTEGRITY_FAILED, without changing state.
+The CLI deliberately has no interactive prompts; explicit restore/delete commands
+authorize those actions for automation. The dashboard supplies confirmations.
+
+Snapshot status schema (illustrative):
+
+```json
+{"abi":1,"exists":true,"state":2,"data_bytes":67108864,
+"tag_bytes":524288,"generation":1,"created":1,"restored":0,"deleted":0,"failures":0}
+```
+
+`generation` is the slot's key generation, zero when absent, as are the sizes.
+Counters saturate at U64_MAX and survive destroy/rekey, resetting on module reload.
+`deleted` counts explicit deletion of a present slot; automatic key/unload cleanup
+and repeated deletion of an absent slot do not increment it. `failures` counts
+well-formed authorized mutations rejected by the block/snapshot path (busy,
+state, absent/occupied, stale, allocation/geometry failure), not status reads,
+copy faults, malformed headers or unauthorized calls. No keys or bytes are output.
+Snapshot operations never increment ordinary READ/WRITE counters.
+
+Successful mutation output is a separate follow-up status observation. Another
+administrator can act between the mutation and observation; it is not a receipt
+for an immutable state. A failed follow-up explicitly says the operation already
+completed; inspect status before retrying. Exit codes remain 0/1/2/3. ENODATA
+means absent; ESTALE means incompatible generation; EBUSY means open users or
+invalid state; ENOMEM means allocation failure. Existing operations keep their
+behavior and errno mapping.
 
 Illustrative stats output:
 

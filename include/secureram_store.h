@@ -17,6 +17,9 @@ struct secureram_store {
 int secureram_store_init(struct secureram_store *store, u64 size);
 void secureram_store_destroy(struct secureram_store *store);
 void secureram_store_clear(struct secureram_store *store);
+/* Validate both complete allocations before any copy. Caller excludes access. */
+int secureram_store_copy(struct secureram_store *destination,
+			 const struct secureram_store *source);
 bool secureram_store_contains(const struct secureram_store *store,
 			      u64 offset, size_t length);
 /* Complete ciphertext/tag pairs only; caller excludes all other access. */

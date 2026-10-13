@@ -13,6 +13,7 @@
 #define SECURERAM_FEATURE_LOCK 2U
 #define SECURERAM_FEATURE_INTEGRITY 4U
 #define SECURERAM_FEATURE_STATS 8U
+#define SECURERAM_FEATURE_SNAPSHOT 16U
 
 #define SECURERAM_NO_KEY 0U
 #define SECURERAM_PREPARING 1U
@@ -62,6 +63,25 @@ struct secureram_ioc_stats {
 	__aligned_u64 reserved[3];
 };
 
+/* Output-only. Sizes/generation are zero when absent. Counters are device-life,
+ * saturating values, serialized with snapshot operations. Failures count valid
+ * mutation requests reaching the block layer, not malformed/unauthorized ioctl.
+ * deleted counts explicit deletion of a present slot, not lifecycle cleanup.
+ */
+struct secureram_ioc_snapshot {
+	struct secureram_ioc_header header;
+	__u32 exists;
+	__u32 state;
+	__aligned_u64 data_bytes;
+	__aligned_u64 tag_bytes;
+	__aligned_u64 generation;
+	__aligned_u64 created;
+	__aligned_u64 restored;
+	__aligned_u64 deleted;
+	__aligned_u64 failures;
+	__aligned_u64 reserved[2];
+};
+
 /* Project-local ioctl namespace, not an upstream-assigned global number. */
 #define SECURERAM_IOC_QUERY _IOR(0xb7, 0x00, struct secureram_ioc_status)
 #define SECURERAM_IOC_LOAD_KEY _IOW(0xb7, 0x01, struct secureram_ioc_key)
@@ -69,5 +89,9 @@ struct secureram_ioc_stats {
 #define SECURERAM_IOC_UNLOCK _IOW(0xb7, 0x03, struct secureram_ioc_header)
 #define SECURERAM_IOC_DESTROY_KEY _IOW(0xb7, 0x04, struct secureram_ioc_header)
 #define SECURERAM_IOC_GET_STATS _IOR(0xb7, 0x05, struct secureram_ioc_stats)
+#define SECURERAM_IOC_SNAPSHOT_CREATE _IOW(0xb7, 0x06, struct secureram_ioc_header)
+#define SECURERAM_IOC_SNAPSHOT_RESTORE _IOW(0xb7, 0x07, struct secureram_ioc_header)
+#define SECURERAM_IOC_SNAPSHOT_DELETE _IOW(0xb7, 0x08, struct secureram_ioc_header)
+#define SECURERAM_IOC_SNAPSHOT_STATUS _IOR(0xb7, 0x09, struct secureram_ioc_snapshot)
 
 #endif /* _UAPI_SECURERAM_H */

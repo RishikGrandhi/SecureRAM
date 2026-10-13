@@ -17,6 +17,8 @@ BASE = runpy.run_path(str(ROOT / "tests/m5-integrity.py"))
 GET_STATS = 0x8050B705
 COUNTERS = ("read_requests", "write_requests", "read_bytes", "write_bytes", "integrity_failures")
 NAMES = {0: "NO_KEY", 1: "PREPARING", 2: "ACTIVE", 3: "LOCKED", 4: "INTEGRITY_FAILED"}
+VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") == "8" else "0.6.0"
+FEATURES = 31 if VERSION == "0.8.0" else 15
 
 
 def cli(command, json_output=False):
@@ -34,14 +36,14 @@ def stats():
 
 def status(state, generation, capacity):
     result = cli("status", True)
-    assert result == dict(version="0.6.0", cli_version="0.6.0", abi=1, state=state,
+    assert result == dict(version=VERSION, cli_version=VERSION, abi=1, state=state,
                           state_name=NAMES[state], capacity_bytes=capacity, unit_bytes=4096,
-                          generation=generation, features=15, xts=True, lock=True,
+                          generation=generation, features=FEATURES, xts=True, lock=True,
                           integrity=True, stats=True), result
     human = cli("status")
     assert f"State: {NAMES[state]} ({state})" in human
     assert "AES-256-XTS" in human and "HMAC-SHA-256" in human
-    assert "15 XTS LOCK INTEGRITY STATS" in human
+    assert f"{FEATURES} XTS LOCK INTEGRITY STATS" in human
     print(human, end="")
     print(json.dumps(result, sort_keys=True))
 
@@ -75,7 +77,7 @@ def baseline():
 
 
 def accounting():
-    number, _ = BASE["BASE"]["identity"]("0.6.0")
+    number, _ = BASE["BASE"]["identity"](VERSION)
     fd = BASE["open_block"](number)
     try:
         before = stats()

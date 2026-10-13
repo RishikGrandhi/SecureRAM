@@ -16,6 +16,10 @@ void secureram_block_stats(struct secureram_device *device,
 			   struct secureram_ioc_stats *stats);
 int secureram_block_change(struct secureram_device *device, unsigned int command,
 			   u8 *key);
+void secureram_block_snapshot_status(struct secureram_device *device,
+				     struct secureram_ioc_snapshot *status);
+int secureram_block_snapshot_change(struct secureram_device *device,
+				    unsigned int command);
 
 #ifdef SECURERAM_M5_TEST
 struct secureram_ioc_tamper;

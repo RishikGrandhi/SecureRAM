@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="SecureRAM dashboard"><span class="brand-mark" aria-hidden="true">S<span>R</span></span><span>SecureRAM<small>Secure Virtual RAM-backed Storage</small></span></a>
-    <div class="header-meta"><span class="local-badge">LOOPBACK ONLY</span><span class="mono">DASHBOARD 0.7.0</span></div>
+    <div class="header-meta"><span class="local-badge">LOOPBACK ONLY</span><span class="mono">DASHBOARD 0.8.0</span></div>
   </header>
   <main>
     <div class="page-heading"><div><p class="eyebrow">OPERATING SYSTEMS / DEVICE CONSOLE</p><h1>Storage, under control.</h1><p class="subtitle">Volatile block storage. Live kernel state. Explicit lifecycle control.</p></div><div class="connection"><span id="connection" role="status">Connecting…</span><small id="updated">Awaiting first observation</small></div></div>
@@ -30,6 +30,13 @@
         <p>Changes require an unmounted device with no open block users.</p>
         <div class="action-grid"><button id="load-random" class="primary" disabled>Load Random Key <span aria-hidden="true">↗</span></button><button id="lock" disabled>Lock</button><button id="unlock" disabled>Unlock</button><button id="destroy" class="danger" disabled>Destroy key &amp; data</button></div>
         <p id="action-result" class="action-result" role="status">Waiting for device state.</p>
+      </section>
+      <section class="panel snapshots" aria-labelledby="snapshot-heading">
+        <div class="panel-top"><h2 id="snapshot-heading">Secure snapshot</h2><span class="chip">ONE VOLATILE SLOT</span></div>
+        <dl class="device-grid"><div><dt>Snapshot</dt><dd id="snapshot-status">Awaiting device</dd></div><div><dt>Ciphertext + metadata</dt><dd id="snapshot-size">—</dd></div><div><dt>Captured generation</dt><dd id="snapshot-generation">—</dd></div></dl>
+        <div class="snapshot-actions"><button id="snapshot-create" disabled>Create Snapshot</button><button id="snapshot-restore" class="danger" disabled>Restore Snapshot</button><button id="snapshot-delete" class="danger" disabled>Delete Snapshot</button></div>
+        <p id="snapshot-counters" class="panel-note">—</p>
+        <p class="panel-note">Unmount and close block users first. Captures encrypted storage and matching authentication tags; no application or filesystem consistency guarantee. Destroying the key also deletes this snapshot.</p>
       </section>
       <section class="metrics" aria-label="Runtime statistics">
         <article class="metric"><h2>Successful reads</h2><strong id="read_requests">—</strong><small>requests completed</small></article>
@@ -61,8 +68,9 @@
     </div>
     <details class="limits"><summary>Security boundary &amp; observation limits</summary><p>This dashboard adds usability and observability. It does not strengthen the cryptography. There is no same-unit, same-generation replay prevention, whole-request atomic plaintext-release guarantee, malicious root/kernel/hypervisor protection, crash-persistent anti-replay, or physical RAM-erasure guarantee.</p><p>The local session token does not replace OS privilege isolation. Status and statistics are separate snapshots. Counters survive destroy/rekey, reset on module reload and saturate at U64_MAX. Lock retains the resident keys; destroy discards the volatile medium. Closing this page or stopping the dashboard does not destroy a key.</p></details>
   </main>
-  <footer><span><b>SecureRAM</b> <span id="footer-version">Driver —</span> / Dashboard 0.7.0</span><span>127.0.0.1 only <span aria-hidden="true">·</span> Offline assets <span aria-hidden="true">·</span> ~1s refresh</span></footer>
+  <footer><span><b>SecureRAM</b> <span id="footer-version">Driver —</span> / Dashboard 0.8.0</span><span>127.0.0.1 only <span aria-hidden="true">·</span> Offline assets <span aria-hidden="true">·</span> ~1s refresh</span></footer>
   <dialog id="destroy-dialog" aria-labelledby="destroy-title"><form method="dialog"><p class="eyebrow">DESTRUCTIVE OPERATION</p><h2 id="destroy-title">Discard this medium?</h2><p>Destroy removes the key and all data in SecureRAM. This cannot be undone. A fresh key creates a new empty medium.</p><p>Unmount and close every block user first.</p><label for="destroy-confirm">Type <b>DESTROY</b> to confirm</label><input id="destroy-confirm" autocomplete="off" spellcheck="false" maxlength="7"><div class="dialog-actions"><button id="cancel-destroy" type="button">Cancel</button><button id="confirm-destroy" type="button" class="danger-solid" disabled>Destroy key &amp; data</button></div></form></dialog>
+  <dialog id="snapshot-dialog" aria-labelledby="snapshot-dialog-title"><form method="dialog"><p class="eyebrow">DESTRUCTIVE OPERATION</p><h2 id="snapshot-dialog-title">Confirm snapshot action</h2><p id="snapshot-dialog-message"></p><label for="snapshot-confirm">Type <b id="snapshot-confirm-word"></b> to confirm</label><input id="snapshot-confirm" autocomplete="off" spellcheck="false" maxlength="7"><div class="dialog-actions"><button id="cancel-snapshot" type="button">Cancel</button><button id="confirm-snapshot" type="button" class="danger-solid" disabled>Confirm</button></div></form></dialog>
   <noscript><p class="notice">JavaScript is required for authorized status and lifecycle controls.</p></noscript>
 </body>
 </html>
