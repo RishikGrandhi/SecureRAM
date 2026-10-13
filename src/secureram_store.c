@@ -6,6 +6,7 @@
 #include <linux/vmalloc.h>
 
 #include "secureram_store.h"
+#include "secureram_fault.h"
 #include "uapi/secureram.h"
 #ifdef SECURERAM_M5_TEST
 #include "uapi/secureram_test.h"
@@ -16,14 +17,14 @@ int secureram_store_init(struct secureram_store *store, u64 size)
 	if (!size || size > SIZE_MAX || size % SECURERAM_UNIT_BYTES)
 		return -EINVAL;
 
-	store->data = vzalloc((size_t)size);
+	store->data = secureram_fault(SECURERAM_FAULT_DATA) ? NULL : vzalloc((size_t)size);
 	if (!store->data)
 		return -ENOMEM;
 
 	store->size = (size_t)size;
 	/* Division first: tag bytes per unit are smaller than the unit itself. */
 	store->tag_size = store->size / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES;
-	store->tags = vzalloc(store->tag_size);
+	store->tags = secureram_fault(SECURERAM_FAULT_TAGS) ? NULL : vzalloc(store->tag_size);
 	if (!store->tags) {
 		secureram_store_destroy(store);
 		return -ENOMEM;

@@ -11,6 +11,12 @@ ifeq ($(M4_TEST),1)
 ccflags-y += -DSECURERAM_M4_TEST
 endif
 
+# Fixed one-shot call-boundary failures; absent from the production module.
+ifeq ($(M9_TEST),1)
+ccflags-y += -DSECURERAM_M9_TEST
+secureram-y += src/secureram_fault.o
+endif
+
 # Privileged bounded corruption hooks; never enabled by a production build.
 ifeq ($(M5_TEST),1)
 ccflags-y += -DSECURERAM_M5_TEST
