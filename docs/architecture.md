@@ -1,5 +1,11 @@
 # SecureRAM architecture
 
+M9 preserves this architecture, version 0.8.0 and ABI 1. Its optional
+`M9_TEST=1` object injects one-shot failures at fixed allocation/crypto call
+sites and is absent from production. It owns only an atomic selector, no data,
+keys or pointers. Existing error paths retain resource ownership. See
+[M9 invariants and audit](m9-report.md) and [acceptance](m9-testing.md).
+
 M8 adds one security-owned snapshot of ciphertext, HMAC tags and key generation.
 It reuses the same zero-opener control mutex, admission gate and worker drain.
 It adds four dedicated ioctls without changing existing ABI 1 layouts. Driver,

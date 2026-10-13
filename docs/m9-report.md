@@ -92,5 +92,117 @@ Partial init unwinds control publication, disk, tags, workqueue and security in
 reverse order. Normal exit deregisters control, gates/drains I/O, removes disk
 while the worker exists, then frees queue/worker/security. Open files pin the
 module. The audit has not established a production driver bug; no speculative
-refactor is justified. Test/evidence infrastructure findings and observed
-verification results will be recorded here after execution.
+refactor is justified.
+
+## Implemented reliability coverage
+
+`tests/m9-stress.py` supplies deterministic I/O, bounded barriers, explicit
+serial-order race oracles, repeated rollback/rekey and negative UAPI cases.
+It uses the existing identity/direct-I/O helpers. Keys are produced solely by
+the existing protected CLI; test pattern bytes are public and reproducible.
+Small/large writes are 4 KiB/128 KiB, snapshot regions alternate 4 KiB/1 MiB;
+the inherited M8 phase separately covers full 64 MiB rollback. The new stress
+device is 8 MiB and reload device 1 MiB to keep normal acceptance practical.
+Each new key is checked with a full-device authenticated zero scan.
+
+`tests/run-m9-vm-acceptance.sh` composes M8 phases and M9 phases using the
+existing ledger, root/owner/commit/header/device guards and cleanup functions.
+`M9_MODE=quick|extended` changes counts, not assertions. New phases have a
+20-minute subprocess limit, CLI a 60-second limit and the session a two-hour
+limit. Failures retain useful evidence and never become PASS; remaining
+uninterruptible-kernel limitations are explicit in the procedure.
+
+`src/secureram_fault.c` owns only an atomic site selector in `M9_TEST=1` builds.
+Seven fixed call boundaries return allocation/crypto errors through the real
+existing cleanup paths. `atomic_cmpxchg` consumes exactly one matching fault;
+only 0..7 can be armed, sysfs mode is 0600, and writes check initial-namespace
+CAP_SYS_ADMIN even for an already opened descriptor. No key, pointer, offset,
+length or backing byte is exposed by the selector. Default code uses an inline
+constant false; Kbuild omits the object. No production UAPI or ABI change.
+
+Actual C snapshot/store sanitizer tests retain both allocator failure paths,
+publication/geometry/generation guards, 100 cycles, zero-before-free assertions
+and balanced allocation accounting. Kernel fault tests additionally check
+failed module initialization, control/crypto setup, snapshot allocation and
+read/write errors, selector consumption, preservation and usable recovery.
+They remain **prepared, not runtime accepted**, until run on the real VM.
+
+## Bugs found and narrow fixes
+
+1. **Kernel-health false negative:** the existing M8 scanner accepted a fresh
+   bare `KCSAN: data-race` diagnostic without another matching stack signature.
+   A fixture running the original scanner reproduced this rejection-test
+   failure. The scanner now includes KCSAN and blocked/hung task signatures.
+   `check-m9-health.sh` verifies these, Oops/BUG/panic/KASAN/locking/free warnings,
+   empty/lost capture and expected benign integrity-latch messages.
+2. **Log-capture readiness/drain gap:** observing a child stdout fd did not prove
+   `dmesg --follow-new` had started reading, and killing it immediately after the
+   final phase did not prove all final messages had been read. M9 now requires
+   observed start/end markers before testing/stopping capture. A fixture drops
+   the first two marker writes to simulate late readiness and checks retry;
+   failed marker delivery fails health. Marker-only logs cannot count as module
+   runtime evidence. This is a code-audit finding, not a claim that M8's accepted
+   VM log actually lost messages.
+
+No production kernel correctness/security defect has been reproduced. There
+is no broad refactor or changed security guarantee. During local verification,
+the first new preprocess-exclusion assertion expected literal `static inline
+bool`; target headers expand inline with attributes. The assertion now matches
+the actual expanded constant-false body and independently requires no linked
+fault symbols/object. Existing correctness assertions were not relaxed.
+
+## Evidence status and remaining boundary
+
+Baseline `check-m8-local.py`: PASS, exit 0, before branch creation. Initial
+M9 fault-only W=1 build: PASS. New local stress oracle and mocked harness/log
+tests: PASS, including deliberate corrupt/misdirected units, missing restore,
+worker failure, configuration rejection and M9 process-group timeout cleanup.
+The complete inherited suite also passed during the first M9 run; only the new
+preprocess assertion described above failed afterward.
+
+The final combined `check-m9-local.py` run passed, exit 0, on 13 October 2026:
+`build-m9-final-local.log`. It exercised implementation through `b0b6923`;
+subsequent candidate changes record documentation only.
+
+| Local check | Observed result |
+| --- | --- |
+| Five clean W=1 module configurations | PASS: M9 only, M4/M5/M9 together, M4/M5, M5, production. No driver-source warnings. |
+| Production exclusion | PASS: no fault selector symbols or object; preprocessed constant-false stub; inherited tamper exclusion and imported-symbol checks. |
+| C/static/ABI | PASS: strict checkpatch (zero errors/warnings/checks), CLI/helper compilation, native and compat object layouts. Runtime compat remains unexecuted. |
+| Real store/snapshot code | PASS under ASan/UBSan: 100 cycles, allocation failures, stale/invalid generation and geometry, paired copies, wipe-before-free and allocation balance. |
+| CLI/HTTP/UI | PASS: inherited M6/M8 CLI suites, 24 M7 HTTP/backend tests, three M8 HTTP tests, Node M7/M8 UI checks and static assets. |
+| M9 oracles | Four tests PASS: complete/mixed versus corrupted/misdirected units, missing-restore detection, worker failure propagation, session timeout process-group cleanup. |
+| Harness/health | PASS: all inherited harness tests, five observer/session tests, M9 full-SHA/config/mode/phase/failure fixtures, KCSAN/hung-task/locking/free/empty/lost-log rejection, marker readiness/drain fixtures. |
+| Syntax and tree | PASS: all Python bytecode, each shell script separately, git diff --check. |
+| Known environment limits | GCC 15.2 versus target GCC 13.3 warning; pahole unavailable/version warning and BTF skipped without vmlinux. ShellCheck absent, NOT RUN. |
+
+No push or merge occurred. The original M8 bundle in `Transfer/` remains
+unchanged; an exact local `.git/info/exclude` entry keeps that unrelated binary
+out of candidate status without changing repository-wide ignore rules.
+
+## Changed-file inventory
+
+| Files | Purpose |
+| --- | --- |
+| `Kbuild`, `include/secureram_fault.h`, `src/secureram_fault.c` | Conditional build, fixed site enum and one-shot privileged selector. |
+| `src/secureram_control.c`, `src/secureram_security.c`, `src/secureram_store.c` | Seven guarded error boundaries; production constant false. |
+| `tests/m9-stress.py`, `tests/m9-vm-phases.sh`, `tests/run-m9-vm-acceptance.sh` | Actual VM workloads, composed phases and one entry point. |
+| `tests/check-m9-local.py`, `tests/check-m9-stress.py`, `tests/check-m9-vm-harness.sh`, `tests/check-m9-health.sh` | Local build/oracle/harness/health regression verification. |
+| `tests/m5-vm-common.sh`, `tests/m6-observe.py`, `tests/m6-raw-io.py`, `tests/m7-http.py`, `tests/m8-snapshot.py` | M9 profile using the existing M8 version/features and tests; production fault exclusion. |
+| `tests/m7-vm-session.py`, `tests/vm-report.sh` | M9 phase selection, timeout cleanup, marker synchronization and health fixes. |
+| `README.md`, `docs/architecture.md`, `docs/development.md`, `tests/README.md` | Current milestone links, M8 merge reconciliation and unchanged production boundary. |
+| `docs/m9-report.md`, `docs/m9-testing.md` | Baseline, invariants, audit, observed evidence, limitations and exact VM/bundle procedure. |
+
+VM concurrent I/O, races, corruption, injected failures, snapshot/key/reload
+stress, real-kernel log health and overall M9 acceptance: **NOT RUN** in this
+Windows/WSL environment. No module was loaded, no device was opened, no result
+was inferred from compilation. The operator must run the committed bundle in
+the matching Ubuntu VM using [the M9 procedure](m9-testing.md) and return actual
+results. M9 is not complete; no merge instructions are issued until acceptance.
+
+Advanced KASAN/KCSAN/lockdep/kmemleak instrumentation, 32-bit compat execution,
+provider-internal failures and exhaustive allocator/module-publication failures
+remain unexecuted optional campaigns. Ordinary stress provides evidence for
+the exercised paths, not mathematical race freedom, physical key erasure or
+forensic leak absence. Runtime diagnostics must remain warnings/failures until
+classified from real evidence; a custom diagnostic kernel is not mandatory.

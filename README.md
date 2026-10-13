@@ -13,8 +13,8 @@ captures ciphertext and matching HMAC tags under the current key generation.
 Create/restore require ACTIVE and closed, unmounted block users; destroy/unload
 wipe the slot. No plaintext disk snapshot, persistence or filesystem-consistency
 guarantee is introduced. See the [M8 design/evidence](docs/m8-report.md) and
-[accepted verification record](docs/m8-testing.md). M8 remains on
-`m8-secure-snapshots`, unmerged. The following milestone evidence is historical.
+[accepted verification record](docs/m8-testing.md). M8 was merged into `main`
+at `232862e`. The following milestone evidence is historical.
 
 **M7 final tested candidate: Dashboard 0.7.0 at
 `ff1b6df2444b134a3ee7005bc0a97b02a20b5fb5`.** An offline, localhost-only browser
@@ -48,6 +48,15 @@ M1-M6 are complete and runtime verified in the user's Ubuntu VirtualBox
 VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.
+
+## M9 reliability candidate
+
+M9 is being verified on `m9-stress-hardening` from M8 merge `232862e`.
+The single [M9 VM entry point](docs/m9-testing.md) composes all existing
+regressions with concurrent I/O, snapshot/key/reload stress, invalid UAPI and
+build-only fault hooks. [Design, audit and evidence](docs/m9-report.md) keep
+local checks separate from pending real-VM acceptance. Production remains
+version 0.8.0/ABI 1/features 31. M9 is not yet runtime accepted.
 
 ## Data and control paths
 

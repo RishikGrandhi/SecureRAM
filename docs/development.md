@@ -1,13 +1,22 @@
 # Developer workflow and learning notes
 
-## Current M8 work
+## Current M9 reliability work
+
+M8 was merged into main at `232862e`. Work is confined to
+`m9-stress-hardening`. See [M9 invariants and audit](m9-report.md) and
+[local checks, bundle transfer and VM acceptance](m9-testing.md). The complete
+`tests/check-m9-local.py --kdir ... --checkpatch ...` composes earlier checks.
+Normal builds contain no M9 fault selector. VM acceptance remains pending;
+no push, merge or M10 work is performed.
+
+## Accepted M8 work
 
 M7 was merged at `be43792`; its completed acceptance below remains historical.
 M8 is implemented on `m8-secure-snapshots` with driver/CLI/dashboard 0.8.0, ABI 1,
 features 31. Exact implementation commit
 `564d8bdb42558fc25db1a6648be9b695d424f9fc` passed complete automated Ubuntu VM
 acceptance and separate real Firefox/manual rollback acceptance on Ubuntu 24.04.5
-LTS, Linux 7.0.0-38-generic. The feature branch remains unmerged. See
+LTS, Linux 7.0.0-38-generic. M8 was subsequently merged at `232862e`. See
 [M8 design/evidence](m8-report.md) and [M8 verification commands](m8-testing.md).
 `tests/check-m8-local.py --kdir ... --checkpatch ...` composes the existing
 M6/M7 regressions and new M8 checks, without device access. The full-SHA M8 VM
