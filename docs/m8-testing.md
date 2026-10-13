@@ -20,8 +20,9 @@ objects, imported-symbol and production-exclusion checks, strict checkpatch,
 CLI tests, actual snapshot/store code under ASan/UBSan, inherited M7 HTTP/UI and
 harness tests, new snapshot HTTP/UI and harness tests, and per-file shell syntax.
 It uses the installed GCC/Python/Node; no dependencies are downloaded. ShellCheck
-is reported NOT RUN when absent. Logs remain ignored, including `build-m8-local.log`
-and the reused `build-m6-*.log` files. Compilation for Ubuntu headers in WSL must
+is reported NOT RUN when absent. Logs remain ignored, including `build-m8-local.log`,
+the fresh resumption run `build-m8-resume-local.log`, and the reused
+`build-m6-*.log` files. Compilation for Ubuntu headers in WSL must
 never be followed by inserting that module into the Microsoft kernel.
 
 Focused commands after a small change:

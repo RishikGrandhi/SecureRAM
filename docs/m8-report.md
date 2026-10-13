@@ -110,6 +110,32 @@ the actual bounded-slot assertion. The full Windows test rerun passed with its
 two existing platform skips. No driver defect or runtime acceptance is inferred
 from either of these local test adjustments.
 
+### Resumption audit and fresh verification
+
+The interruption audit on 13 October 2026 found a clean working tree on
+`m8-secure-snapshots` at `8f5cd7aebf39f984a9f2fbbecea24ce16a262125`. The four
+existing M8 commits (`1b043d0`, `54bd89a`, `ee97dd7`, `8f5cd7a`) already contained
+the design, kernel/UAPI/CLI, dashboard, acceptance harness and documentation.
+There were no staged, unstaged or half-written changes to recover. Review of
+storage ownership, generation binding, lifecycle, admission/drain exclusion,
+paired ciphertext/tag restoration, cleanup, counters and userspace interfaces
+found no implementation repair necessary. All existing work was preserved.
+
+The complete `check-m8-local.py` suite was rerun against the same Ubuntu target
+headers and exited 0; its new transcript is `build-m8-resume-local.log`. All
+three clean kernel builds, static/ABI checks, sanitizer/core and CLI checks,
+Linux HTTP tests (24 M7 and three M8), five observer/session tests, UI checks
+and harness self-tests passed again. A separate Windows HTTP rerun passed
+22 M7 tests with the same two platform skips and all three M8 tests. The
+warnings and unrun campaigns above are unchanged. The owned browser-preview
+fixture was stopped after inspection; its earlier screenshots remain labelled
+synthetic evidence. Real Ubuntu M8 kernel and Firefox acceptance remain NOT RUN.
+
+The resumed delivery records this verification and supplies the local Git
+bundle described in [M8 testing](m8-testing.md); guest acceptance follows
+that procedure. No feature was restarted or removed. Local `main` and
+`origin/main` remain at `be437923839ca7f182797ac5609aa6181943a4ce`.
+
 ## UAPI and compatibility detail
 
 Old QUERY/LOAD/LOCK/UNLOCK/DESTROY/GET_STATS encodings, payloads, states and JSON
