@@ -17,7 +17,7 @@ BASE = runpy.run_path(str(ROOT / "tests/m5-integrity.py"))
 GET_STATS = 0x8050B705
 COUNTERS = ("read_requests", "write_requests", "read_bytes", "write_bytes", "integrity_failures")
 NAMES = {0: "NO_KEY", 1: "PREPARING", 2: "ACTIVE", 3: "LOCKED", 4: "INTEGRITY_FAILED"}
-VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") == "8" else "0.6.0"
+VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") in ("8", "9") else "0.6.0"
 FEATURES = 31 if VERSION == "0.8.0" else 15
 
 

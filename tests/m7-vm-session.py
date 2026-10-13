@@ -102,9 +102,20 @@ def run_session():
             env = dict(os.environ, M7_ORIGIN=origin, M7_TOKEN=token)
             try:
                 # Child shell owns all device cleanup; Popen context waits on unwind.
-                script = "m8-vm-phases.sh" if os.environ.get("SR_MILESTONE") == "8" else "m7-vm-phases.sh"
-                with subprocess.Popen(["bash", str(ROOT / "tests" / script)], cwd=ROOT, env=env) as phases:
-                    result = phases.wait()
+                profile = os.environ.get("SR_MILESTONE")
+                script = {"9": "m9-vm-phases.sh", "8": "m8-vm-phases.sh"}.get(profile, "m7-vm-phases.sh")
+                with subprocess.Popen(["bash", str(ROOT / "tests" / script)], cwd=ROOT, env=env,
+                                      start_new_session=profile == "9") as phases:
+                    try:
+                        result = phases.wait(timeout=7200 if profile == "9" else None)
+                    except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                        if profile == "9":
+                            os.killpg(phases.pid, signal.SIGTERM)
+                            try:
+                                phases.wait(timeout=30)
+                            except subprocess.TimeoutExpired:
+                                os.killpg(phases.pid, signal.SIGKILL)
+                        raise
                 if result:
                     raise RuntimeError("M7 runtime phase failed; inspect retained phase logs")
             finally:

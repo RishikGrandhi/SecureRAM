@@ -1,5 +1,19 @@
 # Verification by milestone
 
+## M9 reliability acceptance
+
+Use `run-m9-vm-acceptance.sh` only in the disposable Ubuntu VM with a clean
+`m9-stress-hardening` checkout and reviewed full `M9_EXPECTED_COMMIT`.
+It composes all M8 regressions plus deterministic concurrent I/O, lifecycle
+races, snapshot/key torture, malformed UAPI, seven test-only fault sites and
+load/unload loops. Quick/extended use the same implementations. See
+[exact commands, evidence and limits](../docs/m9-testing.md).
+
+`check-m9-local.py --kdir ... --checkpatch ...` runs all inherited local checks
+plus fault-build/exclusion checks, stress oracle tests, mocked harness and fresh
+kernel-health fixtures. It never accesses a block device or loads a module.
+Local PASS is not real-kernel acceptance. Historical suites follow.
+
 ## M8 accepted candidate
 
 Exact implementation commit `564d8bdb42558fc25db1a6648be9b695d424f9fc`
