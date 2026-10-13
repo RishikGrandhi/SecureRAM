@@ -35,6 +35,18 @@ _Static_assert(__builtin_offsetof(struct secureram_ioc_stats, reserved) == 56,
 	       "reserved offset");
 _Static_assert(SECURERAM_IOC_GET_STATS == 0x8050b705U, "stats number");
 _Static_assert(SECURERAM_FEATURE_STATS == 8, "stats feature");
+_Static_assert(sizeof(struct secureram_ioc_snapshot) == 96, "snapshot size");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_snapshot, data_bytes) == 24,
+	       "snapshot data offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_snapshot, generation) == 40,
+	       "snapshot generation offset");
+_Static_assert(__builtin_offsetof(struct secureram_ioc_snapshot, reserved) == 80,
+	       "snapshot reserved offset");
+_Static_assert(SECURERAM_IOC_SNAPSHOT_CREATE == 0x4010b706U, "snapshot create number");
+_Static_assert(SECURERAM_IOC_SNAPSHOT_RESTORE == 0x4010b707U, "snapshot restore number");
+_Static_assert(SECURERAM_IOC_SNAPSHOT_DELETE == 0x4010b708U, "snapshot delete number");
+_Static_assert(SECURERAM_IOC_SNAPSHOT_STATUS == 0x8060b709U, "snapshot status number");
+_Static_assert(SECURERAM_FEATURE_SNAPSHOT == 16, "snapshot feature");
 
 #ifdef SECURERAM_M5_TEST
 _Static_assert(sizeof(struct secureram_ioc_tamper) == 40, "tamper size");

@@ -2,7 +2,7 @@
 obj-m := secureram.o
 secureram-y := src/secureram_main.o src/secureram_block.o \
 	      src/secureram_security.o src/secureram_store.o src/secureram_control.o \
-	      src/secureram_stats.o
+	      src/secureram_stats.o src/secureram_snapshot.o
 
 ccflags-y += -I$(src)/include
 

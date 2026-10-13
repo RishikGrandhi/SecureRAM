@@ -28,6 +28,7 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 	void __user *user = (void __user *)argument;
 	struct secureram_ioc_status status = {};
 	struct secureram_ioc_stats stats = {};
+	struct secureram_ioc_snapshot snapshot = {};
 	struct secureram_ioc_header header;
 	struct secureram_ioc_key *input;
 #ifdef SECURERAM_M5_TEST
@@ -40,6 +41,17 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 		return -EPERM;
 
 	switch (command) {
+	case SECURERAM_IOC_SNAPSHOT_STATUS:
+		secureram_block_snapshot_status(control->device, &snapshot);
+		return copy_to_user(user, &snapshot, sizeof(snapshot)) ? -EFAULT : 0;
+	case SECURERAM_IOC_SNAPSHOT_CREATE:
+	case SECURERAM_IOC_SNAPSHOT_RESTORE:
+	case SECURERAM_IOC_SNAPSHOT_DELETE:
+		if (copy_from_user(&header, user, sizeof(header)))
+			return -EFAULT;
+		if (!secureram_valid_header(&header, sizeof(header), 0))
+			return -EINVAL;
+		return secureram_block_snapshot_change(control->device, command);
 	case SECURERAM_IOC_GET_STATS:
 		secureram_block_stats(control->device, &stats);
 		return copy_to_user(user, &stats, sizeof(stats)) ? -EFAULT : 0;

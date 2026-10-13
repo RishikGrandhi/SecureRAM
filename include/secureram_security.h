@@ -4,6 +4,7 @@
 
 #include "secureram_store.h"
 #include "secureram_stats.h"
+#include "secureram_snapshot.h"
 
 #include "uapi/secureram.h"
 
@@ -17,6 +18,7 @@ struct secureram_security {
 	/* Borrowed from the enclosing device; survives every key transition. */
 	struct secureram_stats *stats;
 	struct secureram_store store;
+	struct secureram_snapshot snapshot;
 	struct crypto_skcipher *tfm;
 	struct skcipher_request *request;
 	struct crypto_shash *mac;

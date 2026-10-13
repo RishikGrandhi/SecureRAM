@@ -35,6 +35,7 @@ void secureram_security_clear_unit(struct secureram_security *security)
 void secureram_security_clear(struct secureram_security *security)
 {
 	/* Admission is closed and all requests/callbacks have completed. */
+	secureram_snapshot_clear(&security->snapshot);
 	skcipher_request_free(security->request);
 	security->request = NULL;
 	crypto_free_skcipher(security->tfm);

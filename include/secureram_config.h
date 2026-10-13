@@ -4,7 +4,7 @@
 
 #define SECURERAM_DRIVER_NAME		"secureram"
 #define SECURERAM_DEVICE_NAME		"secureram0"
-#define SECURERAM_VERSION		"0.6.0"
+#define SECURERAM_VERSION		"0.8.0"
 
 /* capacity_mb is measured in MiB and is immutable after module insertion. */
 #define SECURERAM_DEFAULT_CAPACITY_MB	64U

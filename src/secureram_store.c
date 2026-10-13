@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <linux/errno.h>
 #include <linux/limits.h>
+#include <linux/sched.h>
 #include <linux/string.h>
 #include <linux/vmalloc.h>
 
@@ -55,6 +56,31 @@ bool secureram_store_contains(const struct secureram_store *store,
 	/* Subtraction after the offset check avoids offset + length overflow. */
 	return store->data && offset <= store->size &&
 		length <= store->size - offset;
+}
+
+int secureram_store_copy(struct secureram_store *destination,
+			 const struct secureram_store *source)
+{
+	size_t offset;
+
+	if (!source->data || !source->tags || !destination->data ||
+	    !destination->tags || !source->size ||
+	    source->size % SECURERAM_UNIT_BYTES ||
+	    source->tag_size != source->size / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES ||
+	    destination->size != source->size || destination->tag_size != source->tag_size)
+		return -EINVAL;
+
+	/* No fallible operation after validation; no observer can see either half.
+	 * Chunk/reschedule so large copies do not monopolize a nonpreemptible CPU.
+	 */
+	for (offset = 0; offset < source->size; offset += SECURERAM_UNIT_BYTES) {
+		memcpy(destination->data + offset, source->data + offset, SECURERAM_UNIT_BYTES);
+		memcpy(destination->tags + offset / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES,
+		       source->tags + offset / SECURERAM_UNIT_BYTES * SECURERAM_TAG_BYTES,
+		       SECURERAM_TAG_BYTES);
+		cond_resched();
+	}
+	return 0;
 }
 
 static bool secureram_store_unit(const struct secureram_store *store, u64 offset)
