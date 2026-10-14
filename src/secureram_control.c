@@ -9,6 +9,7 @@
 
 #include "secureram_block.h"
 #include "secureram_control.h"
+#include "secureram_fault.h"
 #ifdef SECURERAM_M5_TEST
 #include "uapi/secureram_test.h"
 #endif
@@ -69,6 +70,8 @@ static long secureram_control_ioctl(struct file *file, unsigned int command,
 			return ret;
 		return copy_to_user(user, &status, sizeof(status)) ? -EFAULT : 0;
 	case SECURERAM_IOC_LOAD_KEY:
+		if (secureram_fault(SECURERAM_FAULT_CONTROL))
+			return -ENOMEM;
 		input = kzalloc_obj(*input);
 		if (!input)
 			return -ENOMEM;

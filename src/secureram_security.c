@@ -12,6 +12,7 @@
 #include <linux/unaligned.h>
 
 #include "secureram_security.h"
+#include "secureram_fault.h"
 #ifdef SECURERAM_M5_TEST
 #include "uapi/secureram_test.h"
 #endif
@@ -110,8 +111,11 @@ static int secureram_crypt(struct secureram_security *security, u64 offset,
 				      crypto_req_done, &wait);
 	skcipher_request_set_crypt(security->request, &source, &destination,
 				   SECURERAM_UNIT_BYTES, security->iv);
-	ret = encrypt ? crypto_skcipher_encrypt(security->request) :
-		crypto_skcipher_decrypt(security->request);
+	if (secureram_fault(encrypt ? SECURERAM_FAULT_ENCRYPT : SECURERAM_FAULT_DECRYPT))
+		ret = -EIO;
+	else
+		ret = encrypt ? crypto_skcipher_encrypt(security->request) :
+			crypto_skcipher_decrypt(security->request);
 	ret = crypto_wait_req(ret, &wait);
 	/* No provider may retain these pointers after final completion. */
 	skcipher_request_zero(security->request);
@@ -192,7 +196,7 @@ static int secureram_authenticate(struct secureram_security *security,
 	memcpy(metadata, secureram_mac_domain, 16);
 	put_unaligned_le64(generation, metadata + 16);
 	put_unaligned_le64(unit, metadata + 24);
-	ret = crypto_shash_init(security->mac_desc);
+	ret = secureram_fault(SECURERAM_FAULT_MAC) ? -EIO : crypto_shash_init(security->mac_desc);
 	if (!ret)
 		ret = crypto_shash_update(security->mac_desc, metadata, sizeof(metadata));
 	if (!ret)
@@ -284,7 +288,8 @@ int secureram_security_load(struct secureram_security *security, u8 *key)
 	memzero_explicit(key, SECURERAM_KEY_BYTES);
 	if (ret)
 		goto fail;
-	security->request = skcipher_request_alloc(tfm, GFP_KERNEL);
+	security->request = secureram_fault(SECURERAM_FAULT_REQUEST) ? NULL :
+		skcipher_request_alloc(tfm, GFP_KERNEL);
 	if (!security->request) {
 		ret = -ENOMEM;
 		goto fail;

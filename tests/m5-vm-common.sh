@@ -18,6 +18,7 @@ case ${SR_MILESTONE:-5} in
     6) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m6-vm ;;
     7) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m7-vm ;;
     8) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m8-vm ;;
+    9) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m9-vm ;;
     *) printf '%s\n' 'Unsupported acceptance profile' >&2; return 1 ;;
 esac
 readonly M5_VERSION M5_FEATURES M5_EVIDENCE_NAME
@@ -406,10 +407,10 @@ m5_prove_production()
 	local label=$1
 	nm secureram.ko > "$M5_VM_RUN_DIR/$label-nm.log"
 	strings secureram.ko > "$M5_VM_RUN_DIR/$label-strings.log"
-	if grep -Ei 'tamper|secureram_test_binding' "$M5_VM_RUN_DIR/$label-nm.log"; then
+	if grep -Ei 'tamper|secureram_test_binding|secureram_fault|m9_fault' "$M5_VM_RUN_DIR/$label-nm.log"; then
 		m5_die "production module contains a tamper/test-binding symbol"
 	fi
-	if grep -E 'M[456] test|secureram_.*tamper|SECURERAM_IOC_TAMPER' \
+	if grep -E 'M[456] test|secureram_.*tamper|SECURERAM_IOC_TAMPER|m9_fault|TEST ONLY one-shot fault' \
 		"$M5_VM_RUN_DIR/$label-strings.log"; then
 		m5_die "production module contains a test string/handler name"
 	fi
