@@ -153,6 +153,22 @@ def concurrent(fd, number, count):
     change(fd, DESTROY)
 
 
+def out_of_range(block, buffer, capacity):
+    for offset in (capacity, capacity + UNIT):
+        assert os.preadv(block, [buffer], offset) == 0
+        try:
+            count = os.pwrite(block, buffer, offset)
+        except OSError as error:
+            assert error.errno in (errno.ENOSPC, errno.EIO, errno.EINVAL, errno.ENXIO, errno.EFBIG)
+        else:
+            assert count == 0
+    # rw_verify_area rejects signed loff_t offset + length overflow before
+    # block-device EOF handling or driver dispatch. This is not an EOF read.
+    overflow = (1 << 63) - UNIT
+    ERROR(lambda: os.preadv(block, [buffer], overflow), errno.EINVAL)
+    ERROR(lambda: os.pwrite(block, buffer, overflow), errno.EINVAL)
+
+
 def boundaries(number, capacity):
     block = block_open(number)
     guards = pattern(8, 0, 0) + pattern(8, 0, 1) + pattern(8, 0, 2)
@@ -167,14 +183,7 @@ def boundaries(number, capacity):
                     ERROR(lambda: os.pwrite(block, view, offset), errno.EINVAL)
                 finally:
                     view.release()
-            for offset in (capacity, capacity + UNIT, (1 << 63) - UNIT):
-                assert os.preadv(block, [buffer], offset) == 0
-                try:
-                    count = os.pwrite(block, buffer, offset)
-                except OSError as error:
-                    assert error.errno in (errno.ENOSPC, errno.EIO, errno.EINVAL, errno.ENXIO, errno.EFBIG)
-                else:
-                    assert count == 0
+            out_of_range(block, buffer, capacity)
         assert READ(block, 0, len(guards)) == guards
         assert READ(block, capacity - UNIT, UNIT) == last
     finally:

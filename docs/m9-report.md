@@ -129,6 +129,19 @@ They remain **prepared, not runtime accepted**, until run on the real VM.
 
 ## Bugs found and narrow fixes
 
+0. **VM boundary oracle:** the first real Ubuntu run of `b12988c` passed
+   disjoint/overlapping concurrent I/O, then failed because the test expected
+   EOF for a 4096-byte read at `2^63 - 4096`. Linux
+   [`rw_verify_area`](https://github.com/torvalds/linux/blob/master/fs/read_write.c)
+   rejects signed offset-plus-length overflow with EINVAL before block EOF
+   handling. The oracle now requires EINVAL for that read and write, while
+   retaining exact zero-byte EOF checks at capacity and capacity + 4096.
+   A regression fixture rejects a positive EOF read and an incorrect overflow
+   errno. All five focused stress-oracle tests pass. No driver change was needed.
+   First-run evidence: `20261014T135552Z-21598`, overall FAIL, kernel health PASS,
+   phase cleanup successful; later groups were NOT RUN. Acceptance requires a
+   complete rerun of the corrected candidate.
+
 1. **Kernel-health false negative:** the existing M8 scanner accepted a fresh
    bare `KCSAN: data-race` diagnostic without another matching stack signature.
    A fixture running the original scanner reproduced this rejection-test

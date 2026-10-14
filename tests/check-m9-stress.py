@@ -18,6 +18,28 @@ G = M9["torture"].__globals__
 
 
 class Oracles(unittest.TestCase):
+    def test_eof_is_distinct_from_signed_offset_overflow(self):
+        capacity = 8 * 1024 * 1024
+        overflow = (1 << 63) - M9["UNIT"]
+        def run(eof_result=0, overflow_errno=errno.EINVAL):
+            def read(_fd, _buffers, offset):
+                if offset == overflow:
+                    raise OSError(overflow_errno, "offset plus length overflow")
+                self.assertIn(offset, (capacity, capacity + M9["UNIT"]))
+                return eof_result
+            def write(_fd, _buffer, offset):
+                raise OSError(overflow_errno if offset == overflow else errno.ENOSPC, "rejected")
+            with patch.object(G["os"], "preadv", side_effect=read) as reads, \
+                    patch.object(G["os"], "pwrite", side_effect=write) as writes:
+                M9["out_of_range"](999, bytearray(M9["UNIT"]), capacity)
+                self.assertEqual(reads.call_count, 3)
+                self.assertEqual(writes.call_count, 3)
+        run()
+        with self.assertRaises(AssertionError):
+            run(eof_result=1)
+        with self.assertRaisesRegex(RuntimeError, "Expected errno 22"):
+            run(overflow_errno=errno.EIO)
+
     def test_complete_and_mixed_units(self):
         data = M9["pattern"](0, 3, 0) + M9["pattern"](1, 2, 1)
         M9["validate_units"](data, 0, range(2), 3)
