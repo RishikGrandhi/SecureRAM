@@ -13,7 +13,9 @@ unavailable vmlinux/BTF remain environment limitations. No kernel was loaded.
 
 M9 keeps version 0.8.0, ABI 1, feature mask 31 and the M8 architecture. This is
 reliability validation, not a user-visible feature release or M10 evaluation.
-M8 runtime evidence remains historical; M9 VM acceptance is **NOT RUN**.
+M8 runtime evidence remains historical. M9 real-VM acceptance is **PASS** on
+14 October 2026 at `fde91b901946a71b0f8fc764c02cce5e57984049`; see the exact
+run and limits below. Subsequent acceptance-record changes are documentation only.
 
 ## Invariants defined before implementation
 
@@ -125,11 +127,11 @@ publication/geometry/generation guards, 100 cycles, zero-before-free assertions
 and balanced allocation accounting. Kernel fault tests additionally check
 failed module initialization, control/crypto setup, snapshot allocation and
 read/write errors, selector consumption, preservation and usable recovery.
-They remain **prepared, not runtime accepted**, until run on the real VM.
+These kernel fault checks passed in the real-VM run recorded below.
 
 ## Bugs found and narrow fixes
 
-0. **VM boundary oracle:** the first real Ubuntu run of `b12988c` passed
+1. **VM boundary oracle:** the first real Ubuntu run of `b12988c` passed
    disjoint/overlapping concurrent I/O, then failed because the test expected
    EOF for a 4096-byte read at `2^63 - 4096`. Linux
    [`rw_verify_area`](https://github.com/torvalds/linux/blob/master/fs/read_write.c)
@@ -139,16 +141,16 @@ They remain **prepared, not runtime accepted**, until run on the real VM.
    A regression fixture rejects a positive EOF read and an incorrect overflow
    errno. All five focused stress-oracle tests pass. No driver change was needed.
    First-run evidence: `20261014T135552Z-21598`, overall FAIL, kernel health PASS,
-   phase cleanup successful; later groups were NOT RUN. Acceptance requires a
-   complete rerun of the corrected candidate.
+   phase cleanup successful; later groups were NOT RUN. The complete rerun of
+   the corrected candidate passed, as recorded below.
 
-1. **Kernel-health false negative:** the existing M8 scanner accepted a fresh
+2. **Kernel-health false negative:** the existing M8 scanner accepted a fresh
    bare `KCSAN: data-race` diagnostic without another matching stack signature.
    A fixture running the original scanner reproduced this rejection-test
    failure. The scanner now includes KCSAN and blocked/hung task signatures.
    `check-m9-health.sh` verifies these, Oops/BUG/panic/KASAN/locking/free warnings,
    empty/lost capture and expected benign integrity-latch messages.
-2. **Log-capture readiness/drain gap:** observing a child stdout fd did not prove
+3. **Log-capture readiness/drain gap:** observing a child stdout fd did not prove
    `dmesg --follow-new` had started reading, and killing it immediately after the
    final phase did not prove all final messages had been read. M9 now requires
    observed start/end markers before testing/stopping capture. A fixture drops
@@ -164,7 +166,7 @@ bool`; target headers expand inline with attributes. The assertion now matches
 the actual expanded constant-false body and independently requires no linked
 fault symbols/object. Existing correctness assertions were not relaxed.
 
-## Evidence status and remaining boundary
+## Local evidence
 
 Baseline `check-m8-local.py`: PASS, exit 0, before branch creation. Initial
 M9 fault-only W=1 build: PASS. New local stress oracle and mocked harness/log
@@ -206,12 +208,64 @@ out of candidate status without changing repository-wide ignore rules.
 | `README.md`, `docs/architecture.md`, `docs/development.md`, `tests/README.md` | Current milestone links, M8 merge reconciliation and unchanged production boundary. |
 | `docs/m9-report.md`, `docs/m9-testing.md` | Baseline, invariants, audit, observed evidence, limitations and exact VM/bundle procedure. |
 
-VM concurrent I/O, races, corruption, injected failures, snapshot/key/reload
-stress, real-kernel log health and overall M9 acceptance: **NOT RUN** in this
-Windows/WSL environment. No module was loaded, no device was opened, no result
-was inferred from compilation. The operator must run the committed bundle in
-the matching Ubuntu VM using [the M9 procedure](m9-testing.md) and return actual
-results. M9 is not complete; no merge instructions are issued until acceptance.
+## Real Ubuntu VM acceptance: PASS
+
+Executed on 14 October 2026 in the running `SecureRAM-Ubuntu` VirtualBox VM,
+Linux `7.0.0-38-generic`, as checkout owner `rishik-grandhi` using sudo.
+The Windows host's installed VBoxManage controlled the existing guest terminal;
+the established `Transfer` shared folder carried Git bundles and evidence.
+The initial safe probes were `whoami`, `uname -a`, `pwd` and `sudo -n true`.
+SSH to NAT guest `10.0.2.15:22` timed out, and passwordless guestcontrol login
+was rejected. Neither was needed after console access and one manual `sudo -v`.
+No package installation, networking or SSH configuration changes were made.
+
+Original candidate `b12988c5d0f2fa5b8c1e0fd5e6c3561d1e6db3f3` genuinely
+failed run `20261014T135552Z-21598` at the boundary oracle described above.
+The narrow test fix was committed as
+`fde91b901946a71b0f8fc764c02cce5e57984049`, transferred by verified bundle,
+and fast-forwarded into the clean guest checkout. No production code changed.
+The complete entry point was then executed again with that literal expected SHA:
+
+```sh
+sudo -n env M9_EXPECTED_COMMIT=fde91b901946a71b0f8fc764c02cce5e57984049 \
+  bash tests/run-m9-vm-acceptance.sh
+```
+
+Run `20261014T135851Z-23164` returned **exit 0, OVERALL PASS, all 45 groups PASS**.
+Profile: quick, 32 I/O rounds, 12 lifecycle/race rounds, 10 load/use/unload cycles.
+It includes all inherited M6/M7/M8 phases, raw I/O/ext4, 1/256 MiB capacities,
+CLI/HTTP, full snapshot rollback, tamper/latch/recovery, the new concurrent I/O,
+control races, key/snapshot stress, malformed UAPI, seven fault sites, production
+exclusion and final cleanup. Focused local regression after the fix: five tests
+PASS; earlier completed local validation was not repeated.
+
+Fresh `dmesg.log` contains `M9-start-23164` and `M9-end-23164`, successful
+mount/unmount and module unload records. Both `kernel-health-failures.log` and
+`kernel-unrelated-review.log` are empty: no Oops, BUG, panic, warning, trace,
+locking, hung-task or other scanner fault signature. Expected intentional
+integrity-latch messages remain in evidence. Final independent guest checks
+confirmed a clean checkout, absent module and device nodes, and no SecureRAM
+mount. The harness also confirmed owned dashboard cleanup.
+
+VM build warnings were limited to the compiler command-name mismatch
+(`x86_64-linux-gnu-gcc-13` versus `gcc-13`, both Ubuntu GCC 13.3.0), unavailable
+pahole and skipped BTF without vmlinux. No driver-source warnings were observed.
+These are distinct from the prior WSL GCC-version limitation.
+
+Both complete run directories remain in guest `.cache/m9-vm/` and on the host
+under `.cache/m9-real-vm-20261014/m9-20261014-evidence/`. The host archive also
+retains both launch transcripts, bundles and the independent postcheck. Raw
+evidence stays outside Git; this report records its identity and interpretation.
+SHA-256 of the passing run's unmodified files:
+
+| Evidence | SHA-256 |
+| --- | --- |
+| `summary.txt` | `fc8bf4186c9b2250d4440d00faa5c0d62cfe5ecc59cbe9ade2d606b9bc8cde2c` |
+| `dmesg.log` | `40018b286c83b324f860241a83070432c9aaff721859f894ee9ba1b289e2ae96` |
+
+M9 satisfies its required quick-profile acceptance. Extended mode and the
+optional diagnostic campaigns below were not executed. No push, merge or M10
+work was performed.
 
 Advanced KASAN/KCSAN/lockdep/kmemleak instrumentation, 32-bit compat execution,
 provider-internal failures and exhaustive allocator/module-publication failures

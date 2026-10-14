@@ -1,9 +1,16 @@
-# M9 verification: local candidate, Ubuntu acceptance pending
+# M9 verification: local and real Ubuntu acceptance passed
 
 M9 starts at M8 merge `232862e06130b7e9ae3b6b10612717ed72ba0d94` and stays
 on `m9-stress-hardening`. Driver/CLI/dashboard remain 0.8.0, ABI 1, features 31.
 The [design/report](m9-report.md) defines invariants and evidence limits.
 Nothing here claims an unexecuted VM test passed.
+
+Real run `20261014T135851Z-23164` passed all 45 groups with exit 0 on 14 October
+2026, Linux `7.0.0-38-generic`, exact tested commit
+`fde91b901946a71b0f8fc764c02cce5e57984049`. Quick profile: 32 I/O rounds,
+12 lifecycle rounds, 10 reloads. The initial `b12988c` run failed an incorrect
+signed-offset-overflow expectation; the corrected candidate passed a complete
+rerun. See the [observed evidence and limitations](m9-report.md#real-ubuntu-vm-acceptance-pass).
 
 ## Local checks (no root or device access)
 
@@ -28,6 +35,10 @@ Never insert a generic Ubuntu module in the WSL Microsoft kernel.
 Use the established Git bundle workflow. The delivery supplies
 `.cache/m9-stress-hardening.bundle`; copy it to
 `~/Downloads/m9-stress-hardening.bundle` in the disposable Ubuntu VM.
+The existing shared-folder route also works: host `Transfer/` is guest
+`/media/sf_Transfer/`. The accepted run used that route and VirtualBox console
+commands from Windows. No SSH setup was needed. After manual `sudo -v` in the
+same guest terminal, the host could invoke the runner using `sudo -n env`.
 Regeneration on the development machine, after committing:
 
 ```sh
@@ -156,7 +167,8 @@ capture, cleanup failure or skipped stage makes OVERALL FAIL and exit nonzero.
 Inspect the earliest failed stage; later NOT RUN is expected after fail-fast.
 Do not mark runtime acceptance from local tests, mocks or compilation.
 
-Return the exact SHA, `summary.txt`, `environment.txt`, and failing stage/kernel
-diagnostics if any. An accepted M9 completion report and manual merge commands
-will be issued only after actual Ubuntu results satisfy the definition of done.
-No M10 work, push or merge is authorized here.
+For future reruns, retain the exact SHA, `summary.txt`, `environment.txt`, and
+stage/kernel diagnostics. The accepted run and initial failure are retained in
+guest `.cache/m9-vm/` and host `.cache/m9-real-vm-20261014/`; the report records
+the passing summary and kernel-log hashes. No M10 work, push or merge is
+authorized here.

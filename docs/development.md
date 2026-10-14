@@ -6,8 +6,11 @@ M8 was merged into main at `232862e`. Work is confined to
 `m9-stress-hardening`. See [M9 invariants and audit](m9-report.md) and
 [local checks, bundle transfer and VM acceptance](m9-testing.md). The complete
 `tests/check-m9-local.py --kdir ... --checkpatch ...` composes earlier checks.
-Normal builds contain no M9 fault selector. VM acceptance remains pending;
-no push, merge or M10 work is performed.
+Normal builds contain no M9 fault selector. All 45 real Ubuntu VM acceptance
+groups passed on 14 October 2026 at `fde91b901946a71b0f8fc764c02cce5e57984049`.
+No push, merge or M10 work is performed. The existing VirtualBox console and
+`Transfer` shared folder allow host-driven testing after ordinary-user sudo
+authentication in the same guest terminal; SSH is not required.
 
 ## Accepted M8 work
 
