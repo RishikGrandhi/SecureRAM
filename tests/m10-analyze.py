@@ -49,7 +49,7 @@ def write_csv(path, rows):
         writer.writerows(rows)
 
 
-def analyze(directory):
+def validate_io(directory):
     params = json.loads((directory / "parameters.json").read_text())
     rows, sources = [], []
     for path in sorted((directory / "fio").glob("*.meta.json")):
@@ -60,6 +60,11 @@ def analyze(directory):
                 for target in ("secureram", "tmpfs") for trial in range(1, params["trials"] + 1)}
     actual = [tuple(row[k] for k in (*KEYS, "trial")) for row in rows]
     assert len(actual) == len(set(actual)) and set(actual) == expected, "missing/duplicate/unplanned trials"
+    return params, rows, sources
+
+
+def analyze(directory):
+    params, rows, sources = validate_io(directory)
     write_csv(directory / "raw-results.csv", rows)
     groups = defaultdict(list)
     for row in rows:
@@ -161,12 +166,12 @@ def plots(directory, summaries, life, params):
         ax.legend(); ax.grid(alpha=.2)
     fig.suptitle(f"Raw direct I/O, 1 psync job; mean ± sample SD, n={params['trials']}")
     finish(fig, "sequential")
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
-    for ax, rw in zip(axes, ("randread", "randwrite")):
-        for target in ("secureram", "tmpfs"):
+    fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+    for row_axes, target in zip(axes, ("secureram", "tmpfs")):
+        for ax, rw in zip(row_axes, ("randread", "randwrite")):
             series(ax, target, rw, 4096, "jobs", "mib_s", target)
-        ax.set(title=rw, xlabel="Synchronous jobs (depth 1 each)", ylabel="Throughput (MiB/s)", ylim=(0, None))
-        ax.legend(); ax.grid(alpha=.2)
+            ax.set(title=f"{target}: {rw}", xlabel="Synchronous jobs (depth 1 each)", ylabel="Throughput (MiB/s)", ylim=(0, None))
+            ax.legend(); ax.grid(alpha=.2)
     fig.suptitle(f"4 KiB, {cap//MIB} MiB aggregate; SecureRAM direct vs tmpfs buffered; mean ± SD")
     finish(fig, "concurrency-baseline")
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
@@ -196,8 +201,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
     parser.add_argument("--plots", action="store_true", help="render SVG/PNG using installed matplotlib")
+    parser.add_argument("--plot-csv", action="store_true", help="render retained summary CSV without the bulk raw archive")
     args = parser.parse_args()
-    result = analyze(args.directory)
-    if args.plots:
+    if args.plot_csv:
+        def table(name):
+            with (args.directory / name).open(newline="") as stream:
+                rows = list(csv.DictReader(stream))
+            for row in rows:
+                for key, value in row.items():
+                    if key not in ("target", "rw", "metric"):
+                        row[key] = float(value) if key in ("mean", "median", "minimum", "maximum", "stdev") else int(value)
+            return rows
+        result = (table("summary.csv"), table("lifecycle-summary.csv"),
+                  json.loads((args.directory / "parameters.json").read_text()))
+    else:
+        result = analyze(args.directory)
+    if args.plots or args.plot_csv:
         plots(args.directory, *result)
-    print("PASS: raw trial completeness, statistics and requested outputs")
+    print("PASS: retained CSV figures regenerated" if args.plot_csv else
+          "PASS: raw trial completeness, statistics and requested outputs")

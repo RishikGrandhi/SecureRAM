@@ -5,6 +5,7 @@
 No keys enter this process: load-random uses the established protected C CLI.
 Importing this file performs no privileged operations.
 """
+import ast
 import errno
 import fcntl
 import json
@@ -14,6 +15,7 @@ import random
 import re
 import runpy
 import signal
+import shutil
 import stat
 import struct
 import subprocess
@@ -37,6 +39,9 @@ def save(path, value):
 
 
 def cli(*args):
+    # The CLI permits JSON observation/snapshot commands, not key actions.
+    if args in (("load-random",), ("destroy",), ("lock",), ("unlock",)):
+        return run([CLI, *args])
     return json.loads(run([CLI, *args, "--json"]))
 
 
@@ -198,6 +203,47 @@ def io(directory, params):
     assert not Path(temp).exists(), "tmpfs resource cleanup failed"
 
 
+def import_io(directory, params):
+    """Reuse only a complete validated I/O stage, preserving its provenance."""
+    run_id = os.environ["M10_RESUME_RUN"]
+    assert re.fullmatch(r"20\d{6}T\d{6}Z-[1-9]\d*", run_id)
+    source = ROOT / ".cache/m10-benchmarks" / run_id
+    assert source.is_dir() and not source.is_symlink() and source != directory
+    old_environment = json.loads((source / "environment.json").read_text())
+    commit = old_environment["commit"]
+    assert re.fullmatch(r"[0-9a-f]{40}", commit)
+    git = ["runuser", "-u", os.environ["SUDO_USER"], "--", "git"]
+    run([*git, "merge-base", "--is-ancestor", commit, "HEAD"])
+    # Any driver, ABI, CLI or inherited identity/raw-oracle change prevents reuse.
+    run([*git, "diff", "--exit-code", commit, "HEAD", "--", "src", "include", "tools", "Kbuild", "Makefile",
+         "tests/m2-raw-io.py", "tests/m4-raw-io.py", "tests/m5-integrity.py", "tests/m8-snapshot.py"])
+    names = {"run", "save", "resources", "configurations", "plan", "identity", "disk_pattern", "fio_command", "execute_fio", "io"}
+    def fingerprint(source_text):
+        return {node.name: ast.dump(node, include_attributes=False) for node in ast.parse(source_text).body
+                if isinstance(node, ast.FunctionDef) and node.name in names}
+    original = run([*git, "show", f"{commit}:tests/m10-benchmarks.py"])
+    assert fingerprint(original) == fingerprint(Path(__file__).read_text()), "I/O measurement implementation changed"
+    assert old_environment["kernel"] == os.uname().release
+    assert json.loads((source / "parameters.json").read_text()) == params, "resume parameters/environment differ"
+    latest = {}
+    for line in (source / "status.tsv").read_text().splitlines():
+        label, status, _ = line.split("\t", 2)
+        latest[label] = status
+    assert latest["I/O measurements"] == latest["Kernel health"] == "PASS"
+    analyzer = runpy.run_path(str(ROOT / "tests/m10-analyze.py"))
+    _, rows, _ = analyzer["validate_io"](source)
+    (directory / "fio").mkdir()
+    for path in (source / "fio").iterdir():
+        assert path.is_file() and not path.is_symlink()
+        shutil.copy2(path, directory / "fio" / path.name)
+    for name in ("queue.json", "inherited-raw.log"):
+        shutil.copy2(source / name, directory / name)
+    save(directory / "io-origin-environment.json", old_environment)
+    save(directory / "io-provenance.json", dict(source_run=run_id, source_commit=commit,
+         trials=len(rows), reason="complete I/O stage preserved after later harness CLI failure; no I/O rerun"))
+    print(f"PASS imported {len(rows)} validated I/O trials from {run_id} at {commit}", flush=True)
+
+
 def timed_ioctl(fd, command):
     header = struct.pack("=IIII", 1, 16, int(command == RAW["DESTROY"]), 0)
     start = time.monotonic_ns()
@@ -285,7 +331,7 @@ def demo(directory):
 
 
 def main():
-    assert len(sys.argv) == 4 and sys.argv[1] in ("plan", "io", "lifecycle", "demo")
+    assert len(sys.argv) == 4 and sys.argv[1] in ("plan", "io", "import-io", "lifecycle", "demo")
     assert os.geteuid() == 0 and "microsoft" not in os.uname().release.lower()
     assert os.environ.get("SR_MILESTONE") == "10", "use the M10 shell harness"
     directory = Path(sys.argv[2]).resolve()
@@ -302,7 +348,7 @@ def main():
     else:
         params = json.loads((directory / "parameters.json").read_text())
         assert params["mode"] == mode
-        (io if sys.argv[1] == "io" else lifecycle)(directory, params)
+        {"io": io, "import-io": import_io, "lifecycle": lifecycle}[sys.argv[1]](directory, params)
 
 
 if __name__ == "__main__":

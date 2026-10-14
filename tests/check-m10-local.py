@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Local M10 measurement/oracle checks. Synthetic fixtures are NOT results."""
 import copy
+import json
 from pathlib import Path
 import runpy
+import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = runpy.run_path(str(ROOT / "tests/m10-benchmarks.py"))
@@ -12,6 +15,20 @@ ANALYZE = runpy.run_path(str(ROOT / "tests/m10-analyze.py"))
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_cli_actions_do_not_request_unsupported_json(self):
+        commands = []
+        def fake_run(command):
+            commands.append(command)
+            return '{}' if '--json' in command else 'action succeeded'
+        with patch.dict(BENCH['cli'].__globals__, run=fake_run):
+            self.assertEqual(BENCH['cli']('load-random'), 'action succeeded')
+            self.assertEqual(BENCH['cli']('destroy'), 'action succeeded')
+            self.assertEqual(BENCH['cli']('status'), {})
+            self.assertEqual(BENCH['cli']('snapshot', 'status'), {})
+        self.assertEqual(commands[0], [BENCH['CLI'], 'load-random'])
+        self.assertNotIn('--json', commands[1])
+        self.assertIn('--json', commands[2])
+
     def fixture(self):
         direction = dict(total_ios=256, bw_bytes=1048576, iops=256,
                          lat_ns=dict(mean=100000), io_bytes=1048576)
@@ -69,6 +86,23 @@ class MeasurementTests(unittest.TestCase):
             BENCH["fio_command"]("secureram", "/dev/sda", cases[0], 1, params, "/tmp/output")
         with self.assertRaises(AssertionError):
             BENCH["fio_command"]("tmpfs", "/tmp/unsafe", cases[0], 1, params, "/tmp/output")
+
+    def test_analysis_rejects_missing_or_duplicate_trials(self):
+        # Synthetic fixture stops before lifecycle analysis; never retained as evidence.
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            (directory / "fio").mkdir()
+            params = dict(configurations=[["read", 4096, 1048576, 2]], trials=1)
+            (directory / "parameters.json").write_text(json.dumps(params))
+            meta, result = self.fixture()
+            (directory / "fio/one.meta.json").write_text(json.dumps(meta))
+            (directory / "fio/one.json").write_text(json.dumps(result))
+            with self.assertRaisesRegex(AssertionError, "missing/duplicate/unplanned"):
+                ANALYZE["analyze"](directory)
+            (directory / "fio/duplicate.meta.json").write_text(json.dumps(meta))
+            (directory / "fio/duplicate.json").write_text(json.dumps(result))
+            with self.assertRaisesRegex(AssertionError, "missing/duplicate/unplanned"):
+                ANALYZE["analyze"](directory)
 
 
 if __name__ == "__main__":

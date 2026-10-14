@@ -36,7 +36,8 @@ Full mode: 5 trials, 5 measured seconds plus 1-second warmup per fio case.
 Quick mode: 3 trials, 2 measured seconds plus 1-second warmup, same matrix.
 At 4 vCPUs there are 15 configurations per target (150 full I/O trials).
 Case order alternates target order by trial; configurations are seeded-shuffled.
-Each fio process has a 45-second timeout; whole runtime has a 35-minute timeout.
+Each fio process has a 45-second timeout; I/O has a 35-minute timeout and the
+whole campaign has a 45-minute deadline.
 Control operations use 5 (full) or 3 (quick) repetitions per capacity.
 
 ## Environment and sizing rationale

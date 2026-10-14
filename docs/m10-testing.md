@@ -27,6 +27,21 @@ Whole campaign deadline is 45 minutes, fio stage 35 minutes, each fio process
 acceptance. Uninterruptible kernel faults can prevent userspace cleanup; never
 force unload. Do not concurrently administer the device or run other benchmarks.
 
+If I/O completed but a later stage failed, preserve the failed run and resume
+only the remaining stages after the narrow fix:
+
+```bash
+sudo -n env M10_EXPECTED_COMMIT=<reviewed-fixed-SHA> \
+  bash scripts/run-m10-benchmarks.sh --resume <original-run-id>
+```
+
+Resume requires a complete validated I/O matrix and passing original kernel
+health, unchanged kernel/driver/ABI/CLI/inherited I/O helpers, identical benchmark
+parameters and identical I/O function ASTs. It creates a new evidence directory,
+copies raw I/O without modification, retains origin environment/commit/provenance,
+and runs lifecycle/demos/final production/analysis/health/cleanup. The failed run
+is never rewritten as PASS. This is not a general partial-trial resume facility.
+
 The entry point builds normal production, runs inherited direct raw-I/O checks,
 initializes all data, runs a balanced seeded workload order, verifies exact
 contents after each timed workload, measures lifecycle at two capacities,
@@ -40,6 +55,7 @@ M9 marker/health scanner (marker names retain `M9` for compatibility).
 python3 tests/check-m10-local.py
 bash -n scripts/run-m10-benchmarks.sh
 bash tests/check-m9-health.sh
+SR_MILESTONE=10 bash tests/check-m9-health.sh
 bash tests/check-m9-vm-harness.sh
 git diff --check
 ```
@@ -75,6 +91,14 @@ Retain the complete raw run outside Git. Selected CSV, analysis, graphs and
 raw-file hashes may be retained under `docs/evidence/m10/` for review. Graphs are
 derived artifacts, never manually entered data. A replay needs the retained raw
 run; CSV and raw hashes allow independent audit of the selected report.
+After the concise evidence is retained, regenerate its figures independently:
+
+```bash
+python3 tests/m10-analyze.py docs/evidence/m10 --plot-csv
+```
+
+This mode renders the retained statistics and does not claim to revalidate raw
+trial completeness. The full raw-JSON replay above performs that validation.
 
 ## Interpretation boundaries
 
