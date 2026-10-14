@@ -82,6 +82,9 @@ def plan(directory, mode):
                   runtime_s=5 if mode == "full" else 2, ramp_s=1, cpus=os.cpu_count(),
                   ioengine="psync", iodepth=1, rwmixread=70, seed_base=10000,
                   configurations=configurations(capacity * MIB, os.cpu_count()))
+    if mode == "confirm":
+        params.update(runtime_s=10, ramp_s=2,
+                      configurations=[case for case in params["configurations"] if case[0] == "randread"])
     save(directory / "parameters.json", params)
     environment = dict(date_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                        kernel=os.uname().release, architecture=os.uname().machine,
@@ -337,7 +340,7 @@ def main():
     directory = Path(sys.argv[2]).resolve()
     assert directory.parent == ROOT / ".cache/m10-benchmarks"
     mode = sys.argv[3]
-    assert mode in ("quick", "full")
+    assert mode in ("quick", "full", "confirm")
     def interrupted(signum, _frame):
         raise RuntimeError(f"campaign interrupted by signal {signum}")
     signal.signal(signal.SIGTERM, interrupted)

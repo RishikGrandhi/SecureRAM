@@ -63,7 +63,7 @@ def validate_io(directory):
     return params, rows, sources
 
 
-def analyze(directory):
+def analyze(directory, io_only=False):
     params, rows, sources = validate_io(directory)
     write_csv(directory / "raw-results.csv", rows)
     groups = defaultdict(list)
@@ -81,14 +81,17 @@ def analyze(directory):
         assert len(records) == params["trials"] and all(r["status"] == "PASS" for r in records)
         assert {r["trial"] for r in records} == set(range(1, params["trials"] + 1))
         life.extend(records)
-    assert {r["capacity_bytes"] for r in life} == {params["capacity_mib"] * MIB // 4, params["capacity_mib"] * MIB}
-    write_csv(directory / "lifecycle-raw.csv", life)
+    if not io_only:
+        assert {r["capacity_bytes"] for r in life} == {params["capacity_mib"] * MIB // 4, params["capacity_mib"] * MIB}
+    if life:
+        write_csv(directory / "lifecycle-raw.csv", life)
     life_summary = []
     for capacity in sorted({r["capacity_bytes"] for r in life}):
         for metric in ("load_cli_ms", "create_ms", "restore_ms", "delete_ms", "destroy_with_snapshot_ms", "lock_unlock_pair_ms"):
             life_summary.append(dict(capacity_bytes=capacity, metric=metric,
                                      **describe([r[metric] for r in life if r["capacity_bytes"] == capacity])))
-    write_csv(directory / "lifecycle-summary.csv", life_summary)
+    if life_summary:
+        write_csv(directory / "lifecycle-summary.csv", life_summary)
     # One paired ratio per matching trial, not a ratio of differently weighted samples.
     lookup = {tuple(r[k] for k in (*KEYS, "trial")): r for r in rows}
     ratios = []
@@ -102,7 +105,8 @@ def analyze(directory):
         memory.append(dict(capacity_bytes=capacity, tag_bytes=capacity // 128,
                            staging_bytes=8192, live_payload_bytes=capacity + capacity // 128 + 8192,
                            snapshot_payload_bytes=2 * (capacity + capacity // 128) + 8192))
-    write_csv(directory / "memory.csv", memory)
+    if memory:
+        write_csv(directory / "memory.csv", memory)
     throughput = [r for r in summaries if r["metric"] == "mib_s" and r["target"] == "secureram"]
     fastest, slowest = max(throughput, key=lambda r: r["mean"]), min(throughput, key=lambda r: r["mean"])
     lines = ["# M10 machine-derived results", "", f"{len(rows)} I/O trials; {params['trials']} per configuration. All retained.",
@@ -121,6 +125,8 @@ def analyze(directory):
     for rw in ("randread", "randwrite"):
         scale = [(key[4], smap[(key, "mib_s")]["mean"]) for key in groups if key[:4] == ("secureram", rw, 4096, capacity)]
         scale.sort()
+        if not scale:
+            continue
         best = max(scale, key=lambda pair: pair[1])
         lines.append(f"{rw}: " + ", ".join(f"{jobs} jobs {rate:.2f} MiB/s ({rate/scale[0][1]:.2f}x 1-job)" for jobs, rate in scale) + f". Highest observed mean at {best[0]} jobs; this is not a proven global saturation point.")
     lines += ["", "## Lifecycle (milliseconds)", "", "| Capacity MiB | Operation | n | Mean | Median | Min | Max | SD |", "|---:|---|---:|---:|---:|---:|---:|---:|"]
@@ -202,6 +208,7 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=Path)
     parser.add_argument("--plots", action="store_true", help="render SVG/PNG using installed matplotlib")
     parser.add_argument("--plot-csv", action="store_true", help="render retained summary CSV without the bulk raw archive")
+    parser.add_argument("--io-only", action="store_true", help="analyze the separate random-read confirmation only")
     args = parser.parse_args()
     if args.plot_csv:
         def table(name):
@@ -215,7 +222,7 @@ if __name__ == "__main__":
         result = (table("summary.csv"), table("lifecycle-summary.csv"),
                   json.loads((args.directory / "parameters.json").read_text()))
     else:
-        result = analyze(args.directory)
+        result = analyze(args.directory, io_only=args.io_only)
     if args.plots or args.plot_csv:
         plots(args.directory, *result)
     print("PASS: retained CSV figures regenerated" if args.plot_csv else

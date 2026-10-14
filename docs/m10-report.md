@@ -92,3 +92,18 @@ median, min, max, sample standard deviation and sample count. Flag coefficient
 of variation above 10%; never silently exclude it. Host load/swap is observed
 from the host separately; guest counters cannot rule out host contention.
 No timing, PASS, security claim or final conclusion is entered before execution.
+
+## Targeted confirmation design (after the primary campaign)
+
+The primary campaign's SecureRAM throughput CV ranges from 17.8% to 91.8%,
+and 2/4-job random reads are much slower than 1-job reads. Before collecting
+additional data, define this focused question: does the negative random-read
+scaling persist with a longer observation window? Vary only 1/2/4 jobs; keep
+64 MiB aggregate regions, 4 KiB requests, psync depth 1, the same seeds and
+target modes. Use 3 trials per target/configuration, 10 measured seconds and
+2 seconds warmup. Keep this 18-trial experiment separate; do not replace,
+discard or pool any primary sample. It does not repeat completed lifecycle or
+security demonstrations. No driver change or optimization is justified by the
+current evidence. Inspect raw operation counts, latency, driver byte counters
+and system/resource observations to distinguish data-path execution from cache
+or aggregation artifacts; VM scheduling remains an unisolated confounder.

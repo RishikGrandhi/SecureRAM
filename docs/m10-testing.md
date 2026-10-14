@@ -42,6 +42,12 @@ copies raw I/O without modification, retains origin environment/commit/provenanc
 and runs lifecycle/demos/final production/analysis/health/cleanup. The failed run
 is never rewritten as PASS. This is not a general partial-trial resume facility.
 
+`--confirm` is the separately designed 18-trial random-read scaling check:
+1/2/4 jobs, 3 trials, 10 seconds measured plus 2 seconds warmup. It performs
+production build, inherited raw checks, the focused I/O matrix, analysis,
+kernel-health and cleanup only. Its summary never marks unexecuted lifecycle or
+security stages PASS, and its results are not pooled with the primary campaign.
+
 The entry point builds normal production, runs inherited direct raw-I/O checks,
 initializes all data, runs a balanced seeded workload order, verifies exact
 contents after each timed workload, measures lifecycle at two capacities,

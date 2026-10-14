@@ -14,6 +14,7 @@ unset M10_RESUME_RUN
 case ${1:---full} in
     --full) mode=full ;;
     --quick) mode=quick ;;
+    --confirm) mode=confirm ;;
     --resume)
         [[ $# == 2 && $2 =~ ^20[0-9]{6}T[0-9]{6}Z-[1-9][0-9]*$ ]] || exit 1
         export M10_RESUME_RUN=$2
@@ -43,7 +44,12 @@ export M5_VM_RUN_DIR="$run_root/$(date -u +'%Y%m%dT%H%M%SZ')-$$"
 export M5_STATUS_FILE="$M5_VM_RUN_DIR/status.tsv"
 m5_prepare_evidence_directory "$run_root" "$M5_VM_RUN_DIR"
 exec > >(tee -a "$M5_VM_RUN_DIR/main.log") 2>&1
-readonly result_labels=('Production build' 'I/O measurements' 'Lifecycle measurements' 'Security demonstrations' 'Final production exclusion' 'Analysis' 'Kernel health' 'Final cleanup')
+if [[ $mode == confirm ]]; then
+    result_labels=('Production build' 'I/O measurements' 'Analysis' 'Kernel health' 'Final cleanup')
+else
+    result_labels=('Production build' 'I/O measurements' 'Lifecycle measurements' 'Security demonstrations' 'Final production exclusion' 'Analysis' 'Kernel health' 'Final cleanup')
+fi
+readonly result_labels
 for label in "${result_labels[@]}"; do m5_record "$label" 'NOT RUN' 'not reached'; done
 M5_DMESG_PID= M5_DMESG_STARTED=0 M5_FINALIZED=0
 m10_stage=
@@ -86,6 +92,14 @@ else
     m5_record 'I/O measurements' PASS 'all planned fio trials and exact data checks completed'
     m5_cleanup_runtime
     m5_assert_module_absent
+fi
+if [[ $mode == confirm ]]; then
+    m10_stage='Analysis'
+    m5_release_evidence_directory "$M5_VM_RUN_DIR"
+    m5_run_as_builder python3 tests/m10-analyze.py "$M5_VM_RUN_DIR" --io-only
+    m5_record 'Analysis' PASS 'separate longer-window random-read confirmation; no pooling with primary campaign'
+    m10_stage=
+    exit 0
 fi
 m10_stage='Lifecycle measurements'
 for size in "$((capacity / 4))" "$capacity"; do
