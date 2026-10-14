@@ -19,6 +19,7 @@ case ${SR_MILESTONE:-5} in
     7) M5_VERSION=0.6.0; M5_FEATURES=15; M5_EVIDENCE_NAME=m7-vm ;;
     8) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m8-vm ;;
     9) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m9-vm ;;
+    10) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m10-benchmarks ;;
     *) printf '%s\n' 'Unsupported acceptance profile' >&2; return 1 ;;
 esac
 readonly M5_VERSION M5_FEATURES M5_EVIDENCE_NAME

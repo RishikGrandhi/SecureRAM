@@ -1,5 +1,10 @@
 # SecureRAM architecture
 
+M10 adds external evaluation tooling only. It measures the unchanged production
+path and uses existing M4/M5 builds separately for security demonstrations. No
+production UAPI, crypto mode, allocation or synchronization changes are made.
+See [experimental controls and memory formulas](m10-report.md).
+
 M9 preserves this architecture, version 0.8.0 and ABI 1. Its optional
 `M9_TEST=1` object injects one-shot failures at fixed allocation/crypto call
 sites and is absent from production. It owns only an atomic selector, no data,

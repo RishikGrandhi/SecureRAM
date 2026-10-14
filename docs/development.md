@@ -1,5 +1,12 @@
 # Developer workflow and learning notes
 
+## M10 evaluation
+
+M9 is merged and accepted at main `35babfa`. M10 is isolated on
+`m10-performance-evaluation`; see [methodology](m10-report.md) and
+[benchmark/evidence workflow](m10-testing.md). Production architecture stays
+unchanged. The normal build never benchmarks or accesses a device.
+
 ## Current M9 reliability work
 
 M8 was merged into main at `232862e`. Work is confined to

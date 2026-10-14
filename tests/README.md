@@ -254,3 +254,10 @@ failure or an acceptance run.
 The second attempt on `2d2816f` passed the production runtime through destroy/
 rekey, then stopped at a harness redirection defect before ext4. The completed
 run on `5fabe54` supersedes those incomplete attempts for acceptance evidence.
+# M10 evaluation tooling
+
+`scripts/run-m10-benchmarks.sh` is the opt-in VM entry point. `m10-benchmarks.py`
+collects fio/lifecycle/security evidence; `m10-analyze.py` validates completeness,
+generates statistics and optionally renders matplotlib charts. `check-m10-local.py`
+tests measurement aggregation, failed-trial rejection and fixed target controls
+using explicitly synthetic fixtures. See [the M10 procedure](../docs/m10-testing.md).

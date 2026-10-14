@@ -51,6 +51,11 @@ their successful tests do not verify this new crypto implementation.
 
 ## M9 reliability acceptance
 
+M10 evaluation is being developed separately on `m10-performance-evaluation`
+from main merge `35babfa`. See the [experimental design/report](docs/m10-report.md)
+and [automated benchmark procedure](docs/m10-testing.md). It measures the existing
+production architecture without security switches or driver optimization.
+
 M9 passed real Ubuntu VM acceptance on `m9-stress-hardening`, from M8 merge
 `232862e`, at tested commit `fde91b901946a71b0f8fc764c02cce5e57984049`.
 The single [M9 VM entry point](docs/m9-testing.md) composes all existing
@@ -234,7 +239,8 @@ and [architecture](docs/architecture.md).
 | `tests/run-m7-vm-acceptance.sh`, `tests/m7-*`, `tests/check-m7-*` | Prepared M7 VM suite, isolated UI fixture, HTTP/observer/harness checks. |
 | `docs/` | Designs, evidence, procedures and viva notes. |
 
-No remote administration, benchmarking or persistent storage is included.
+No remote administration or persistent storage is included. M10 adds opt-in
+benchmark tooling, separate from normal builds and management.
 The dashboard's loopback HTTP service is the only new network surface.
 The successful M6 acceptance evidence is recorded in [the M6 report](docs/m6-report.md).
 Source is **GPL-2.0-only**; see [LICENSE](LICENSE).
