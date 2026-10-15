@@ -1,0 +1,12 @@
+load-random succeeded: state=ACTIVE (2) generation=2
+load-random succeeded: state=ACTIVE (2) generation=3
+load-random succeeded: state=ACTIVE (2) generation=4
+load-random succeeded: state=ACTIVE (2) generation=5
+load-random succeeded: state=ACTIVE (2) generation=6
+load-random succeeded: state=ACTIVE (2) generation=7
+PASS confidentiality: successful recognizable write traversed M4 internal stored!=plain and stored==cipher comparisons; no bytes exported
+PASS: operation=1, EIO, untouched output, latch, rejection, recovery
+PASS: operation=2, EIO, untouched output, latch, rejection, recovery
+PASS: operation=3, EIO, untouched output, latch, rejection, recovery
+PASS: ciphertext, tag, relocation and recovery; final NO_KEY
+PASS inherited M5 integrity demonstrations and generation recovery

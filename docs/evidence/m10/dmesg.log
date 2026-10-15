@@ -1,0 +1,79 @@
+[17919.422456] secureram: M9-start-7182
+[17942.455772] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 16 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[17942.455786] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[17942.496266] workqueue: do_free_init hogged CPU for >10000us 5 times, consider switching to WQ_UNBOUND
+[17943.030664] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17943.745892] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17943.961562] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17944.605616] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17944.852262] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17945.883239] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17946.074717] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17946.864190] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17947.042389] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17947.618080] workqueue: blk_mq_run_work_fn hogged CPU for >10000us 67 times, consider switching to WQ_UNBOUND
+[17948.064337] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17948.814096] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[17949.678326] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[17949.678339] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[17950.283785] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17954.259284] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17955.206906] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17958.761322] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17959.599018] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17962.131771] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17962.866775] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17966.437698] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17967.422771] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17970.729433] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17971.635210] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[17988.426790] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 16 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[17988.426802] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[17988.426804] secureram: M4 test build: internal ciphertext checks enabled
+[17988.426805] secureram: M5 test build: privileged bounded corruption hooks enabled
+[17988.902325] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17988.902455] secureram: M5 test: unit and generation binding PASS
+[17988.902495] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17988.904919] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17988.915248] secureram: M4 test: real WRITE backing equals ciphertext and differs from plaintext
+[17989.084989] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17989.085023] secureram: M5 test: unit and generation binding PASS
+[17989.085025] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17989.085090] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17989.250704] secureram: M5 test: corruption operation 1 unit 0 other 0
+[17989.251615] secureram: integrity failure at unit 0; device latched INTEGRITY_FAILED
+[17989.251631] I/O error, dev secureram0, sector 0 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17989.252188] I/O error, dev secureram0, sector 16 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17989.252236] I/O error, dev secureram0, sector 16 op 0x1:(WRITE) flags 0x8800 phys_seg 1 prio class 2
+[17989.317833] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17989.317867] secureram: M5 test: unit and generation binding PASS
+[17989.317869] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17989.317936] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17989.565271] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17989.565303] secureram: M5 test: unit and generation binding PASS
+[17989.565305] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17989.574190] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17989.702009] secureram: M5 test: corruption operation 2 unit 2048 other 0
+[17989.702199] secureram: integrity failure at unit 2048; device latched INTEGRITY_FAILED
+[17989.702210] I/O error, dev secureram0, sector 16384 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17989.702273] I/O error, dev secureram0, sector 16 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17989.702292] I/O error, dev secureram0, sector 16 op 0x1:(WRITE) flags 0x8800 phys_seg 1 prio class 2
+[17989.768329] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17989.768361] secureram: M5 test: unit and generation binding PASS
+[17989.768363] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17989.768428] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17989.918805] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17989.918841] secureram: M5 test: unit and generation binding PASS
+[17989.918842] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17989.918909] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17990.043765] secureram: M5 test: corruption operation 3 unit 1 other 4095
+[17990.044015] secureram: integrity failure at unit 4095; device latched INTEGRITY_FAILED
+[17990.044026] I/O error, dev secureram0, sector 32760 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17990.044196] I/O error, dev secureram0, sector 16 op 0x0:(READ) flags 0x800 phys_seg 1 prio class 2
+[17990.044216] I/O error, dev secureram0, sector 16 op 0x1:(WRITE) flags 0x8800 phys_seg 1 prio class 2
+[17990.112706] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[17990.112740] secureram: M5 test: unit and generation binding PASS
+[17990.112742] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[17990.115445] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[17990.490783] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[18007.605382] secureram: M9-end-7182

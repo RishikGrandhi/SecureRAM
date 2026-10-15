@@ -1,0 +1,10 @@
+PASS: all key transitions rejected while block device is open
+PASS: 67108864 bytes, geometry, and full initial-zero scan
+PASS: temporary-file round trip through direct, segmented I/O
+PASS: first, nonzero-offset, middle, and final logical blocks
+PASS: neighboring-block isolation and four concurrent I/O streams
+PASS: end-of-device read/write behavior and flush
+Boundary syscalls may be rejected by the block core before driver dispatch.
+SHA-256 input:    8401eee4a6db8873b4e1ad8e38104199192c5b571ec2c19b8db22964f1a02720
+SHA-256 readback: 8401eee4a6db8873b4e1ad8e38104199192c5b571ec2c19b8db22964f1a02720
+PASS: SHA-256 and cmp for 1 MiB random direct I/O

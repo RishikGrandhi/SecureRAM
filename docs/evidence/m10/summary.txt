@@ -1,0 +1,11 @@
+CHECK                            | RESULT        | DETAIL
+---------------------------------+---------------+-------
+Production build                 | PASS          | running-kernel W=1, CLI and production exclusion
+I/O measurements                 | PASS          | validated complete stage reused from 20261014T185015Z-5889; provenance retained
+Lifecycle measurements           | PASS          | repeated full-capacity rollback and key/generation checks
+Security demonstrations          | PASS          | M4 internal backing comparison, M5 corruption/latch/recovery, snapshot/generation checks
+Final production exclusion       | PASS          | final artifact excludes all M4/M5/M9 hooks
+Analysis                         | PASS          | raw trials retained; CSV statistics/analysis generated; render figures with --plots in plotting environment
+Kernel health                    | PASS          | captured runtime log passed milestone health checks
+Final cleanup                    | PASS          | owned module/nodes removed; private tmpfs file cleanup checked by Python
+OVERALL                          | PASS          | /home/rishik-grandhi/SecureRAM/.cache/m10-benchmarks/20261014T191200Z-7182

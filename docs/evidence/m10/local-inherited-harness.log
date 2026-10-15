@@ -1,0 +1,2 @@
+PASS: health rejects KCSAN/hung-task/lockdep/memory faults and lost/empty capture
+PASS: M9 pin/config validation, phase execution/order and failure propagation (mocked)

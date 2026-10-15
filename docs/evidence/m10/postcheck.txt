@@ -1,0 +1,5 @@
+Thu Oct 15 05:13:32 AM UTC 2026
+## m10-performance-evaluation
+c26471978da2b79b930869fed6aa4df47cd4430f
+PASS independent postcheck: module/nodes/mount/fio/private tmpfs absent
+PASS final production DWARF structure sizes captured

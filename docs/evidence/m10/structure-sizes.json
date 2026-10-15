@@ -1,0 +1,14 @@
+{
+  "source": "final production secureram.ko DWARF; sizeof payload only, not allocator overhead",
+  "bytes": {
+    "secureram_control": 88,
+    "secureram_device": 816,
+    "secureram_store": 32,
+    "secureram_stats": 88,
+    "secureram_snapshot": 80,
+    "secureram_security": 272,
+    "secureram_request": 16,
+    "shash_desc": 8,
+    "skcipher_request": 80
+  }
+}

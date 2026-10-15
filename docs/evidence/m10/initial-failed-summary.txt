@@ -1,0 +1,11 @@
+CHECK                            | RESULT        | DETAIL
+---------------------------------+---------------+-------
+Production build                 | PASS          | running-kernel W=1, CLI and production exclusion
+I/O measurements                 | PASS          | all planned fio trials and exact data checks completed
+Lifecycle measurements           | NOT RUN       | not reached
+Security demonstrations          | NOT RUN       | not reached
+Final production exclusion       | NOT RUN       | not reached
+Analysis                         | NOT RUN       | not reached
+Kernel health                    | PASS          | captured runtime log passed milestone health checks
+Final cleanup                    | FAIL          | suite aborted; inspect phase/build/environment logs
+OVERALL                          | FAIL          | /home/rishik-grandhi/SecureRAM/.cache/m10-benchmarks/20261014T185015Z-5889

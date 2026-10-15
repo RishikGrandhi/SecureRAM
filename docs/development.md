@@ -1,15 +1,24 @@
 # Developer workflow and learning notes
 
-## Current M9 reliability work
+## M10 evaluation
 
-M8 was merged into main at `232862e`. Work is confined to
+M9 is merged and accepted at main `35babfa`. M10 is isolated on
+`m10-performance-evaluation`; see [methodology](m10-report.md) and
+[benchmark/evidence workflow](m10-testing.md). Production architecture stays
+unchanged. The normal build never benchmarks or accesses a device. M10 completed
+150 primary I/O trials, 10 lifecycle trials/security demonstrations and a separate
+18-trial confirmation. See the report for limitations and evidence provenance.
+
+## Accepted M9 reliability work (historical)
+
+M8 was merged into main at `232862e`. M9 work was confined to
 `m9-stress-hardening`. See [M9 invariants and audit](m9-report.md) and
 [local checks, bundle transfer and VM acceptance](m9-testing.md). The complete
 `tests/check-m9-local.py --kdir ... --checkpatch ...` composes earlier checks.
 Normal builds contain no M9 fault selector. All 45 real Ubuntu VM acceptance
 groups passed on 14 October 2026 at `fde91b901946a71b0f8fc764c02cce5e57984049`.
-No push, merge or M10 work is performed. The existing VirtualBox console and
-`Transfer` shared folder allow host-driven testing after ordinary-user sudo
+At that acceptance boundary no push, merge or M10 work was performed. The
+existing VirtualBox console and `Transfer` shared folder allow host-driven testing after ordinary-user sudo
 authentication in the same guest terminal; SSH is not required.
 
 ## Accepted M8 work

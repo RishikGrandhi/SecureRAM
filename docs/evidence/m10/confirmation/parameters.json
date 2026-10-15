@@ -1,0 +1,32 @@
+{
+  "mode": "confirm",
+  "capacity_mib": 64,
+  "trials": 3,
+  "runtime_s": 10,
+  "ramp_s": 2,
+  "cpus": 4,
+  "ioengine": "psync",
+  "iodepth": 1,
+  "rwmixread": 70,
+  "seed_base": 10000,
+  "configurations": [
+    [
+      "randread",
+      4096,
+      67108864,
+      1
+    ],
+    [
+      "randread",
+      4096,
+      67108864,
+      2
+    ],
+    [
+      "randread",
+      4096,
+      67108864,
+      4
+    ]
+  ]
+}

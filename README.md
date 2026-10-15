@@ -49,7 +49,15 @@ VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.
 
-## M9 reliability acceptance
+## M10 evaluation and M9 reliability acceptance
+
+**M10 evaluation is complete** on `m10-performance-evaluation`, from main
+`35babfa`: 150 primary I/O trials, 10 lifecycle trials, security demonstrations
+and 18 separate confirmation trials passed in the real Ubuntu VM. The
+[report and graphs](docs/m10-report.md), [retained evidence](docs/evidence/m10/README.md)
+and [automated procedure](docs/m10-testing.md) document substantial variability
+and reproducible negative random-read scaling in this VM. Production remains
+unchanged; no security switches or driver optimization were introduced.
 
 M9 passed real Ubuntu VM acceptance on `m9-stress-hardening`, from M8 merge
 `232862e`, at tested commit `fde91b901946a71b0f8fc764c02cce5e57984049`.
@@ -234,7 +242,8 @@ and [architecture](docs/architecture.md).
 | `tests/run-m7-vm-acceptance.sh`, `tests/m7-*`, `tests/check-m7-*` | Prepared M7 VM suite, isolated UI fixture, HTTP/observer/harness checks. |
 | `docs/` | Designs, evidence, procedures and viva notes. |
 
-No remote administration, benchmarking or persistent storage is included.
+No remote administration or persistent storage is included. M10 adds opt-in
+benchmark tooling, separate from normal builds and management.
 The dashboard's loopback HTTP service is the only new network surface.
 The successful M6 acceptance evidence is recorded in [the M6 report](docs/m6-report.md).
 Source is **GPL-2.0-only**; see [LICENSE](LICENSE).

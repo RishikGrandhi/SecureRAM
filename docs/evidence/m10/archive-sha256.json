@@ -1,0 +1,17 @@
+[
+  {
+    "path": "Transfer/m10-evidence.tar",
+    "bytes": 2396160,
+    "sha256": "fcb248b30eb6beb539b8b9c914ac58be4440325cebc20af6a0b3210bf12f5ac7"
+  },
+  {
+    "path": "Transfer/m10-resumed-evidence.tar",
+    "bytes": 5314560,
+    "sha256": "81b1d6d872095e5141a072389236581c29654cab9b20dfe451e32c1cd7175727"
+  },
+  {
+    "path": "Transfer/m10-confirm-evidence.tar",
+    "bytes": 5918720,
+    "sha256": "0680d50ac8bda68dd8f9317a744cf2a5313216782532c71113e4046b3f837eea"
+  }
+]

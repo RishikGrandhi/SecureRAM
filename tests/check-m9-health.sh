@@ -8,7 +8,7 @@ M5_VM_RUN_DIR=$(mktemp -d)
 trap 'rm -rf -- "$M5_VM_RUN_DIR"' EXIT
 M5_DMESG_STARTED=1
 M5_DMESG_LOST=0
-SR_MILESTONE=9
+SR_MILESTONE=${SR_MILESTONE:-9}
 m5_record() { printf '%s\t%s\t%s\n' "$@" >> "$M5_VM_RUN_DIR/status.tsv"; }
 for fault in 'BUG: bad state' 'WARNING: unsafe' 'Oops: bad' 'Kernel panic' \
 	'KCSAN: data-race' 'INFO: task stress:123 blocked for more than 120 seconds' \
