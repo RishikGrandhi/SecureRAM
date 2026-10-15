@@ -3,9 +3,12 @@ KDIR ?= /lib/modules/$(shell uname -r)/build
 MODULE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 .DEFAULT_GOAL := all
-.PHONY: all modules clean tools tools-clean check-env help
+.PHONY: all build modules clean tools tools-clean check-env check-runtime \
+	check-production load status unload help
 
 all: modules
+
+build: modules tools
 
 modules:
 	@test -f "$(KDIR)/Makefile" || { \
@@ -21,6 +24,21 @@ clean:
 check-env:
 	sh "$(MODULE_DIR)/scripts/check-environment.sh" "$(KDIR)"
 
+check-runtime:
+	sh "$(MODULE_DIR)/scripts/check-environment.sh" --runtime "$(KDIR)"
+
+check-production:
+	sh "$(MODULE_DIR)/scripts/check-production-build.sh" "$(MODULE_DIR)/secureram.ko"
+
+load:
+	sh "$(MODULE_DIR)/scripts/secureram-lifecycle.sh" load
+
+status:
+	sh "$(MODULE_DIR)/scripts/secureram-lifecycle.sh" status
+
+unload:
+	sh "$(MODULE_DIR)/scripts/secureram-lifecycle.sh" unload
+
 tools:
 	$(MAKE) -C "$(MODULE_DIR)/tools"
 
@@ -30,10 +48,15 @@ tools-clean:
 help:
 	@printf '%s\n' \
 		'make                 Build secureram.ko for the running kernel' \
+		'make build           Build the module and management CLI' \
 		'make W=1             Build with extra kernel compiler warnings' \
 		'make tools           Build the dependency-free management CLI' \
 		'make tools-clean     Remove the userspace binary' \
 		'make KDIR=/path      Build against a selected prepared kernel tree' \
 		'make check-env       Inspect build prerequisites without changing the system' \
+		'make check-runtime   Require a matching non-WSL runtime environment' \
+		'make check-production  Prove the built module omits known test hooks' \
 		'make clean           Remove build products using the same KDIR' \
-		'Load/unload commands are documented in README.md (never automatic).'
+		'sudo make load       Load a proved production module (CAPACITY_MB=64 default)' \
+		'sudo make status     Show loaded state; succeeds clearly when unloaded' \
+		'sudo make unload     Unload only after explicit unmount/close; never forced'
