@@ -1,5 +1,50 @@
 # SecureRAM architecture
 
+## M11 consolidated view
+
+M11 changes integration, reproducibility, demonstration and documentation only;
+the production driver/UAPI path remains the accepted 0.8.0 architecture.
+
+```text
+Applications / filesystem / page cache
+                  |
+          Linux block layer
+                  |
+                blk-mq
+                  |
+       bounded ordered SecureRAM I/O
+                  |
+       +----------+-------------------------------+
+       |                                          |
+ AES-256-XTS -> HMAC-SHA-256              /dev/secureramctl
+ confidentiality   integrity                      |
+       |                                  CLI / local dashboard
+ key generation + ACTIVE/LOCKED/latch              |
+       |                                  validated privileged UAPI
+ ciphertext/tag snapshot slot                      |
+       +------------------+------------------------+
+                          |
+               volatile secured RAM store
+```
+
+Generation binds the derived integrity key and every tag. Loading a fresh key
+authenticates encrypted logical zeros and increments generation. Lock retains the
+keys and same-generation snapshot but denies block opens; destroy wipes live key
+state, ciphertext/tags and the snapshot. A snapshot copies ciphertext, matching
+tags and generation under the existing zero-opener gate/drain/control mutex; it
+does not copy plaintext or claim filesystem/application consistency.
+
+The production/test boundary is compile-time and artifact-verified. Normal
+builds omit M4 internal diagnostics, the M5 bounded corruption ioctl and the M9
+fault selector/object. M11's lifecycle refuses an artifact containing known
+test symbols/strings. The labelled demo may build M4/M5 hooks only after unloading
+production and always rebuilds/proves a production artifact before completion.
+There is no production arbitrary-corruption, key-export, key-dump or bypass path.
+
+See [installation](installation.md), [demo](demo.md), [M11 audit](m11-report.md)
+and [final acceptance](m11-testing.md) for the integration layer around this
+unchanged architecture.
+
 M10 adds external evaluation tooling only. It measures the unchanged production
 path and uses existing M4/M5 builds separately for security demonstrations. No
 production UAPI, crypto mode, allocation or synchronization changes are made.

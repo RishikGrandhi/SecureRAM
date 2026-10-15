@@ -1,5 +1,23 @@
 # Developer workflow and learning notes
 
+## M11 production readiness
+
+M11 starts from merged M10 main `9903097` and stays on
+`m11-production-readiness`. It changes integration scripts, test orchestration
+and documentation; production `src/`, `include/` and `Kbuild` remain unchanged.
+Use `make check-env` for read-only build readiness and `make check-runtime` for a
+matching non-WSL target. `make check-production` scans the built artifact before
+normal lifecycle use. The local M11 command is:
+
+```sh
+python3 tests/check-m11-local.py
+```
+
+The exact clean-worktree VM command and evidence contract are in
+[m11-testing.md](m11-testing.md). It composes representative accepted helpers
+without rerunning the full M9 stress or M10 benchmark campaigns. Do not upgrade
+local/compile results into M11 runtime acceptance.
+
 ## M10 evaluation
 
 M9 is merged and accepted at main `35babfa`. M10 is isolated on

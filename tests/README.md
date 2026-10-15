@@ -1,5 +1,25 @@
 # Verification by milestone
 
+## M11 final integration
+
+`check-m11-local.py` is the non-root Linux/WSL entry point for syntax,
+documentation links, M10 local oracles, dashboard regressions, fixed-target
+safety contracts and proof that M11 has not changed production kernel/UAPI/Kbuild
+files. It never loads or accesses a device.
+
+`run-m11-final-acceptance.sh` is the one Ubuntu VM entry point. It requires a
+reviewed full `M11_EXPECTED_COMMIT`, clean `m11-production-readiness` source and
+sudo from the ordinary checkout owner. It creates a detached exact-commit
+worktree, runs the quick demo plus representative inherited production,
+dashboard, snapshot and integrity phases, restores production, checks fresh
+kernel health and cleanup, copies evidence to `.cache/m11-final/`, then removes
+the temporary checkout. It accepts no device path and does not run M9 stress or
+M10 benchmarks. See [the M11 procedure](../docs/m11-testing.md).
+
+`m11-demo-integrity.py` is only a thin current-version adapter over the accepted
+M5 corruption oracle. It is invoked exclusively by the clearly labelled test
+phase of `scripts/demo-secureram.sh`; it does not add a production interface.
+
 ## M9 reliability acceptance
 
 Use `run-m9-vm-acceptance.sh` only in the disposable Ubuntu VM with a clean
