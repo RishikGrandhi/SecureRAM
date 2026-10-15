@@ -11,7 +11,7 @@ import sys
 from urllib.parse import urlsplit
 
 COUNTERS = ("read_requests", "write_requests", "read_bytes", "write_bytes", "integrity_failures")
-VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") in ("8", "9") else "0.6.0"
+VERSION = "0.8.0" if os.environ.get("SR_MILESTONE") in ("8", "9", "10", "11") else "0.6.0"
 FEATURES = 31 if VERSION == "0.8.0" else 15
 
 

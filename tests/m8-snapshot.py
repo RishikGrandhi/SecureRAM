@@ -251,7 +251,7 @@ def tamper(fd):
 
 def main():
     assert len(sys.argv) == 2 and sys.argv[1] in ("production", "tamper")
-    assert os.environ.get("SR_MILESTONE") in ("8", "9") and os.environ.get("M7_TOKEN"), "use the M8/M9 harness"
+    assert os.environ.get("SR_MILESTONE") in ("8", "9", "11") and os.environ.get("M7_TOKEN"), "use the M8/M9/M11 harness"
     identity()
     fd = os.open("/dev/secureramctl", os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW)
     try:

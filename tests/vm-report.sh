@@ -13,7 +13,7 @@ m5_start_dmesg()
 		}
 		if [[ -e "/proc/$M5_DMESG_PID/fd/1" ]]; then
 			M5_DMESG_STARTED=1
-			if [[ ${SR_MILESTONE:-5} == 9 || ${SR_MILESTONE:-5} == 10 ]]; then
+			if [[ ${SR_MILESTONE:-5} =~ ^(9|10|11)$ ]]; then
 				m9_log_marker start || return 1
 			fi
 			return 0
@@ -48,7 +48,7 @@ m5_stop_dmesg()
 {
 	[[ -n $M5_DMESG_PID ]] || return 0
 	if kill -0 "$M5_DMESG_PID" 2>/dev/null; then
-		if [[ ${SR_MILESTONE:-5} == 9 || ${SR_MILESTONE:-5} == 10 ]]; then
+		if [[ ${SR_MILESTONE:-5} =~ ^(9|10|11)$ ]]; then
 			m9_log_marker end || M5_DMESG_LOST=1
 		fi
 		kill -TERM "$M5_DMESG_PID"
@@ -83,12 +83,12 @@ m5_check_kernel_health()
 	fi
 	m5_record 'Kernel health' FAIL 'runtime evidence captured; health review did not complete'
 	: > "$failures"
-	if [[ ${SR_MILESTONE:-5} =~ ^(6|7|8|9|10)$ ]]; then
+	if [[ ${SR_MILESTONE:-5} =~ ^(6|7|8|9|10|11)$ ]]; then
 		# A warning may be environmental; retain it for classification, never
 		# declare health PASS before the operator has resolved that evidence.
 		grep -Ein "$faults|WARNING:|Call Trace:" "$log" >> "$failures" || true
 	fi
-	if [[ ${SR_MILESTONE:-5} == 8 || ${SR_MILESTONE:-5} == 9 || ${SR_MILESTONE:-5} == 10 ]]; then
+	if [[ ${SR_MILESTONE:-5} =~ ^(8|9|10|11)$ ]]; then
 		grep -Ein 'possible.*locking|possible.*deadlock|suspicious RCU|sleeping function called|double free|kmemleak' \
 			"$log" >> "$failures" || true
 	fi

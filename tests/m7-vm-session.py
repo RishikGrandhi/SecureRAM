@@ -103,13 +103,15 @@ def run_session():
             try:
                 # Child shell owns all device cleanup; Popen context waits on unwind.
                 profile = os.environ.get("SR_MILESTONE")
-                script = {"9": "m9-vm-phases.sh", "8": "m8-vm-phases.sh"}.get(profile, "m7-vm-phases.sh")
+                script = {"11": "m11-vm-phases.sh", "9": "m9-vm-phases.sh",
+                          "8": "m8-vm-phases.sh"}.get(profile, "m7-vm-phases.sh")
                 with subprocess.Popen(["bash", str(ROOT / "tests" / script)], cwd=ROOT, env=env,
-                                      start_new_session=profile == "9") as phases:
+                                      start_new_session=profile in ("9", "11")) as phases:
                     try:
-                        result = phases.wait(timeout=7200 if profile == "9" else None)
+                        result = phases.wait(timeout=3600 if profile == "11" else
+                                             7200 if profile == "9" else None)
                     except (subprocess.TimeoutExpired, KeyboardInterrupt):
-                        if profile == "9":
+                        if profile in ("9", "11"):
                             os.killpg(phases.pid, signal.SIGTERM)
                             try:
                                 phases.wait(timeout=30)

@@ -20,6 +20,7 @@ case ${SR_MILESTONE:-5} in
     8) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m8-vm ;;
     9) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m9-vm ;;
     10) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m10-benchmarks ;;
+    11) M5_VERSION=0.8.0; M5_FEATURES=31; M5_EVIDENCE_NAME=m11-final ;;
     *) printf '%s\n' 'Unsupported acceptance profile' >&2; return 1 ;;
 esac
 readonly M5_VERSION M5_FEATURES M5_EVIDENCE_NAME
@@ -184,8 +185,12 @@ m5_assert_checkout()
 	[[ $(uname -s) == Linux ]] || { m5_die "run inside the Linux VM"; return 1; }
 	branch=$(m5_run_as_builder git -C "$M5_ROOT" branch --show-current)
 	commit=$(m5_run_as_builder git -C "$M5_ROOT" rev-parse HEAD)
-	[[ $branch == "$expected_branch" ]] ||
-		{ m5_die "expected branch $expected_branch, found $branch"; return 1; }
+	if [[ $expected_branch == DETACHED ]]; then
+		[[ -z $branch ]] || { m5_die "expected detached clean worktree, found branch $branch"; return 1; }
+	else
+		[[ $branch == "$expected_branch" ]] ||
+			{ m5_die "expected branch $expected_branch, found $branch"; return 1; }
+	fi
 	[[ -z $(m5_run_as_builder git -C "$M5_ROOT" status --porcelain --untracked-files=normal) ]] ||
 		{ m5_die "VM acceptance requires a clean committed checkout"; return 1; }
 	if [[ -n ${M5_EXPECTED_COMMIT:-} ]]; then
