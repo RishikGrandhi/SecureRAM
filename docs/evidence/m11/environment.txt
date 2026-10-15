@@ -1,0 +1,4 @@
+Linux rishik-grandhi-VirtualBox 7.0.0-38-generic #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+source_commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+source_mode=detached-clean-worktree
+## HEAD (no branch)

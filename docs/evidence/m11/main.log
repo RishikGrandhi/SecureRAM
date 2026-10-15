@@ -1,0 +1,756 @@
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+M11 evidence: /home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/.cache/m11-final/20261015T131116Z-13747
+SecureRAM Environment Check
+
+Mode                           INFO       runtime readiness (read-only)
+Linux                          PASS       7.0.0-38-generic
+Architecture                   PASS       x86_64 (validated project target)
+Runtime kernel                 PASS       non-WSL Linux kernel
+Compiler                       PASS       /usr/bin/cc
+Make                           PASS       /usr/bin/make
+Linker                         PASS       /usr/bin/ld
+Python                         PASS       /usr/bin/python3
+Python version                 PASS       3.12.3
+Kernel headers                 PASS       7.0.0-38-generic at /lib/modules/7.0.0-38-generic/build
+Header/kernel match            PASS       7.0.0-38-generic
+Kernel modules                 PASS       target enables CONFIG_MODULES
+Required runtime tools         PASS       kmod, udev, mount/device inspection available
+Module loading policy          PASS       not globally disabled; signature policy still applies
+Runtime privilege path         PASS       root or sudo is available; authentication is never attempted here
+Optional fio                   PASS       /usr/bin/fio
+Optional ShellCheck            OPTIONAL   static shell lint is useful but not required to build/run
+
+Environment ready for runtime use; 1 optional item(s) missing.
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.007s
+
+OK
+test_allowlist_before_spawn (__main__.ContractTests.test_allowlist_before_spawn) ... ok
+test_bad_types_ranges_duplicates_and_mismatch (__main__.ContractTests.test_bad_types_ranges_duplicates_and_mismatch) ... ok
+test_entrypoint_refuses_unprivileged_or_non_linux_launch (__main__.ContractTests.test_entrypoint_refuses_unprivileged_or_non_linux_launch) ... ok
+test_real_entrypoint_signals_and_no_state_change (__main__.ContractTests.test_real_entrypoint_signals_and_no_state_change) ... ok
+test_symlink_static_escape_and_cli_symlink (__main__.ContractTests.test_symlink_static_escape_and_cli_symlink) ... ok
+test_u64_max_and_unknown_state_feature (__main__.ContractTests.test_u64_max_and_unknown_state_feature) ... ok
+test_worker_bound_and_shutdown_idle_connections (__main__.ContractTests.test_worker_bound_and_shutdown_idle_connections) ... dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+ok
+test_actions_destroy_confirmation_and_failure_latch (__main__.HTTPTests.test_actions_destroy_confirmation_and_failure_latch) ... ok
+test_auth_missing_wrong_empty_and_query_substitution (__main__.HTTPTests.test_auth_missing_wrong_empty_and_query_substitution) ... ok
+test_busy_bound_and_timeout_releases_lock (__main__.HTTPTests.test_busy_bound_and_timeout_releases_lock) ... dashboard: controller_busy
+dashboard: cli_timeout
+ok
+test_concurrent_polling_and_actions_serialized (__main__.HTTPTests.test_concurrent_polling_and_actions_serialized) ... ok
+test_errors_are_sanitized_and_non_success (__main__.HTTPTests.test_errors_are_sanitized_and_non_success) ... dashboard: cli_missing
+dashboard: permission_denied
+dashboard: cli_timeout
+dashboard: abi_mismatch
+dashboard: module_absent
+dashboard: permission_denied
+dashboard: action_uncertain
+dashboard: cli_failure
+ok
+test_get_cannot_change_state_and_unknown_actions (__main__.HTTPTests.test_get_cannot_change_state_and_unknown_actions) ... ok
+test_host_origin_and_fetch_metadata (__main__.HTTPTests.test_host_origin_and_fetch_metadata) ... ok
+test_loopback_token_and_static_headers (__main__.HTTPTests.test_loopback_token_and_static_headers) ... ok
+test_malformed_cli_json_and_internal_error_no_traceback (__main__.HTTPTests.test_malformed_cli_json_and_internal_error_no_traceback) ... dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+ok
+test_malformed_size_type_and_schema (__main__.HTTPTests.test_malformed_size_type_and_schema) ... ok
+test_post_requires_origin (__main__.HTTPTests.test_post_requires_origin) ... ok
+test_rapid_load_does_not_bypass_cli_state (__main__.HTTPTests.test_rapid_load_does_not_bypass_cli_state) ... ok
+test_raw_duplicate_framing_and_bad_request (__main__.HTTPTests.test_raw_duplicate_framing_and_bad_request) ... ok
+test_read_routes_and_lossless_json (__main__.HTTPTests.test_read_routes_and_lossless_json) ... ok
+test_referrer_policy_preserves_exact_post_origin (__main__.HTTPTests.test_referrer_policy_preserves_exact_post_origin) ... ok
+test_token_not_logged_even_in_rejected_url (__main__.HTTPTests.test_token_not_logged_even_in_rejected_url) ... ok
+test_traversal_fixed_asset_allowlist (__main__.HTTPTests.test_traversal_fixed_asset_allowlist) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 1.869s
+
+OK
+test_confirmation_and_security_all_routes (__main__.SnapshotTests.test_confirmation_and_security_all_routes) ... ok
+test_full_flow_and_fixed_argv (__main__.SnapshotTests.test_full_flow_and_fixed_argv) ... ok
+test_strict_schema_precision_and_errors (__main__.SnapshotTests.test_strict_schema_precision_and_errors) ... dashboard: snapshot_memory
+dashboard: action_uncertain
+ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.171s
+
+OK
+Usage: sudo ./scripts/demo-secureram.sh --quick|--full
+  --quick  bounded professor demo using an 8 MiB device
+  --full   same demo plus the inherited full direct-I/O oracle at 64 MiB
+PASS: M11 syntax, integration contracts, dashboard regressions, links and production-code boundary
+Kernel/header match: 7.0.0-38-generic
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools" clean
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+rm -f secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools"
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+cc -I../include -O2 -std=c11 -Wall -Wextra -Werror -Wconversion secureramctl.c  -o secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+SecureRAM Production/Test Boundary
+
+Fault injection                DISABLED / UNAVAILABLE
+Test corruption hooks          DISABLED / UNAVAILABLE
+Secret logging                 ABSENT
+Key dumps                      ABSENT
+Debug bypasses                 ABSENT
+Module version                 0.8.0
+
+Production build isolation PASS.
+[1/9] Production build and test isolation        PASS
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+load-random succeeded: state=ACTIVE (2) generation=1
+[2/9] Load device and install ephemeral key      PASS
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+[3/9] Authenticated block write and exact readback PASS
+{"abi":1,"exists":true,"state":2,"data_bytes":8388608,
+"tag_bytes":65536,"generation":1,"created":1,
+"restored":0,"deleted":0,"failures":0}
+{"abi":1,"exists":true,"state":2,"data_bytes":8388608,
+"tag_bytes":65536,"generation":1,"created":1,
+"restored":1,"deleted":0,"failures":0}
+[4/9] Encrypted snapshot overwrite and rollback  PASS
+lock succeeded: state=LOCKED (3) generation=1
+unlock succeeded: state=ACTIVE (2) generation=1
+[5/9] Key lock denial and unlock retention       PASS
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 8.00 MiB (8388608 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+Successful read requests: 3
+Successful write requests: 2
+Successful read bytes: 12288
+Successful write bytes: 8192
+Integrity authentication failures: 0
+[6/9] Status, generation and statistics          PASS
+destroy succeeded: state=NO_KEY (0) generation=1
+[7/9] Production lifecycle cleanup               PASS
+      TEST-ONLY: enabling bounded M4/M5 verification hooks; never a production build.
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: combined M5/M4 test handlers and diagnostics are present
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+load-random succeeded: state=ACTIVE (2) generation=1
+load-random succeeded: state=ACTIVE (2) generation=2
+load-random succeeded: state=ACTIVE (2) generation=3
+load-random succeeded: state=ACTIVE (2) generation=4
+load-random succeeded: state=ACTIVE (2) generation=5
+load-random succeeded: state=ACTIVE (2) generation=6
+PASS: operation=1, EIO, untouched output, latch, rejection, recovery
+PASS: operation=2, EIO, untouched output, latch, rejection, recovery
+PASS: operation=3, EIO, untouched output, latch, rejection, recovery
+PASS: ciphertext, tag, relocation and recovery; final NO_KEY
+[8/9] TEST-ONLY confidentiality and integrity checks PASS
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+SecureRAM Production/Test Boundary
+
+Fault injection                DISABLED / UNAVAILABLE
+Test corruption hooks          DISABLED / UNAVAILABLE
+Secret logging                 ABSENT
+Key dumps                      ABSENT
+Debug bypasses                 ABSENT
+Module version                 0.8.0
+
+Production build isolation PASS.
+[9/9] Restore production artifact and final cleanup PASS
+
+SECURERAM DEMONSTRATION COMPLETE
+Evidence: /home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/.cache/m11-final/demo-20261015T131119Z-14342
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: production module has no M4/M5 test strings or tamper symbols
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools" clean
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+rm -f secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools"
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+cc -I../include -O2 -std=c11 -Wall -Wextra -Werror -Wconversion secureramctl.c  -o secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+Usage: secureramctl status|stats [--json]
+       secureramctl load-random|lock|unlock|destroy
+       secureramctl snapshot create|status|restore|delete [--json]
+       secureramctl help|version
+Device commands require root/host CAP_SYS_ADMIN; invoke sudo externally.
+load-random creates an unrecoverable ephemeral key; destroy discards all data.
+Load needs NO_KEY; lock needs ACTIVE; unlock needs LOCKED.
+INTEGRITY_FAILED requires destroy then a fresh load. All changes need zero block users.
+Snapshots: create/restore need ACTIVE; one slot (delete before replacement).
+Restore discards current data and retains the slot; delete is idempotent.
+Snapshot JSON actions return a follow-up observation, not an atomic action receipt.
+Exit codes: 0 success, 1 operation/access failure, 2 usage, 3 ABI/feature mismatch.
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+ABI=1 state=0 bytes=67108864 unit=4096 generation=0 features=31
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: NO_KEY (0)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 0
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 0, "integrity": true, "lock": true, "state": 0, "state_name": "NO_KEY", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: production rejects M5 corruption ioctl with ENOTTY
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: read and write opens fail closed with ENOKEY
+Open denial prevents userspace I/O; it does not inject queue_rq directly.
+PASS: malformed ABI, weak key, user-copy faults, passed-fd privilege
+PASS: HTTP lock EBUSY
+PASS: HTTP unlock EBUSY
+Successful read requests: 0
+Successful write requests: 0
+Successful read bytes: 0
+Successful write bytes: 0
+Integrity authentication failures: 0
+PASS: zero counters, reserved output, EFAULT and passed-fd GET_STATS privilege
+PASS: HTTP observation baseline
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: HTTP observation save
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: all key transitions rejected while block device is open
+PASS: 67108864 bytes, geometry, and full initial-zero scan
+PASS: temporary-file round trip through direct, segmented I/O
+PASS: first, nonzero-offset, middle, and final logical blocks
+PASS: neighboring-block isolation and four concurrent I/O streams
+PASS: end-of-device read/write behavior and flush
+Boundary syscalls may be rejected by the block core before driver dispatch.
+SHA-256 input:    35466bb4d6c528f57b48fda71863fae5d871e2f3971a9b2e08bb49a5c1621a92
+SHA-256 readback: 35466bb4d6c528f57b48fda71863fae5d871e2f3971a9b2e08bb49a5c1621a92
+PASS: SHA-256 and cmp for 1 MiB random direct I/O
+PASS: statistics increased
+PASS: HTTP observation increased
+PASS: quiescent single-unit direct read/write each add one request and 4096 bytes
+PASS: HTTP observation accounting
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random EBUSY
+PASS: HTTP observation save
+PASS: HTTP lock completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: LOCKED (3)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 3, "state_name": "LOCKED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: read and write opens fail closed with ENOKEY
+Open denial prevents userspace I/O; it does not inject queue_rq directly.
+PASS: HTTP load-random EBUSY
+PASS: HTTP lock EBUSY
+PASS: statistics equal
+PASS: HTTP observation equal
+PASS: HTTP unlock completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP observation save
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: NO_KEY (0)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 0, "state_name": "NO_KEY", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: statistics equal
+PASS: HTTP observation equal
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+PASS: statistics equal
+PASS: HTTP observation equal
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 2
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 2, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: statistics retained
+PASS: HTTP observation retained
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: all key transitions rejected while block device is open
+PASS: 67108864 bytes, geometry, and full initial-zero scan
+PASS: temporary-file round trip through direct, segmented I/O
+PASS: first, nonzero-offset, middle, and final logical blocks
+PASS: neighboring-block isolation and four concurrent I/O streams
+PASS: end-of-device read/write behavior and flush
+Boundary syscalls may be rejected by the block core before driver dispatch.
+SHA-256 input:    f50c47e23463aaf29fb2cd914c9f354469ee029682824025acf392f3f94be932
+SHA-256 readback: f50c47e23463aaf29fb2cd914c9f354469ee029682824025acf392f3f94be932
+PASS: SHA-256 and cmp for 1 MiB random direct I/O
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: all key transitions rejected while block device is open
+PASS: HTTP load-random EBUSY
+PASS: HTTP lock EBUSY
+PASS: HTTP unlock EBUSY
+PASS: HTTP destroy EBUSY
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 2
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 2, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+{"abi":1,"read_requests":1200,"write_requests":128,
+"read_bytes":143953920,"write_bytes":12869632,"integrity_failures":0}
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+PASS: HTTP auth, static assets, reload survival, adversarial routes and cross-origin checks
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: new ioctl layouts/reserved output, EFAULT, EINVAL, ENOTTY and passed-fd EPERM
+SHA_A=0625287b1da18ba0f7af8238eeec48a90cc89e3c6463726b32440c49b44fae09
+SHA_B=5c5d8783be260a57a40be1e8a464067101576b407e1d0f40452eafdef8ebb982
+SHA_RESTORED=0625287b1da18ba0f7af8238eeec48a90cc89e3c6463726b32440c49b44fae09
+PASS: full-device deterministic rollback and authenticated reads without mismatches
+PASS: concurrent direct I/O, coherent status, all mutations reject open users
+PASS: counters, LOCKED cleanup, 8 full cycles, racing create, destroy/rekey invalidation
+ACTIVE snapshot left for the harness's orderly unload-with-slot test
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: combined M5/M4 test handlers and diagnostics are present
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+Successful read requests: 0
+Successful write requests: 0
+Successful read bytes: 0
+Successful write bytes: 0
+Integrity authentication failures: 0
+PASS: zero counters, reserved output, EFAULT and passed-fd GET_STATS privilege
+PASS: HTTP observation baseline
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=1, EIO, untouched output, latch, rejection, recovery
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 3
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 3, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=2, EIO, untouched output, latch, rejection, recovery
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 5
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 5, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=3, EIO, untouched output, latch, rejection, recovery
+PASS: ciphertext, tag, relocation and recovery; final NO_KEY
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: NO_KEY (0)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 6
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 6, "integrity": true, "lock": true, "state": 0, "state_name": "NO_KEY", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: production module has no M4/M5 test strings or tamper symbols
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+Successful read requests: 0
+Successful write requests: 0
+Successful read bytes: 0
+Successful write bytes: 0
+Integrity authentication failures: 0
+PASS: zero counters, reserved output, EFAULT and passed-fd GET_STATS privilege
+PASS: HTTP observation baseline
+PASS: production rejects M5 corruption ioctl with ENOTTY
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: all key transitions rejected while block device is open
+PASS: 67108864 bytes, geometry, and full initial-zero scan
+PASS: temporary-file round trip through direct, segmented I/O
+PASS: first, nonzero-offset, middle, and final logical blocks
+PASS: neighboring-block isolation and four concurrent I/O streams
+PASS: end-of-device read/write behavior and flush
+Boundary syscalls may be rejected by the block core before driver dispatch.
+SHA-256 input:    dbff06df2c4ff41964d467fcb94c24cae4cf0bd46a3bfa239fb9891956b97d98
+SHA-256 readback: dbff06df2c4ff41964d467fcb94c24cae4cf0bd46a3bfa239fb9891956b97d98
+PASS: SHA-256 and cmp for 1 MiB random direct I/O
+PASS: quiescent single-unit direct read/write each add one request and 4096 bytes
+PASS: HTTP observation accounting
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: all key transitions rejected while block device is open
+PASS: HTTP load-random EBUSY
+PASS: HTTP lock EBUSY
+PASS: HTTP unlock EBUSY
+PASS: HTTP destroy EBUSY
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 2
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 2, "integrity": true, "lock": true, "state": 2, "state_name": "ACTIVE", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+{"abi":1,"read_requests":615,"write_requests":90,
+"read_bytes":72474624,"write_bytes":8642560,"integrity_failures":0}
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: NO_KEY (0)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 2
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 2, "integrity": true, "lock": true, "state": 0, "state_name": "NO_KEY", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: read and write opens fail closed with ENOKEY
+Open denial prevents userspace I/O; it does not inject queue_rq directly.
+PASS: kernel health; captured log and warning context retained for review
+CHECK                            | RESULT        | DETAIL
+---------------------------------+---------------+-------
+Environment                      | PASS          | read-only runtime prerequisite check passed
+Clean-checkout reproducibility   | PASS          | detached exact-commit source completed build, demo and final integration
+Build                            | PASS          | production module and CLI built with inherited warning checks
+Module lifecycle                 | PASS          | NO_KEY/load/key transitions/ext4/unload completed
+Block I/O                        | PASS          | direct raw and ext4 assertions completed
+Encryption/key lifecycle         | PASS          | load, lock, unlock, destroy and rekey assertions completed
+Integrity                        | PASS          | bounded test-only corruption, latch and recovery assertions completed
+Snapshots                        | PASS          | rollback, UAPI, HTTP and reload assertions completed
+CLI                              | PASS          | help/version/human/JSON/error contracts completed
+Dashboard backend                | PASS          | real loopback backend/API/security assertions completed
+Statistics                       | PASS          | baseline, accounting and retention assertions completed
+Quick demo                       | PASS          | nine-stage production/test-labelled demo completed
+Production/test isolation        | PASS          | final artifact excludes M4/M5/M9 hooks and passed production regression
+Cleanup                          | PASS          | module, nodes, mount and owned dashboard process are absent
+Kernel health                    | PASS          | captured runtime log passed milestone health checks
+OVERALL                          | PASS          | /home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/.cache/m11-final/20261015T131116Z-13747

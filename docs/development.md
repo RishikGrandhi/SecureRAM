@@ -15,8 +15,9 @@ python3 tests/check-m11-local.py
 
 The exact clean-worktree VM command and evidence contract are in
 [m11-testing.md](m11-testing.md). It composes representative accepted helpers
-without rerunning the full M9 stress or M10 benchmark campaigns. Do not upgrade
-local/compile results into M11 runtime acceptance.
+without rerunning the full M9 stress or M10 benchmark campaigns. The real final
+run passed every group from detached clean candidate `8f828860`; retained logs
+and hashes are in [the M11 evidence index](evidence/m11/README.md).
 
 ## M10 evaluation
 

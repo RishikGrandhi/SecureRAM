@@ -1,0 +1,92 @@
+Environment	NOT RUN	assertion group not reached
+Clean-checkout reproducibility	NOT RUN	assertion group not reached
+Build	NOT RUN	assertion group not reached
+Module lifecycle	NOT RUN	assertion group not reached
+Block I/O	NOT RUN	assertion group not reached
+Encryption/key lifecycle	NOT RUN	assertion group not reached
+Integrity	NOT RUN	assertion group not reached
+Snapshots	NOT RUN	assertion group not reached
+CLI	NOT RUN	assertion group not reached
+Dashboard backend	NOT RUN	assertion group not reached
+Statistics	NOT RUN	assertion group not reached
+Quick demo	NOT RUN	assertion group not reached
+Production/test isolation	NOT RUN	assertion group not reached
+Cleanup	NOT RUN	assertion group not reached
+Kernel health	NOT RUN	assertion group not reached
+Environment	PASS	read-only runtime prerequisite check passed
+Quick demo	PASS	nine-stage production/test-labelled demo completed
+Dashboard startup	NOT COMPLETED	starting explicit privileged backend
+Dashboard startup	PASS	backend 0.8.0 started; credential retained only in memory
+Loopback-only binding	PASS	owned /proc socket is exclusively 127.0.0.1
+Production build	NOT COMPLETED	assertion group started
+CLI build	NOT COMPLETED	assertion group started
+Production build	PASS	all assertions completed
+CLI build	PASS	all assertions completed
+CLI help/version	NOT COMPLETED	assertion group started
+CLI help/version	PASS	all assertions completed
+Version/features	NOT COMPLETED	assertion group started
+Human status	NOT COMPLETED	assertion group started
+JSON status	NOT COMPLETED	assertion group started
+Stats baseline	NOT COMPLETED	assertion group started
+Version/features	PASS	all assertions completed
+Human status	PASS	all assertions completed
+JSON status	PASS	all assertions completed
+Stats baseline	PASS	all assertions completed
+Random key load	NOT COMPLETED	assertion group started
+Random key load	PASS	all assertions completed
+Raw I/O	NOT COMPLETED	assertion group started
+Stats accounting	NOT COMPLETED	assertion group started
+Raw I/O	PASS	all assertions completed
+Stats accounting	PASS	all assertions completed
+Lock/unlock	NOT COMPLETED	assertion group started
+Lock/unlock	PASS	all assertions completed
+Destroy/rekey	NOT COMPLETED	assertion group started
+Destroy/rekey	PASS	all assertions completed
+ext4	NOT COMPLETED	assertion group started
+Mounted busy rejection	NOT COMPLETED	assertion group started
+ext4	PASS	all assertions completed
+Mounted busy rejection	PASS	all assertions completed
+HTTP authorization	NOT COMPLETED	assertion group started
+Static UI	NOT COMPLETED	assertion group started
+Status API	NOT COMPLETED	assertion group started
+Stats API	NOT COMPLETED	assertion group started
+HTTP adversarial	NOT COMPLETED	assertion group started
+HTTP authorization	PASS	all assertions completed
+Static UI	PASS	all assertions completed
+Status API	PASS	all assertions completed
+Stats API	PASS	all assertions completed
+HTTP adversarial	PASS	all assertions completed
+Build	PASS	production module and CLI built with inherited warning checks
+Module lifecycle	PASS	NO_KEY/load/key transitions/ext4/unload completed
+Block I/O	PASS	direct raw and ext4 assertions completed
+Encryption/key lifecycle	PASS	load, lock, unlock, destroy and rekey assertions completed
+CLI	PASS	help/version/human/JSON/error contracts completed
+Dashboard backend	PASS	real loopback backend/API/security assertions completed
+Statistics	PASS	baseline, accounting and retention assertions completed
+Snapshot rollback/lifecycle/UAPI	NOT COMPLETED	assertion group started
+Snapshot HTTP	NOT COMPLETED	assertion group started
+Snapshot rollback/lifecycle/UAPI	PASS	all assertions completed
+Snapshot HTTP	PASS	all assertions completed
+Snapshot unload/reload	NOT COMPLETED	assertion group started
+Snapshot unload/reload	PASS	all assertions completed
+Snapshots	PASS	rollback, UAPI, HTTP and reload assertions completed
+Integrity-failure API	NOT COMPLETED	assertion group started
+Integrity-failure observability	NOT COMPLETED	assertion group started
+Tamper regression	NOT COMPLETED	assertion group started
+Recovery	NOT COMPLETED	assertion group started
+Integrity-failure observability	PASS	all assertions completed
+Tamper regression	PASS	all assertions completed
+Recovery	PASS	all assertions completed
+Integrity-failure API	NOT COMPLETED	assertion group started
+Integrity-failure API	PASS	all assertions completed
+Integrity	PASS	bounded test-only corruption, latch and recovery assertions completed
+Final production regression	NOT COMPLETED	assertion group started
+Final production regression	PASS	all assertions completed
+Final cleanup	NOT COMPLETED	assertion group started
+Final cleanup	PASS	all assertions completed
+Production/test isolation	PASS	final artifact excludes M4/M5/M9 hooks and passed production regression
+Dashboard cleanup	PASS	owned backend stopped; no key operation on shutdown
+Cleanup	PASS	module, nodes, mount and owned dashboard process are absent
+Clean-checkout reproducibility	PASS	detached exact-commit source completed build, demo and final integration
+Kernel health	FAIL	runtime evidence captured; health review did not complete
+Kernel health	PASS	captured runtime log passed milestone health checks

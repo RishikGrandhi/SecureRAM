@@ -75,12 +75,29 @@ artifact boundary. No key/plaintext dump or debug bypass exists.
 | Concurrency/stress | Yes, bounded evidence | M9 45/45 accepted campaign; inherited |
 | Performance evaluation | Yes, descriptive | M10 retained trials, analysis and limitations |
 | Production/test isolation | Yes | M9/M10 plus M11 artifact scan/runtime checks |
-| Clean-checkout reproducibility | Pending VM until executed | M11 detached-worktree acceptance |
-| Professor demo | Implemented; pending VM until executed | M11 quick demo and evidence log |
+| Clean-checkout reproducibility | Yes | M11 detached-worktree acceptance at `8f828860` |
+| Professor demo | Yes | M11 nine-stage quick demo and retained evidence log |
 
-## Evidence status
+## Final acceptance evidence
 
-Local checks and real VM acceptance are recorded only after execution. Until the
-user returns a passing M11 run, the quick demo, clean-worktree reproduction,
-kernel health and final cleanup remain **implemented but not runtime accepted**.
-See [M11 testing](m11-testing.md) for the exact evidence contract.
+The real Ubuntu acceptance completed on 2026-10-15 from a detached clean
+worktree at exact candidate commit
+`8f8288602b220d15c90a6b27a5039a23a3885b80`. Main run
+`20261015T131116Z-13747` and demo run
+`demo-20261015T131119Z-14342` passed every required group: environment,
+clean-checkout reproduction, build, module lifecycle, block I/O, encryption/key
+lifecycle, integrity, snapshots, CLI, dashboard backend, statistics, quick demo,
+production/test isolation, cleanup and kernel health. `OVERALL` is PASS.
+
+The fresh kernel capture contains expected SecureRAM/test-labelled/ext4 lifecycle
+events and no health signature; both failure/review outputs are empty. Cleanup
+was asserted only after module, nodes, mount and owned dashboard process were
+absent. The final production artifact excludes all known M4/M5/M9 hooks and
+passed the production regression after test instrumentation was removed.
+
+The returned archive, its complete file-hash manifest and review-critical logs
+are documented in [retained M11 evidence](evidence/m11/README.md). The final M11
+evidence commit is a documentation/evidence-only descendant of the runtime-tested
+candidate, so it does not invalidate that run. Full M9 stress and M10 benchmark
+campaigns were intentionally not rerun; their accepted evidence remains
+applicable because production kernel/security/UAPI behavior is unchanged.

@@ -93,3 +93,27 @@ only in memory. Keys, plaintext backing bytes and credentials are never evidence
 After a failure, preserve the run and report the earliest failed stage. A narrow
 fix should request only the smallest affected rerun unless shared lifecycle,
 security, kernel-health or cleanup behavior was invalidated.
+
+## Accepted execution
+
+The final run completed on 2026-10-15 on Ubuntu kernel 7.0.0-38-generic from a
+detached clean worktree at
+`8f8288602b220d15c90a6b27a5039a23a3885b80`:
+
+```text
+main run: 20261015T131116Z-13747
+demo run: demo-20261015T131119Z-14342
+summary: 15/15 acceptance groups PASS; OVERALL PASS
+```
+
+The returned archive was 983040 bytes with SHA-256
+`bf28450307f1ded7e38f06ff29c7297d1c92de08dc4ffe9e4114f8966966bfd4`.
+All 44 regular files were inspected. The resolved summary and each group's last
+status are PASS; the demo contains nine PASS stages and its completion marker.
+Kernel failure/review logs are empty, cleanup passed, and the final production
+symbol/string scans contain no known test surface. See
+[the retained evidence and full hash manifest](evidence/m11/README.md).
+
+No full acceptance rerun is required for the final evidence commit: it changes
+only documentation and retained text evidence. The targeted local M11 oracle is
+the appropriate post-evidence check.

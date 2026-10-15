@@ -14,7 +14,9 @@ worktree, runs the quick demo plus representative inherited production,
 dashboard, snapshot and integrity phases, restores production, checks fresh
 kernel health and cleanup, copies evidence to `.cache/m11-final/`, then removes
 the temporary checkout. It accepts no device path and does not run M9 stress or
-M10 benchmarks. See [the M11 procedure](../docs/m11-testing.md).
+M10 benchmarks. The final real Ubuntu run passed all groups from exact detached
+candidate `8f828860`; see [the M11 procedure](../docs/m11-testing.md) and
+[retained evidence](../docs/evidence/m11/README.md).
 
 `m11-demo-integrity.py` is only a thin current-version adapter over the accepted
 M5 corruption oracle. It is invoked exclusively by the clearly labelled test

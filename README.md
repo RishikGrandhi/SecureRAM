@@ -163,7 +163,10 @@ sudo env M11_EXPECTED_COMMIT=<reviewed-40-character-SHA> \
 
 It never runs the full M9 stress or M10 benchmark campaigns. A stage is PASS only
 after its real assertions complete; skipped/unreached work cannot become PASS.
-See the [M11 testing procedure](docs/m11-testing.md). Historical M9 reliability
+The final Ubuntu run passed every group and `OVERALL` from detached clean
+candidate `8f8288602b220d15c90a6b27a5039a23a3885b80`; see the
+[M11 testing procedure](docs/m11-testing.md) and
+[retained M11 evidence](docs/evidence/m11/README.md). Historical M9 reliability
 and M10 evaluation remain documented in [M9](docs/m9-report.md) and
 [M10](docs/m10-report.md), with selected M10 evidence in
 [`docs/evidence/m10/`](docs/evidence/m10/README.md).

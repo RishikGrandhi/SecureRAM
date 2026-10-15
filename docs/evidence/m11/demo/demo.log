@@ -1,0 +1,171 @@
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools" clean
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+rm -f secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+make -C "/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools"
+make[1]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+cc -I../include -O2 -std=c11 -Wall -Wextra -Werror -Wconversion secureramctl.c  -o secureramctl
+make[1]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/tools'
+SecureRAM Production/Test Boundary
+
+Fault injection                DISABLED / UNAVAILABLE
+Test corruption hooks          DISABLED / UNAVAILABLE
+Secret logging                 ABSENT
+Key dumps                      ABSENT
+Debug bypasses                 ABSENT
+Module version                 0.8.0
+
+Production build isolation PASS.
+[1/9] Production build and test isolation        PASS
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+load-random succeeded: state=ACTIVE (2) generation=1
+[2/9] Load device and install ephemeral key      PASS
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+[3/9] Authenticated block write and exact readback PASS
+{"abi":1,"exists":true,"state":2,"data_bytes":8388608,
+"tag_bytes":65536,"generation":1,"created":1,
+"restored":0,"deleted":0,"failures":0}
+{"abi":1,"exists":true,"state":2,"data_bytes":8388608,
+"tag_bytes":65536,"generation":1,"created":1,
+"restored":1,"deleted":0,"failures":0}
+[4/9] Encrypted snapshot overwrite and rollback  PASS
+lock succeeded: state=LOCKED (3) generation=1
+unlock succeeded: state=ACTIVE (2) generation=1
+[5/9] Key lock denial and unlock retention       PASS
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: ACTIVE (2)
+Capacity: 8.00 MiB (8388608 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+Successful read requests: 3
+Successful write requests: 2
+Successful read bytes: 12288
+Successful write bytes: 8192
+Integrity authentication failures: 0
+[6/9] Status, generation and statistics          PASS
+destroy succeeded: state=NO_KEY (0) generation=1
+[7/9] Production lifecycle cleanup               PASS
+      TEST-ONLY: enabling bounded M4/M5 verification hooks; never a production build.
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: combined M5/M4 test handlers and diagnostics are present
+PASS: identity version=0.8.0 dev=259:0 bytes=8388608 unit=4096 unmounted no-holders no-swap
+load-random succeeded: state=ACTIVE (2) generation=1
+load-random succeeded: state=ACTIVE (2) generation=2
+load-random succeeded: state=ACTIVE (2) generation=3
+load-random succeeded: state=ACTIVE (2) generation=4
+load-random succeeded: state=ACTIVE (2) generation=5
+load-random succeeded: state=ACTIVE (2) generation=6
+PASS: operation=1, EIO, untouched output, latch, rejection, recovery
+PASS: operation=2, EIO, untouched output, latch, rejection, recovery
+PASS: operation=3, EIO, untouched output, latch, rejection, recovery
+PASS: ciphertext, tag, relocation and recovery; final NO_KEY
+[8/9] TEST-ONLY confidentiality and integrity checks PASS
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+SecureRAM Production/Test Boundary
+
+Fault injection                DISABLED / UNAVAILABLE
+Test corruption hooks          DISABLED / UNAVAILABLE
+Secret logging                 ABSENT
+Key dumps                      ABSENT
+Debug bypasses                 ABSENT
+Module version                 0.8.0
+
+Production build isolation PASS.
+[9/9] Restore production artifact and final cleanup PASS
+
+SECURERAM DEMONSTRATION COMPLETE
+Evidence: /home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout/.cache/m11-final/demo-20261015T131119Z-14342

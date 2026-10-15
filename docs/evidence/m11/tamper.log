@@ -1,0 +1,132 @@
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" clean
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+  CLEAN   Module.symvers
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+make -C "/lib/modules/7.0.0-38-generic/build" M="/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout" modules
+make[1]: Entering directory '/usr/src/linux-headers-7.0.0-38-generic'
+make[2]: Entering directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+warning: the compiler differs from the one used to build the kernel
+  The kernel was built by: x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+  You are using:           gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+warning: pahole version differs from the one used to build the kernel
+  The kernel was built with: 125
+  You are using:             0
+  CC [M]  src/secureram_main.o
+  CC [M]  src/secureram_block.o
+  CC [M]  src/secureram_security.o
+  CC [M]  src/secureram_store.o
+  CC [M]  src/secureram_control.o
+  CC [M]  src/secureram_stats.o
+  CC [M]  src/secureram_snapshot.o
+  LD [M]  secureram.o
+  MODPOST Module.symvers
+  CC [M]  secureram.mod.o
+  CC [M]  .module-common.o
+  LD [M]  secureram.ko
+  BTF [M] secureram.ko
+Skipping BTF generation for secureram.ko due to unavailability of vmlinux
+make[2]: Leaving directory '/home/rishik-grandhi/SecureRAM/.cache/m11-repro/20261015T131116Z-13747/checkout'
+make[1]: Leaving directory '/usr/src/linux-headers-7.0.0-38-generic'
+PASS: combined M5/M4 test handlers and diagnostics are present
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+Successful read requests: 0
+Successful write requests: 0
+Successful read bytes: 0
+Successful write bytes: 0
+Integrity authentication failures: 0
+PASS: zero counters, reserved output, EFAULT and passed-fd GET_STATS privilege
+PASS: HTTP observation baseline
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: HTTP load-random completed
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 1
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 1, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=1, EIO, untouched output, latch, rejection, recovery
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 3
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 3, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=2, EIO, untouched output, latch, rejection, recovery
+PASS: M6 integrity observation before-failure
+PASS: M7 HTTP integrity observation before-failure
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: INTEGRITY_FAILED (4)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 5
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 5, "integrity": true, "lock": true, "state": 4, "state_name": "INTEGRITY_FAILED", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: M6 integrity observation failed
+PASS: HTTP destroy completed
+PASS: M7 HTTP integrity observation failed
+PASS: HTTP destroy completed
+PASS: HTTP destroy completed
+PASS: M6 integrity observation destroyed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP destroy completed
+PASS: operation=3, EIO, untouched output, latch, rejection, recovery
+PASS: ciphertext, tag, relocation and recovery; final NO_KEY
+SecureRAM 0.8.0 (CLI 0.8.0)
+ABI: 1
+State: NO_KEY (0)
+Capacity: 64.00 MiB (67108864 bytes)
+Crypto unit: 4096 bytes
+Generation: 6
+Features: 31 XTS LOCK INTEGRITY STATS SNAPSHOT
+Confidentiality: AES-256-XTS
+Integrity: HMAC-SHA-256
+{"abi": 1, "capacity_bytes": 67108864, "cli_version": "0.8.0", "features": 31, "generation": 6, "integrity": true, "lock": true, "state": 0, "state_name": "NO_KEY", "stats": true, "unit_bytes": 4096, "version": "0.8.0", "xts": true}
+PASS: HTTP observation status
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: HTTP destroy completed

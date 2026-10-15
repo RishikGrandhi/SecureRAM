@@ -1,0 +1,104 @@
+[82674.169643] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 8 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82674.169648] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82674.224005] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82674.381709] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82677.908787] secureram: M11-demo-start-14342
+[82677.966736] secureram: M11-demo-start-14342
+[82678.052642] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 8 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82678.052648] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82678.052649] secureram: M4 test build: internal ciphertext checks enabled
+[82678.052649] secureram: M5 test build: privileged bounded corruption hooks enabled
+[82678.147245] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.147258] secureram: M5 test: unit and generation binding PASS
+[82678.147259] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.147283] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.173492] secureram: M4 test: real WRITE backing equals ciphertext and differs from plaintext
+[82678.174850] secureram: M5 test: corruption operation 1 unit 0 other 0
+[82678.174960] secureram: integrity failure at unit 0; device latched INTEGRITY_FAILED
+[82678.187998] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.188011] secureram: M5 test: unit and generation binding PASS
+[82678.188011] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.188072] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.217045] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.217060] secureram: M5 test: unit and generation binding PASS
+[82678.217061] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.217085] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.240138] secureram: M5 test: corruption operation 2 unit 1024 other 0
+[82678.240203] secureram: integrity failure at unit 1024; device latched INTEGRITY_FAILED
+[82678.253009] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.253023] secureram: M5 test: unit and generation binding PASS
+[82678.253023] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.253106] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.281890] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.281903] secureram: M5 test: unit and generation binding PASS
+[82678.281904] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.281928] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.306642] secureram: M5 test: corruption operation 3 unit 1 other 2047
+[82678.306750] secureram: integrity failure at unit 2047; device latched INTEGRITY_FAILED
+[82678.319001] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82678.319014] secureram: M5 test: unit and generation binding PASS
+[82678.319015] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82678.319039] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82678.389345] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82691.684662] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82691.684673] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82693.817912] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82700.728876] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82702.200146] EXT4-fs (secureram0): mounted filesystem 8ce7264e-9943-4196-878e-fb2f3c211430 r/w with ordered data mode. Quota mode: none.
+[82703.528297] EXT4-fs (secureram0): unmounting filesystem 8ce7264e-9943-4196-878e-fb2f3c211430.
+[82703.630129] EXT4-fs (secureram0): mounted filesystem 8ce7264e-9943-4196-878e-fb2f3c211430 r/w with ordered data mode. Quota mode: none.
+[82703.735022] EXT4-fs (secureram0): unmounting filesystem 8ce7264e-9943-4196-878e-fb2f3c211430.
+[82704.095138] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82705.124103] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82705.124113] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82705.629441] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82720.060461] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82720.814377] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82720.924874] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82720.924887] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82721.139491] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82731.461438] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82731.461445] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82731.461446] secureram: M4 test build: internal ciphertext checks enabled
+[82731.461447] secureram: M5 test build: privileged bounded corruption hooks enabled
+[82731.997914] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82731.997931] secureram: M5 test: unit and generation binding PASS
+[82731.997931] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82731.998010] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82732.191884] secureram: M4 test: real WRITE backing equals ciphertext and differs from plaintext
+[82732.193820] secureram: M5 test: corruption operation 1 unit 0 other 0
+[82732.206194] secureram: integrity failure at unit 0; device latched INTEGRITY_FAILED
+[82732.461322] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82732.461377] secureram: M5 test: unit and generation binding PASS
+[82732.461378] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82732.461408] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82732.811938] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82732.811955] secureram: M5 test: unit and generation binding PASS
+[82732.811956] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82732.811986] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82733.117978] secureram: M5 test: corruption operation 2 unit 8192 other 0
+[82733.140034] secureram: integrity failure at unit 8192; device latched INTEGRITY_FAILED
+[82733.846136] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82733.846159] secureram: M5 test: unit and generation binding PASS
+[82733.846161] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82733.846207] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82734.648794] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82734.648828] secureram: M5 test: unit and generation binding PASS
+[82734.648830] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82734.648877] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82735.138300] secureram: M5 test: corruption operation 3 unit 1 other 16383
+[82735.172218] secureram: integrity failure at unit 16383; device latched INTEGRITY_FAILED
+[82735.705324] secureram: M4 test: equal zero units at indices 0/1 have different ciphertext
+[82735.705339] secureram: M5 test: unit and generation binding PASS
+[82735.705340] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82735.705377] secureram: M4 test: 512/4096/3584-byte split-unit gather/scatter PASS
+[82736.915968] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared
+[82745.994001] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[82745.994013] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[82747.123783] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82749.224471] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[82749.420353] EXT4-fs (secureram0): mounted filesystem 5727c0d0-ac28-4524-b5c0-02e5db7e2107 r/w with ordered data mode. Quota mode: none.
+[82750.110515] EXT4-fs (secureram0): unmounting filesystem 5727c0d0-ac28-4524-b5c0-02e5db7e2107.
+[82750.202730] EXT4-fs (secureram0): mounted filesystem 5727c0d0-ac28-4524-b5c0-02e5db7e2107 r/w with ordered data mode. Quota mode: none.
+[82750.301018] EXT4-fs (secureram0): unmounting filesystem 5727c0d0-ac28-4524-b5c0-02e5db7e2107.
+[82751.282094] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared

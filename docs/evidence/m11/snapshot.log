@@ -1,0 +1,14 @@
+Checkout: branch= commit=8f8288602b220d15c90a6b27a5039a23a3885b80
+Kernel/header match: 7.0.0-38-generic
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: new ioctl layouts/reserved output, EFAULT, EINVAL, ENOTTY and passed-fd EPERM
+SHA_A=0625287b1da18ba0f7af8238eeec48a90cc89e3c6463726b32440c49b44fae09
+SHA_B=5c5d8783be260a57a40be1e8a464067101576b407e1d0f40452eafdef8ebb982
+SHA_RESTORED=0625287b1da18ba0f7af8238eeec48a90cc89e3c6463726b32440c49b44fae09
+PASS: full-device deterministic rollback and authenticated reads without mismatches
+PASS: concurrent direct I/O, coherent status, all mutations reject open users
+PASS: counters, LOCKED cleanup, 8 full cycles, racing create, destroy/rekey invalidation
+ACTIVE snapshot left for the harness's orderly unload-with-slot test
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
+PASS: identity version=0.8.0 dev=259:0 bytes=67108864 unit=4096 unmounted no-holders no-swap
