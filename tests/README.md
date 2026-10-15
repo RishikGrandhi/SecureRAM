@@ -261,3 +261,7 @@ collects fio/lifecycle/security evidence; `m10-analyze.py` validates completenes
 generates statistics and optionally renders matplotlib charts. `check-m10-local.py`
 tests measurement aggregation, failed-trial rejection and fixed target controls
 using explicitly synthetic fixtures. See [the M10 procedure](../docs/m10-testing.md).
+`m10-compare.py` audits preserved raw inputs and generates a separate confirmation
+comparison without pooling runs. `m10-layout.py` reads production DWARF structure
+sizes without loading the module. [Retained results](../docs/evidence/m10/README.md)
+record the completed campaigns; rerunning a campaign is not required to render charts.

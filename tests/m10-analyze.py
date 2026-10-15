@@ -190,7 +190,8 @@ def plots(directory, summaries, life, params):
         ax.set_xticks(range(5), workloads, rotation=20)
         ax.set(ylabel=title, ylim=(0, 100 if metric == "guest_busy_pct" else None))
         ax.legend(); ax.grid(axis="y", alpha=.2)
-    fig.suptitle(f"1 job, {cap//MIB} MiB; sequential 128 KiB / random 4 KiB / mixed 70% read")
+    fig.suptitle(f"1 job, {cap//MIB} MiB; sequential 128 KiB / random 4 KiB / mixed 70% read\n"
+                 f"Mean ± sample SD, n={params['trials']}; CPU is VM accounting context, not isolated cost", fontsize=11)
     finish(fig, "baseline-cpu")
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
     for ax, metrics in zip(axes, (("create_ms", "restore_ms", "delete_ms"), ("load_cli_ms", "destroy_with_snapshot_ms"))):
