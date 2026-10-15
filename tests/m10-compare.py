@@ -127,6 +127,9 @@ def compare(directory, make_plots=False):
         output.mkdir(exist_ok=True)
         for extension in ("svg", "png"):
             fig.savefig(output / ("confirmation." + extension), dpi=160)
+        svg = output / "confirmation.svg"
+        svg.write_text("\n".join(line.rstrip() for line in svg.read_text(encoding="utf-8").splitlines()) + "\n",
+                       encoding="utf-8", newline="\n")
         plt.close(fig)
 
 

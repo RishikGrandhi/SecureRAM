@@ -1,0 +1,21 @@
+{
+  "byte_identical_reused_io_files": 450,
+  "primary": {
+    "trials": 150,
+    "hashed_inputs": 302,
+    "driver_over_measured_bytes_min": 1.0034158524939396,
+    "driver_over_measured_bytes_max": 1.7605022477135328,
+    "synchronous_latency_occupancy_min": 0.7695979757019353,
+    "synchronous_latency_occupancy_max": 0.9973407014643116,
+    "result": "PASS"
+  },
+  "confirmation": {
+    "trials": 18,
+    "hashed_inputs": 36,
+    "driver_over_measured_bytes_min": 1.1242182203592128,
+    "driver_over_measured_bytes_max": 1.8757482844210833,
+    "synchronous_latency_occupancy_min": 0.7751293309657401,
+    "synchronous_latency_occupancy_max": 0.997101025465725,
+    "result": "PASS"
+  }
+}

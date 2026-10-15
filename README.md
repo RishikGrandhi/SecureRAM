@@ -49,12 +49,15 @@ VM. Their [M1](docs/m1-report.md), [M2](docs/m2-report.md) and
 [M3](docs/m3-report.md) reports remain historical evidence. M2/M3 stored plaintext;
 their successful tests do not verify this new crypto implementation.
 
-## M9 reliability acceptance
+## M10 evaluation and M9 reliability acceptance
 
-M10 evaluation is being developed separately on `m10-performance-evaluation`
-from main merge `35babfa`. See the [experimental design/report](docs/m10-report.md)
-and [automated benchmark procedure](docs/m10-testing.md). It measures the existing
-production architecture without security switches or driver optimization.
+**M10 evaluation is complete** on `m10-performance-evaluation`, from main
+`35babfa`: 150 primary I/O trials, 10 lifecycle trials, security demonstrations
+and 18 separate confirmation trials passed in the real Ubuntu VM. The
+[report and graphs](docs/m10-report.md), [retained evidence](docs/evidence/m10/README.md)
+and [automated procedure](docs/m10-testing.md) document substantial variability
+and reproducible negative random-read scaling in this VM. Production remains
+unchanged; no security switches or driver optimization were introduced.
 
 M9 passed real Ubuntu VM acceptance on `m9-stress-hardening`, from M8 merge
 `232862e`, at tested commit `fde91b901946a71b0f8fc764c02cce5e57984049`.

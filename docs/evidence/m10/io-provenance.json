@@ -1,0 +1,6 @@
+{
+  "source_run": "20261014T185015Z-5889",
+  "source_commit": "f9b4459a5cca07a27d85678bc085eef6aa0967ee",
+  "trials": 150,
+  "reason": "complete I/O stage preserved after later harness CLI failure; no I/O rerun"
+}

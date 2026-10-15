@@ -1,0 +1,9 @@
+PASS: retained CSV figures regenerated
+PASS: separate campaign comparison and raw evidence audit
+PASS: final analysis/helper Python syntax
+PASS: 20261014T191200Z-7182 all 210 retained metric summaries match raw trials
+PASS: 20261014T191843Z-8451 all 42 retained metric summaries match raw trials
+PASS: M10 report/procedure/evidence local links resolve
+PASS: five data-derived SVG/PNG figure pairs present; visual review completed
+PASS: git diff --check; src/include/tools/Kbuild/Makefile unchanged from main
+PASS: staged evidence whitespace check after normalizing generated SVG path whitespace

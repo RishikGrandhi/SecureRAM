@@ -1,0 +1,4 @@
+[18342.985863] secureram: SecureRAM v0.8.0: /dev/secureram0 ready, 64 MiB, 4096-byte logical blocks (AES-256-XTS; NO_KEY)
+[18342.985878] secureram: /dev/secureramctl: XTS with HMAC-SHA-256 integrity; verify before decrypt
+[18343.550913] secureram: XTS key prepared using provider xts-aes-aesni-avx
+[18575.534510] secureram: SecureRAM: M6 unloaded; devices removed and owned sensitive memory cleared

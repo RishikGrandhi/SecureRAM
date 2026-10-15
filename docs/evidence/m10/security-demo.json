@@ -1,0 +1,7 @@
+{
+  "confidentiality": "PASS",
+  "integrity": "PASS",
+  "snapshot": "see repeated lifecycle exact full-device A/B/A",
+  "generation": "see lifecycle zero-scan and ENODATA",
+  "component_isolation": "SKIP: no safe existing encryption-only mode"
+}

@@ -1,0 +1,3 @@
+capacity_bytes,tag_bytes,staging_bytes,live_payload_bytes,snapshot_payload_bytes
+16777216,131072,8192,16916480,33824768
+67108864,524288,8192,67641344,135274496

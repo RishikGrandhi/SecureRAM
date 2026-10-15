@@ -155,7 +155,11 @@ def plots(directory, summaries, life, params):
     cap = params["capacity_mib"] * MIB
     def finish(fig, name):
         fig.tight_layout()
-        fig.savefig(output / (name + ".svg"))
+        svg = output / (name + ".svg")
+        fig.savefig(svg)
+        # Matplotlib emits trailing spaces in SVG path data; keep Git output clean.
+        svg.write_text("\n".join(line.rstrip() for line in svg.read_text(encoding="utf-8").splitlines()) + "\n",
+                       encoding="utf-8", newline="\n")
         fig.savefig(output / (name + ".png"), dpi=160)
         plt.close(fig)
     def series(ax, target, rw, bs, field, metric, label):

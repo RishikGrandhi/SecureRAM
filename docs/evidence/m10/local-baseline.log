@@ -1,0 +1,205 @@
+test_complete_and_mixed_units (__main__.Oracles.test_complete_and_mixed_units) ... ok
+test_eof_is_distinct_from_signed_offset_overflow (__main__.Oracles.test_eof_is_distinct_from_signed_offset_overflow) ... ok
+test_m9_session_timeout_cleans_process_group (__main__.Oracles.test_m9_session_timeout_cleans_process_group) ... ok
+test_snapshot_oracle_rejects_missing_restore (__main__.Oracles.test_snapshot_oracle_rejects_missing_restore) ... PASS: 4 snapshot A/B/restore cycles; direct authenticated data verified
+ok
+test_thread_failure_propagates (__main__.Oracles.test_thread_failure_propagates) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.090s
+
+OK
+PASS: health rejects KCSAN/hung-task/lockdep/memory faults and lost/empty capture
+PASS: M9 pin/config validation, phase execution/order and failure propagation (mocked)
+PASS: fault W=1 build and one-shot selector linkage
+PASS: all-test W=1 build and one-shot selector linkage
+PASS: environment
+PASS: combined-clean
+PASS: combined
+PASS: combined-nm
+PASS: combined-strings
+PASS: combined-dispatch
+PASS: combined-preprocess
+PASS: test-clean
+PASS: test
+PASS: test-nm
+PASS: test-strings
+PASS: test-dispatch
+PASS: test-preprocess
+PASS: production-clean
+PASS: production
+PASS: production-nm
+PASS: production-strings
+PASS: production-dispatch
+PASS: production-preprocess
+PASS: modinfo
+PASS: imports
+PASS: block-imports
+PASS: cli
+PASS: m4-helper
+PASS: abi-32-False
+PASS: abi-32-True
+PASS: abi-64-False
+PASS: abi-64-True
+PASS: checkpatch
+PASS: abi-checkpatch
+PASS: all Python bytecode checks
+PASS: shell-0-check-m5-vm-harness
+PASS: shell-1-check-m6-vm-harness
+PASS: shell-2-check-m7-vm-harness
+PASS: shell-3-check-m8-vm-harness
+PASS: shell-4-check-m9-health
+PASS: shell-5-check-m9-vm-harness
+PASS: shell-6-m5-vm-common
+PASS: shell-7-m6-vm-phases
+PASS: shell-8-m7-harness-mocks
+PASS: shell-9-m7-vm-phases
+PASS: shell-10-m8-vm-phases
+PASS: shell-11-m9-vm-phases
+PASS: shell-12-run-m5-capacity
+PASS: shell-13-run-m5-final
+PASS: shell-14-run-m5-production
+PASS: shell-15-run-m5-tamper
+PASS: shell-16-run-m5-vm-acceptance
+PASS: shell-17-run-m6-vm-acceptance
+PASS: shell-18-run-m7-vm-acceptance
+PASS: shell-19-run-m8-vm-acceptance
+PASS: shell-20-run-m9-vm-acceptance
+PASS: shell-21-vm-report
+PASS: shell-22-check-environment
+PASS: harness-selftest
+NOT RUN: ShellCheck is not installed (no packages installed)
+PASS: diff-check
+PASS: local verification; VM/runtime acceptance remains NOT RUN
+PASS: real snapshot/store code, state/generation/geometry, paired copies, 100 cycles,
+allocation failures, publication, saturation, idempotence, wipe-before-free and no leaks
+make -C "/mnt/c/Coding/Projects/SecureRAM/tools" clean
+make[1]: Entering directory '/mnt/c/Coding/Projects/SecureRAM/tools'
+rm -f secureramctl
+make[1]: Leaving directory '/mnt/c/Coding/Projects/SecureRAM/tools'
+make -C "/mnt/c/Coding/Projects/SecureRAM/tools"
+make[1]: Entering directory '/mnt/c/Coding/Projects/SecureRAM/tools'
+cc -I../include -O2 -std=c11 -Wall -Wextra -Werror -Wconversion secureramctl.c  -o secureramctl
+make[1]: Leaving directory '/mnt/c/Coding/Projects/SecureRAM/tools'
+PASS: CLI parsing, JSON/all states/u64/null version, errors, ABI/features, transitions
+PASS: protected 64-byte random load, EINTR/short reads, wipe before munlock on all generated-key exits
+PASS: M8 CLI fixed commands, JSON/u64, features/ABI, all states, failure diagnostics and follow-up failure
+PASS: all dashboard/test Python bytecode checks
+PASS: static references, unique IDs, accessibility labels, CSP and offline asset integrity
+test_allowlist_before_spawn (__main__.ContractTests.test_allowlist_before_spawn) ... ok
+test_bad_types_ranges_duplicates_and_mismatch (__main__.ContractTests.test_bad_types_ranges_duplicates_and_mismatch) ... ok
+test_entrypoint_refuses_unprivileged_or_non_linux_launch (__main__.ContractTests.test_entrypoint_refuses_unprivileged_or_non_linux_launch) ... ok
+test_real_entrypoint_signals_and_no_state_change (__main__.ContractTests.test_real_entrypoint_signals_and_no_state_change) ... ok
+test_symlink_static_escape_and_cli_symlink (__main__.ContractTests.test_symlink_static_escape_and_cli_symlink) ... ok
+test_u64_max_and_unknown_state_feature (__main__.ContractTests.test_u64_max_and_unknown_state_feature) ... ok
+test_worker_bound_and_shutdown_idle_connections (__main__.ContractTests.test_worker_bound_and_shutdown_idle_connections) ... dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+dashboard: request handler failed
+ok
+test_actions_destroy_confirmation_and_failure_latch (__main__.HTTPTests.test_actions_destroy_confirmation_and_failure_latch) ... ok
+test_auth_missing_wrong_empty_and_query_substitution (__main__.HTTPTests.test_auth_missing_wrong_empty_and_query_substitution) ... ok
+test_busy_bound_and_timeout_releases_lock (__main__.HTTPTests.test_busy_bound_and_timeout_releases_lock) ... dashboard: controller_busy
+dashboard: cli_timeout
+ok
+test_concurrent_polling_and_actions_serialized (__main__.HTTPTests.test_concurrent_polling_and_actions_serialized) ... ok
+test_errors_are_sanitized_and_non_success (__main__.HTTPTests.test_errors_are_sanitized_and_non_success) ... dashboard: cli_missing
+dashboard: permission_denied
+dashboard: cli_timeout
+dashboard: abi_mismatch
+dashboard: module_absent
+dashboard: permission_denied
+dashboard: action_uncertain
+dashboard: cli_failure
+ok
+test_get_cannot_change_state_and_unknown_actions (__main__.HTTPTests.test_get_cannot_change_state_and_unknown_actions) ... ok
+test_host_origin_and_fetch_metadata (__main__.HTTPTests.test_host_origin_and_fetch_metadata) ... ok
+test_loopback_token_and_static_headers (__main__.HTTPTests.test_loopback_token_and_static_headers) ... ok
+test_malformed_cli_json_and_internal_error_no_traceback (__main__.HTTPTests.test_malformed_cli_json_and_internal_error_no_traceback) ... dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+dashboard: malformed_cli_json
+ok
+test_malformed_size_type_and_schema (__main__.HTTPTests.test_malformed_size_type_and_schema) ... ok
+test_post_requires_origin (__main__.HTTPTests.test_post_requires_origin) ... ok
+test_rapid_load_does_not_bypass_cli_state (__main__.HTTPTests.test_rapid_load_does_not_bypass_cli_state) ... ok
+test_raw_duplicate_framing_and_bad_request (__main__.HTTPTests.test_raw_duplicate_framing_and_bad_request) ... ok
+test_read_routes_and_lossless_json (__main__.HTTPTests.test_read_routes_and_lossless_json) ... ok
+test_referrer_policy_preserves_exact_post_origin (__main__.HTTPTests.test_referrer_policy_preserves_exact_post_origin) ... ok
+test_token_not_logged_even_in_rejected_url (__main__.HTTPTests.test_token_not_logged_even_in_rejected_url) ... ok
+test_traversal_fixed_asset_allowlist (__main__.HTTPTests.test_traversal_fixed_asset_allowlist) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 4.132s
+
+OK
+PASS: UI exact u64 display, delta rates, stale/reset handling and lifecycle availability
+PASS: separate bash -n for each of 23 shell scripts
+PASS: M5 harness syntax, parameter, scope, cleanup, status and mocked ext4 flow
+PASS: statistics equal
+PASS: statistics retained
+PASS: statistics increased
+PASS: quiescent single-unit direct read/write each add one request and 4096 bytes
+mock stats
+PASS: zero counters, reserved output, EFAULT and passed-fd GET_STATS privilege
+PASS: M6 integrity observation before-failure
+PASS: M6 integrity observation failed
+PASS: M6 integrity observation destroyed
+PASS: M6 integrity observation reloaded
+PASS: M6 integrity observation failed
+PASS: actual statistics schema, baseline, deltas, lifetime and tamper observers with mocks
+Usage
+{"read_requests":0,"write_requests":0,"read_bytes":0,"write_bytes":0,"integrity_failures":0}
+{"read_requests":0,"write_requests":0,"read_bytes":0,"write_bytes":0,"integrity_failures":0}
+Phase failed: command_status=1 cleanup_status=0
+PASS: M6 full mocked phases, capacities, ext4/busy/remount, fail-fast, owned cleanup, refusal, summary, early abort and evidence guards
+PASS: actual M7 phase overrides, HTTP lifecycle/busy/observation routing and security assertions
+test_bad_http_schema_rejected (__main__.ObservationTests.test_bad_http_schema_rejected) ... ok
+test_integrity_observer_checks_failures_and_recovery (__main__.ObservationTests.test_integrity_observer_checks_failures_and_recovery) ... ok
+test_real_http_assertions_and_failures (__main__.ObservationTests.test_real_http_assertions_and_failures) ... dashboard: module_absent
+dashboard: module_absent
+ok
+test_stop_timeout_is_failure_even_after_kill (__main__.SessionTests.test_stop_timeout_is_failure_even_after_kill) ... ok
+test_success_and_early_abort_cleanup (__main__.SessionTests.test_success_and_early_abort_cleanup) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.659s
+
+OK
+PASS: M7 HTTP integrity observation before-failure
+PASS: M7 HTTP integrity observation failed
+PASS: M7 HTTP integrity observation destroyed
+PASS: M7 HTTP integrity observation reloaded
+PASS: HTTP observation baseline
+PASS: HTTP load-random completed
+PASS: HTTP lock completed
+PASS: HTTP unlock completed
+PASS: HTTP load-random EBUSY
+PASS: HTTP destroy completed
+PASS: HTTP observation save
+PASS: HTTP observation equal
+PASS: HTTP observation retained
+PASS: HTTP auth, static assets, reload survival, adversarial routes and cross-origin checks
+PASS: M7 mocked harness, early aborts, process cleanup and HTTP assertion self-tests
+NOT RUN: ShellCheck not installed
+PASS: M7 local checks; VM acceptance and real-device visual checks are separate
+test_confirmation_and_security_all_routes (__main__.SnapshotTests.test_confirmation_and_security_all_routes) ... ok
+test_full_flow_and_fixed_argv (__main__.SnapshotTests.test_full_flow_and_fixed_argv) ... ok
+test_strict_schema_precision_and_errors (__main__.SnapshotTests.test_strict_schema_precision_and_errors) ... dashboard: snapshot_memory
+dashboard: action_uncertain
+ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.654s
+
+OK
+PASS: M8 full-SHA gate, real phase ordering, unload/reload, latch phase and fail-fast behavior
+PASS: snapshot UI state, feature, stale, busy and mismatched observation gating
+PASS: M8 local checks; real VM/kernel and Ubuntu browser acceptance remain separate
+PASS: M9 local checks and production exclusion; VM kernel stress remains separate
